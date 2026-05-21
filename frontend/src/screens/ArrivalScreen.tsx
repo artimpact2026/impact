@@ -1,12 +1,18 @@
-// 지역 도착 화면 — PRD 2.지역 도착 화면 (단순 랜딩)
-// "📍 ○○ 도착!" + 캐릭터 + 우편함 카드 + "미션 시작하기" CTA
-// 미션 리스트는 별도 화면(MissionListScreen)에서 다루므로 여기는 단순 랜딩에 집중한다.
+// 지역 마을 도착 홈 — 동물의 숲 톤의 홈 화면
+// 상단 헤더(마을명) + 중앙 히어로 씬(배경/캐릭터/표지판/우편함) + 오늘의 미션 카드
+// 글로벌 BottomNav(홈/나의 여정)와 함께 사용 — 자체 탭 없음
 
 import { useState } from "react";
-import { motion } from "framer-motion";
-import Character from "../components/Character";
+import RegionHeader from "../components/arrival/RegionHeader";
+import RegionHeroScene from "../components/arrival/RegionHeroScene";
+import TodayMissionCard from "../components/arrival/TodayMissionCard";
 import MailboxModal from "../components/MailboxModal";
 import { storiesByResidenceId } from "../data/stories";
+import {
+  VILLAGE_CONFIG,
+  DEFAULT_VILLAGE,
+  type VillageConfig,
+} from "../data/villageConfig";
 import type { Residence } from "../data/residences";
 
 type Props = {
@@ -21,125 +27,58 @@ export default function ArrivalScreen({
   onStartMissions,
 }: Props) {
   const [showMail, setShowMail] = useState(false);
+
+  const config: VillageConfig =
+    VILLAGE_CONFIG[residence.id] ?? DEFAULT_VILLAGE;
   const story = storiesByResidenceId[residence.id] ?? null;
+  const unreadLetters = story ? 1 : 0;
 
   return (
-    <div className="relative min-h-[calc(100dvh-6rem)] flex flex-col">
-      {/* 따뜻한 톤 배경 */}
+    <div className="relative min-h-[calc(100dvh-6rem)] flex flex-col overflow-hidden">
+      {/* 배경 — 지역 톤 그라데이션 */}
       <div
         className="absolute inset-0 -z-10
-                   bg-gradient-to-b from-nature-50 via-cream to-cream"
+                   bg-[linear-gradient(to_bottom,#BDE7FF_0%,#FFF6E8_45%,#F6EAD8_100%)]"
         aria-hidden
       />
 
-      {/* 헤더 */}
-      <header className="pt-12 px-5 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={onBack}
-          aria-label="홈으로"
-          className="w-9 h-9 rounded-full bg-white shadow-soft
-                     flex items-center justify-center text-ink"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <path
-              d="M15 6 9 12l6 6"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </button>
-        <p className="text-ink-soft text-[12px] font-medium">잠시섬 도착</p>
-      </header>
+      {/* 헤더 (단순 — 뒤로가기 + 마을명) */}
+      <RegionHeader headerTitle={config.headerTitle} onBack={onBack} />
 
-      {/* 도착 타이틀 + 캐릭터 */}
-      <section className="px-6 mt-2 text-center">
-        <motion.h1
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-ink text-[26px] font-extrabold"
-        >
-          📍 {residence.region} 도착!
-        </motion.h1>
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.15, duration: 0.5 }}
-          className="mt-1 text-ink-soft text-[13px]"
-        >
-          {residence.name} · {residence.duration}
-        </motion.p>
+      {/* 도착 메시지 */}
+      <div className="px-5 mt-1">
+        <p className="text-[11px] font-extrabold tracking-widest uppercase text-[#FF7043]">
+          오늘의 마을
+        </p>
+        <h2 className="mt-0.5 text-[#4A3326] text-[20px] font-extrabold leading-tight">
+          📍 {config.arrivalTitle}
+        </h2>
+        <p className="mt-1 text-[#7A6254] text-[12px] leading-relaxed">
+          {config.subtitle}
+        </p>
+      </div>
 
-        <motion.div
-          initial={{ scale: 0.85, opacity: 0, y: 12 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="mx-auto w-44 mt-3"
-        >
-          <Character className="w-full h-auto" />
-        </motion.div>
+      {/* 히어로 씬 */}
+      <RegionHeroScene
+        theme={config.theme}
+        signLabel={config.signLabel}
+        speechBubble={config.speechBubble}
+        unreadLetters={unreadLetters}
+        onMailboxClick={() => setShowMail(true)}
+      />
 
-        {/* 발 밑 그림자 라인 */}
-        <div className="mx-auto w-32 h-1.5 rounded-full bg-nature-200/60 -mt-2" />
-      </section>
-
-      {/* 우편함 카드 */}
-      <section className="px-5 mt-5">
-        <button
-          type="button"
-          onClick={() => setShowMail(true)}
-          className="w-full bg-white border border-cream-200 rounded-2xl
-                     p-3.5 flex items-center gap-3 shadow-soft active:scale-[0.99]"
-        >
-          <div className="w-10 h-10 rounded-2xl bg-primary-50 flex items-center justify-center text-xl shrink-0">
-            📮
-          </div>
-          <div className="flex-1 text-left">
-            <p className="text-ink text-[14px] font-bold leading-tight">
-              우편함이 도착했어요
-            </p>
-            <p className="mt-0.5 text-ink-soft text-[12px]">
-              {story?.author ?? "주민"}님의 이야기 한 통
-            </p>
-          </div>
-          <span className="text-primary text-[12px] font-bold">열기 ›</span>
-        </button>
-      </section>
-
-      {/* 안내 카피 */}
-      <section className="flex-1 px-6 mt-6 flex flex-col items-center justify-center text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.5 }}
-          className="max-w-[280px]"
-        >
-          <p className="text-ink text-[15px] font-bold leading-snug">
-            오늘 하루, 거제에서 잠시 살아볼까요?
-          </p>
-          <p className="mt-1.5 text-ink-soft text-[13px] leading-relaxed">
-            8가지 미션을 하나씩 체험해보면 이 동네의 결이 보여요.
-          </p>
-        </motion.div>
-      </section>
-
-      {/* 하단 CTA */}
-      <footer className="px-6 pb-8 pt-4">
-        <motion.button
-          type="button"
+      {/* 오늘의 미션 카드 */}
+      <section className="px-5 mt-4 pb-8">
+        <TodayMissionCard
+          title={config.missionTitle}
+          description={config.missionDescription}
+          progressCurrent={config.progressCurrent}
+          progressTotal={config.progressTotal}
+          rewardShells={config.rewardShells}
+          rewardTickets={config.rewardTickets}
           onClick={onStartMissions}
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6, duration: 0.4 }}
-          className="w-full py-4 rounded-2xl bg-primary text-white text-[17px] font-extrabold
-                     shadow-soft active:scale-[0.99] transition"
-        >
-          미션 시작하기 🎒
-        </motion.button>
-      </footer>
+        />
+      </section>
 
       {/* 우편함 모달 */}
       <MailboxModal

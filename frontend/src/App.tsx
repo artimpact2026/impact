@@ -5,11 +5,15 @@ import DepartureScreen from "./screens/DepartureScreen";
 import TravelingScreen from "./screens/TravelingScreen";
 import ArrivalScreen from "./screens/ArrivalScreen";
 import MissionListScreen from "./screens/MissionListScreen";
+import MissionTravelingScreen from "./screens/MissionTravelingScreen";
 import MissionExecuteScreen from "./screens/MissionExecuteScreen";
-import RouteSummaryScreen from "./screens/RouteSummaryScreen";
+import DailySummaryScreen from "./screens/DailySummaryScreen";
 import JourneyScreen from "./screens/JourneyScreen";
 import MigrationReportScreen from "./screens/MigrationReportScreen";
 import MoveInScreen from "./screens/MoveInScreen";
+import ResidenceListScreen from "./screens/ResidenceListScreen";
+import ResidenceDetailScreen from "./screens/ResidenceDetailScreen";
+import SettingsScreen from "./screens/SettingsScreen";
 import HospitalMissionScreen from "./screens/mission/HospitalMissionScreen";
 import OnboardingShell, {
   type OnboardingResult,
@@ -24,6 +28,7 @@ import { HOME_POSITIONS, type RegionPos } from "./data/regions";
 import { baseMissions, type Mission } from "./data/missions";
 import {
   bumpVisit,
+  calculateMatch,
   completeMissionFor,
   type RegionRecord,
 } from "./data/journey";
@@ -48,11 +53,18 @@ type Tab1Route =
   | "traveling"
   | "arrival"
   | "mission-list"
+  | "mission-traveling"
   | "mission-execute"
-  | "route-summary";
+  | "daily-summary";
 
 // 탭2 화면 흐름
-type Tab2Route = "journey" | "report" | "move-in";
+type Tab2Route =
+  | "journey"
+  | "report"
+  | "move-in"
+  | "settings"
+  | "residence-list"
+  | "residence-detail";
 
 // localStorage 키
 const PROFILE_KEY = "cheongpung.onboarding.v1";
@@ -61,6 +73,8 @@ const PROGRESS_KEY = "cheongpung.progress.v1";
 type SavedProfile = {
   homeRegionName: string;
   lifestyle: LifeStyleType;
+  email?: string;
+  nickname?: string;
 };
 
 function loadProfile(): SavedProfile | null {
@@ -87,7 +101,7 @@ function saveProgress(p: Record<string, RegionRecord>) {
   try {
     localStorage.setItem(PROGRESS_KEY, JSON.stringify(p));
   } catch {
-    /* 저장 실패 무시 */
+    /* ignore */
   }
 }
 
@@ -103,21 +117,21 @@ export default function App() {
   const [regionProgress, setRegionProgress] = useState<
     Record<string, RegionRecord>
   >(() => loadProgress());
-  // 탭2에서 리포트 보기로 들어간 지역
-  const [reportResidenceId, setReportResidenceId] = useState<string | null>(
-    null
-  );
-  // 이주 결정한 지역 (move-in 화면용)
-  const [moveInResidenceId, setMoveInResidenceId] = useState<string | null>(
-    null
-  );
+  const [reportResidenceId, setReportResidenceId] = useState<string | null>(null);
+  const [moveInResidenceId, setMoveInResidenceId] = useState<string | null>(null);
+  // 레지던스 상세 화면용
+  const [viewingResidenceId, setViewingResidenceId] = useState<string | null>(null);
+  // 레지던스 리스트 진입 시 필터(지역)
+  const [residenceListRegion, setResidenceListRegion] = useState<string | null>(null);
+  // 상세에서 뒤로 갈 때 list로 갈지 report로 갈지 추적
+  const [detailEntry, setDetailEntry] = useState<"list" | "report">("list");
 
-  // 진행 상태 변경 시 localStorage에 영속
+  // 진행 상태 localStorage 영속
   useEffect(() => {
     saveProgress(regionProgress);
   }, [regionProgress]);
 
-  // 데모 편의: 콘솔 cheongpung.reset() — 온보딩 + 진행 상태 초기화
+  // 데모 리셋
   useEffect(() => {
     (window as unknown as { cheongpung?: { reset: () => void } }).cheongpung = {
       reset: () => {
@@ -132,6 +146,8 @@ export default function App() {
         setRegionProgress({});
         setReportResidenceId(null);
         setMoveInResidenceId(null);
+        setViewingResidenceId(null);
+        setResidenceListRegion(null);
       },
     };
   }, []);
@@ -139,10 +155,13 @@ export default function App() {
   if (hash === "#hospital") return <HospitalMissionScreen />;
 
   const handleOnboardingComplete = (r: OnboardingResult) => {
-    // 새 온보딩은 본 지역을 묻지 않음 — 기본 "서울"로 설정 (추후 설정에서 변경 가능)
+    const email = r.data.email || "";
+    const nickname = email.split("@")[0] || "여행자";
     const next: SavedProfile = {
-      homeRegionName: "서울",
+      homeRegionName: r.data.homeRegion || "서울",
       lifestyle: r.lifestyle,
+      email,
+      nickname,
     };
     try {
       localStorage.setItem(PROFILE_KEY, JSON.stringify(next));
@@ -156,8 +175,8 @@ export default function App() {
     return <OnboardingShell onComplete={handleOnboardingComplete} />;
   }
 
-  // 본 지역 좌표 — HOME_POSITIONS 우선, 없으면 residences 좌표 fallback
   const homeRegion = profile.homeRegionName;
+  const nickname = profile.nickname ?? "여행자";
   const matchedResidence = residences.find((r) => r.region === homeRegion);
   const homePos: RegionPos =
     HOME_POSITIONS[homeRegion] ??
@@ -165,7 +184,7 @@ export default function App() {
       ? { xPct: matchedResidence.xPct, yPct: matchedResidence.yPct }
       : HOME_POSITIONS["서울"]);
 
-  // 현재 지역의 진행 데이터 (탭1 미션 화면용)
+  // 현재 지역 진행 데이터
   const currentRecord = selected ? regionProgress[selected.id] : undefined;
   const currentCompletedIds = new Set(currentRecord?.completedMissionIds ?? []);
   const currentScore = currentRecord?.score ?? 0;
@@ -176,22 +195,14 @@ export default function App() {
     setTab(next);
   };
 
-  // 도착 시 visit count +1
   const handleTravelComplete = () => {
-    if (selected) {
-      setRegionProgress((p) => bumpVisit(p, selected.id));
-    }
+    if (selected) setRegionProgress((p) => bumpVisit(p, selected.id));
     setTab1Route("arrival");
   };
 
-  // 미션 완료 — 현재 지역에 점수 누적
   const handleMissionComplete = () => {
     if (!activeMission || !selected) return;
-    const newProgress = completeMissionFor(
-      regionProgress,
-      selected.id,
-      activeMission
-    );
+    const newProgress = completeMissionFor(regionProgress, selected.id, activeMission);
     setRegionProgress(newProgress);
     setActiveMission(null);
 
@@ -199,31 +210,25 @@ export default function App() {
     const allDone = baseMissions.every((m) =>
       updatedRecord?.completedMissionIds.includes(m.id)
     );
-    setTab1Route(allDone ? "route-summary" : "mission-list");
+    setTab1Route(allDone ? "daily-summary" : "mission-list");
   };
 
-  // 탭2 리포트 진입
   const handleOpenReport = (residence: Residence) => {
     setReportResidenceId(residence.id);
     setTab2Route("report");
   };
 
-  // 이주 결정 → MoveIn 화면
   const handleDecideMove = () => {
     if (!reportResidenceId) return;
     setMoveInResidenceId(reportResidenceId);
     setTab2Route("move-in");
   };
 
-  // MoveIn → 홈 (profile.homeRegionName 변경, 홈 탭으로 복귀)
   const handleMoveInDone = () => {
     if (!moveInResidenceId) return;
     const res = residences.find((r) => r.id === moveInResidenceId);
     if (!res) return;
-    const next: SavedProfile = {
-      ...profile,
-      homeRegionName: res.region,
-    };
+    const next: SavedProfile = { ...profile, homeRegionName: res.region };
     try {
       localStorage.setItem(PROFILE_KEY, JSON.stringify(next));
     } catch {
@@ -238,12 +243,43 @@ export default function App() {
     setTab2Route("journey");
   };
 
-  // 탭2 리포트/이주 결정용 지역 조회
+  // 하루 요약 → "이 지역 레지던스 보기" → tab2 residence-list
+  const handleSeeResidencesFromSummary = () => {
+    if (!selected) return;
+    setResidenceListRegion(selected.region);
+    setTab("journey");
+    setTab2Route("residence-list");
+  };
+
+  // 리스트에서 카드 탭 → 상세
+  const handleSelectResidenceFromList = (r: Residence) => {
+    setViewingResidenceId(r.id);
+    setDetailEntry("list");
+    setTab("journey");
+    setTab2Route("residence-detail");
+  };
+
+  // 리포트에서 "신청하기" → 상세 (back은 report로)
+  const handleApplyFromReport = (r: Residence) => {
+    setViewingResidenceId(r.id);
+    setDetailEntry("report");
+    setTab2Route("residence-detail");
+  };
+
+  // 설정 화면 진입
+  const handleOpenSettings = () => {
+    setTab("journey");
+    setTab2Route("settings");
+  };
+
   const reportResidence = reportResidenceId
     ? residences.find((r) => r.id === reportResidenceId)
     : null;
   const moveInResidence = moveInResidenceId
     ? residences.find((r) => r.id === moveInResidenceId)
+    : null;
+  const viewingResidence = viewingResidenceId
+    ? residences.find((r) => r.id === viewingResidenceId)
     : null;
 
   return (
@@ -295,30 +331,50 @@ export default function App() {
             onBack={() => setTab1Route("arrival")}
             onSelectMission={(m) => {
               setActiveMission(m);
-              setTab1Route("mission-execute");
+              setTab1Route("mission-traveling");
             }}
-            onSelectFinal={() => setTab1Route("route-summary")}
+            onSelectFinal={() => setTab1Route("daily-summary")}
           />
         )}
 
-        {tab === "home" &&
-          tab1Route === "mission-execute" &&
-          activeMission && (
-            <MissionExecuteScreen
-              mission={activeMission}
-              onClose={() => {
-                setActiveMission(null);
-                setTab1Route("mission-list");
-              }}
-              onComplete={handleMissionComplete}
-            />
-          )}
+        {tab === "home" && tab1Route === "mission-traveling" && activeMission && (
+          <MissionTravelingScreen
+            mission={activeMission}
+            onComplete={() => setTab1Route("mission-execute")}
+          />
+        )}
 
-        {tab === "home" && tab1Route === "route-summary" && selected && (
-          <RouteSummaryScreen
+        {tab === "home" && tab1Route === "mission-execute" && activeMission && (
+          <MissionExecuteScreen
+            mission={activeMission}
+            onClose={() => {
+              setActiveMission(null);
+              setTab1Route("mission-list");
+            }}
+            onComplete={handleMissionComplete}
+          />
+        )}
+
+        {tab === "home" && tab1Route === "daily-summary" && selected && (
+          <DailySummaryScreen
             region={selected.region}
             completedIds={currentCompletedIds}
             totalScore={currentScore}
+            todayScore={currentScore}
+            prevMatch={Math.max(
+              0,
+              calculateMatch(profile.lifestyle, selected, currentRecord) - 7
+            )}
+            newMatch={calculateMatch(
+              profile.lifestyle,
+              selected,
+              currentRecord
+            )}
+            onSeeResidences={handleSeeResidencesFromSummary}
+            onSeeJourney={() => {
+              setTab("journey");
+              setTab2Route("journey");
+            }}
             onClose={() => setTab1Route("mission-list")}
           />
         )}
@@ -328,7 +384,24 @@ export default function App() {
           <JourneyScreen
             regionProgress={regionProgress}
             lifestyle={profile.lifestyle}
+            nickname={nickname}
+            homeRegion={homeRegion}
+            onOpenSettings={handleOpenSettings}
             onOpenReport={handleOpenReport}
+          />
+        )}
+
+        {tab === "journey" && tab2Route === "settings" && (
+          <SettingsScreen
+            nickname={nickname}
+            email={profile.email}
+            lifestyle={profile.lifestyle}
+            homeRegion={homeRegion}
+            onBack={() => setTab2Route("journey")}
+            onReset={() => {
+              (window as unknown as { cheongpung?: { reset: () => void } })
+                .cheongpung?.reset();
+            }}
           />
         )}
 
@@ -346,6 +419,7 @@ export default function App() {
                 setTab2Route("journey");
               }}
               onDecideMove={handleDecideMove}
+              onApplyResidence={handleApplyFromReport}
             />
           )}
 
@@ -353,6 +427,30 @@ export default function App() {
           <MoveInScreen
             residence={moveInResidence}
             onGoHome={handleMoveInDone}
+          />
+        )}
+
+        {tab === "journey" && tab2Route === "residence-list" && (
+          <ResidenceListScreen
+            filterRegion={residenceListRegion ?? undefined}
+            lifestyle={profile.lifestyle}
+            onBack={() => {
+              setResidenceListRegion(null);
+              setTab2Route("journey");
+            }}
+            onSelectResidence={handleSelectResidenceFromList}
+          />
+        )}
+
+        {tab === "journey" && tab2Route === "residence-detail" && viewingResidence && (
+          <ResidenceDetailScreen
+            residence={viewingResidence}
+            lifestyle={profile.lifestyle}
+            record={regionProgress[viewingResidence.id]}
+            onBack={() => {
+              setViewingResidenceId(null);
+              setTab2Route(detailEntry === "report" ? "report" : "residence-list");
+            }}
           />
         )}
       </main>

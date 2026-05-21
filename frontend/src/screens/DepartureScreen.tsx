@@ -1,8 +1,9 @@
 // 탭1 떠나기 화면 — PRD 2.떠나기
-// 상단 텍스트 + 한반도 지도 위 추천 마커 + 마커 선택 시 바텀시트
-// "여기로 떠나기"는 다음 단계(이동 애니메이션 → 지역 도착)로 연결 예정
+// 한반도 지도 + 마커 + 추천/전체 토글
+// 추천: recommended:true 인 3개, 전체: 15개 모두
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 import KoreaMap from "../components/KoreaMap";
 import ResidenceMarker from "../components/ResidenceMarker";
 import ResidenceSheet from "../components/ResidenceSheet";
@@ -14,22 +15,28 @@ type Props = {
   onDepart: (residence: Residence) => void;
 };
 
+type ViewMode = "recommended" | "all";
+
 export default function DepartureScreen({ homeRegion, onBack, onDepart }: Props) {
-  // 현재 선택된 레지던스 — null이면 바텀시트 닫힘
+  const [view, setView] = useState<ViewMode>("recommended");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = residences.find((r) => r.id === selectedId) ?? null;
 
+  const visible =
+    view === "recommended"
+      ? residences.filter((r) => r.recommended)
+      : residences;
+
   return (
-    // BottomNav(고정 ~80px)에 가려지지 않도록 화면 높이를 nav만큼 줄임
     <div className="relative min-h-[calc(100dvh-6rem)] flex flex-col">
-      {/* 상단 그라데이션 배경 (바다 느낌) */}
+      {/* 배경 */}
       <div
         className="absolute inset-0 -z-10
                    bg-gradient-to-b from-[#EAF4FB] via-cream to-cream"
         aria-hidden
       />
 
-      {/* 헤더 — 뒤로가기 + 타이틀 */}
+      {/* 헤더 */}
       <header className="pt-12 px-5 flex items-center gap-2">
         <button
           type="button"
@@ -49,23 +56,41 @@ export default function DepartureScreen({ homeRegion, onBack, onDepart }: Props)
           </svg>
         </button>
         <div className="flex-1">
-          <p className="text-ink-soft text-[12px] font-medium">📍 본 지역 {homeRegion}</p>
+          <p className="text-ink-soft text-[12px] font-medium">
+            📍 본 지역 {homeRegion}
+          </p>
           <h1 className="text-ink text-[20px] font-extrabold leading-tight">
             어디로 가볼까?
           </h1>
         </div>
       </header>
 
-      {/* 안내 */}
-      <p className="mt-2 px-5 text-ink-soft text-[13px] leading-relaxed">
-        취향에 맞춰 추천된 레지던스예요. 마커를 눌러 자세히 살펴보세요.
-      </p>
+      {/* 안내 + 토글 */}
+      <div className="mt-2 px-5 flex items-center justify-between gap-2">
+        <p className="text-ink-soft text-[12px] leading-relaxed">
+          {view === "recommended"
+            ? "취향에 맞춘 추천 레지던스예요."
+            : `전국 ${residences.length}개 레지던스를 모두 보여드려요.`}
+        </p>
+        <div className="flex bg-white border border-cream-200 rounded-full p-0.5 shadow-soft shrink-0">
+          <ToggleBtn
+            label="추천"
+            active={view === "recommended"}
+            onClick={() => setView("recommended")}
+          />
+          <ToggleBtn
+            label={`전체 ${residences.length}`}
+            active={view === "all"}
+            onClick={() => setView("all")}
+          />
+        </div>
+      </div>
 
       {/* 지도 영역 */}
       <section className="flex-1 px-3 mt-3 mb-4 flex items-start justify-center">
         <div className="w-full max-w-[320px]">
           <KoreaMap>
-            {residences.map((r) => (
+            {visible.map((r) => (
               <ResidenceMarker
                 key={r.id}
                 xPct={r.xPct}
@@ -79,7 +104,7 @@ export default function DepartureScreen({ homeRegion, onBack, onDepart }: Props)
         </div>
       </section>
 
-      {/* 바텀시트 — 마커 선택 시 표시 */}
+      {/* 바텀시트 */}
       <ResidenceSheet
         residence={selected}
         onClose={() => setSelectedId(null)}
@@ -89,5 +114,28 @@ export default function DepartureScreen({ homeRegion, onBack, onDepart }: Props)
         }}
       />
     </div>
+  );
+}
+
+function ToggleBtn({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <motion.button
+      type="button"
+      onClick={onClick}
+      whileTap={{ scale: 0.95 }}
+      aria-pressed={active}
+      className={`px-3 py-1.5 rounded-full text-[11px] font-extrabold transition
+        ${active ? "bg-primary text-white shadow-soft" : "text-ink-soft"}`}
+    >
+      {label}
+    </motion.button>
   );
 }

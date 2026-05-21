@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { baseMissions } from "../data/missions";
 import {
   residences,
+  matchScore,
   type Residence,
   type LifeStyleType,
 } from "../data/residences";
@@ -17,6 +18,7 @@ type Props = {
   allProgress: Record<string, RegionRecord>;
   onBack: () => void;
   onDecideMove: () => void;
+  onApplyResidence: (r: Residence) => void;
 };
 
 // 미션 카테고리별 가중치 — 핵심 지표 산출용
@@ -47,7 +49,15 @@ export default function MigrationReportScreen({
   allProgress,
   onBack,
   onDecideMove,
+  onApplyResidence,
 }: Props) {
+  // 추천 레지던스 Top1-2: 본 지역 + 같은 matchType 우선
+  const recommended: Residence[] = [
+    residence,
+    ...residences.filter(
+      (r) => r.id !== residence.id && r.matchType === residence.matchType
+    ),
+  ].slice(0, 2);
   const metrics = calcMetrics(record);
   const match = calculateMatch(lifestyle, residence, record);
 
@@ -174,6 +184,23 @@ export default function MigrationReportScreen({
             </div>
           </section>
         )}
+
+        {/* 추천 레지던스 — Top 1~2 + 신청 CTA */}
+        <section>
+          <h2 className="text-ink text-[15px] font-extrabold mb-2">
+            이 흐름에 어울리는 레지던스
+          </h2>
+          <div className="space-y-2">
+            {recommended.map((r) => (
+              <RecommendedRow
+                key={r.id}
+                residence={r}
+                lifestyle={lifestyle}
+                onApply={() => onApplyResidence(r)}
+              />
+            ))}
+          </div>
+        </section>
       </main>
 
       {/* 하단 CTA */}
@@ -333,6 +360,52 @@ function ComparisonRow({
           {match}%
         </p>
       </div>
+    </div>
+  );
+}
+
+function RecommendedRow({
+  residence,
+  lifestyle,
+  onApply,
+}: {
+  residence: Residence;
+  lifestyle: LifeStyleType | null;
+  onApply: () => void;
+}) {
+  const score = matchScore(lifestyle, residence);
+  return (
+    <div className="rounded-2xl p-3 flex items-center gap-3 border
+                    bg-white border-cream-200 shadow-soft">
+      <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shrink-0
+                      bg-gradient-to-br from-primary-50 to-nature-50 border border-primary-200">
+        {residence.themeEmoji}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5">
+          <p className="text-ink text-[13px] font-extrabold truncate">
+            {residence.name}
+          </p>
+          {residence.hasSupport && (
+            <span className="px-1.5 py-0.5 rounded-full bg-nature-50 text-nature-600
+                             text-[9px] font-extrabold whitespace-nowrap">
+              지원금
+            </span>
+          )}
+        </div>
+        <p className="text-ink-soft text-[11px] mt-0.5">
+          📍 {residence.region} · 매칭 {score}%
+          {residence.price !== undefined && ` · 월 ${residence.price}만원~`}
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onApply}
+        className="shrink-0 px-3 py-2 rounded-full bg-primary text-white
+                   text-[11px] font-extrabold shadow-soft active:scale-[0.99]"
+      >
+        신청하기
+      </button>
     </div>
   );
 }

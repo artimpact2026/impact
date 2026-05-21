@@ -23,7 +23,7 @@ export default function HomeScreen({ homeRegion, onDepart }: Props) {
       />
 
       <header className="pt-12 px-6">
-        <p className="text-ink-soft text-[13px] font-medium">청풍 · 바람을 짓다</p>
+        <p className="text-ink-soft text-[13px] font-medium">바람을 짓다</p>
         <h1 className="mt-1 text-ink text-[22px] font-extrabold leading-snug">
           잠시, 다른 지역의 바람을<br />짓고 와볼래요?
         </h1>

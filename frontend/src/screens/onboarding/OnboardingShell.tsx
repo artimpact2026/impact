@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import SplashScreen from "./SplashScreen";
 import EmailScreen from "./EmailScreen";
 import BirthScreen from "./BirthScreen";
+import HomeRegionScreen from "./HomeRegionScreen";
 import InterestsScreen from "./InterestsScreen";
 import BalanceScreen from "./BalanceScreen";
 import ValuesScreen from "./ValuesScreen";
@@ -27,6 +28,7 @@ type StepKey =
   | "splash"
   | "email"
   | "birth"
+  | "homeRegion"
   | "interests"
   | "balanceA"
   | "balanceB"
@@ -41,6 +43,7 @@ const ORDER: StepKey[] = [
   "splash",
   "email",
   "birth",
+  "homeRegion",
   "interests",
   "balanceA",
   "balanceB",
@@ -52,7 +55,7 @@ const ORDER: StepKey[] = [
   "result",
 ];
 
-const TOTAL_QUESTIONS = 10;
+const TOTAL_QUESTIONS = 11;
 
 // onComplete 시 App에 넘기는 결과 — App.tsx는 lifestyle을 SavedProfile에 저장
 export type OnboardingResult = {
@@ -114,9 +117,19 @@ export default function OnboardingShell({ onComplete }: Props) {
             />
           )}
 
+          {step === "homeRegion" && (
+            <HomeRegionScreen
+              step={3}
+              total={TOTAL_QUESTIONS}
+              initial={data.homeRegion}
+              onBack={back}
+              onNext={(name) => update("homeRegion", name)}
+            />
+          )}
+
           {step === "interests" && (
             <InterestsScreen
-              step={3}
+              step={4}
               total={TOTAL_QUESTIONS}
               initial={data.interests}
               onBack={back}
@@ -126,7 +139,7 @@ export default function OnboardingShell({ onComplete }: Props) {
 
           {step === "balanceA" && (
             <BalanceScreen<BalanceA>
-              step={4}
+              step={5}
               total={TOTAL_QUESTIONS}
               title="무엇이 더 좋나요?"
               subtitle="자연 풍경, 어느 쪽이 더 마음에 들어요?"
@@ -150,7 +163,7 @@ export default function OnboardingShell({ onComplete }: Props) {
 
           {step === "balanceB" && (
             <BalanceScreen<BalanceB>
-              step={5}
+              step={6}
               total={TOTAL_QUESTIONS}
               title="비 오는 주말, 어느 쪽?"
               left={{
@@ -173,7 +186,7 @@ export default function OnboardingShell({ onComplete }: Props) {
 
           {step === "balanceC" && (
             <BalanceScreen<BalanceC>
-              step={6}
+              step={7}
               total={TOTAL_QUESTIONS}
               title="어디에서 묵고 싶어요?"
               left={{
@@ -196,7 +209,7 @@ export default function OnboardingShell({ onComplete }: Props) {
 
           {step === "values" && (
             <ValuesScreen
-              step={7}
+              step={8}
               total={TOTAL_QUESTIONS}
               initial={data.values}
               onBack={back}
@@ -206,7 +219,7 @@ export default function OnboardingShell({ onComplete }: Props) {
 
           {step === "scene" && (
             <SceneScreen
-              step={8}
+              step={9}
               total={TOTAL_QUESTIONS}
               initial={data.dayScene}
               onBack={back}
@@ -216,7 +229,7 @@ export default function OnboardingShell({ onComplete }: Props) {
 
           {step === "healing" && (
             <HealingScreen
-              step={9}
+              step={10}
               total={TOTAL_QUESTIONS}
               initial={data.healing}
               onBack={back}
@@ -226,7 +239,7 @@ export default function OnboardingShell({ onComplete }: Props) {
 
           {step === "regionDesc" && (
             <RegionDescScreen
-              step={10}
+              step={11}
               total={TOTAL_QUESTIONS}
               initial={data.regionDesc}
               onBack={back}

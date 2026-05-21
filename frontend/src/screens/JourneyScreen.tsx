@@ -5,6 +5,7 @@
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import KoreaMap from "../components/KoreaMap";
+import ProfileCard from "../components/journey/ProfileCard";
 import { residences, type Residence, type LifeStyleType } from "../data/residences";
 import { baseMissions } from "../data/missions";
 import {
@@ -19,12 +20,19 @@ type ViewMode = "score" | "match";
 type Props = {
   regionProgress: Record<string, RegionRecord>;
   lifestyle: LifeStyleType | null;
+  // 옵션 A — 프로필 카드 노출용
+  nickname: string;
+  homeRegion: string;
+  onOpenSettings: () => void;
   onOpenReport: (residence: Residence) => void;
 };
 
 export default function JourneyScreen({
   regionProgress,
   lifestyle,
+  nickname,
+  homeRegion,
+  onOpenSettings,
   onOpenReport,
 }: Props) {
   const [view, setView] = useState<ViewMode>("score");
@@ -57,6 +65,16 @@ export default function JourneyScreen({
           다녀온 지역, 쌓인 시간
         </h1>
       </header>
+
+      {/* 프로필 카드 — 옵션 A (탭2 상단에 프로필 흡수) */}
+      <section className="px-4 mt-3">
+        <ProfileCard
+          nickname={nickname}
+          lifestyle={lifestyle}
+          homeRegion={homeRegion}
+          onOpenSettings={onOpenSettings}
+        />
+      </section>
 
       {/* 최다 탐색 지역 카드 */}
       <section className="px-4 mt-3">
