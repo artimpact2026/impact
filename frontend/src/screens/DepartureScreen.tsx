@@ -66,7 +66,8 @@ export default function DepartureScreen({ homeRegion, onBack, onDepart }: Props)
     missions.find((m) => m.key === detailKey) ?? null;
 
   return (
-    <div className="relative min-h-[calc(100dvh-6rem)] flex flex-col overflow-hidden">
+    // h-[...] 로 고정 높이 — 내부 flex 자식의 flex-1+overflow-y-auto 가 스크롤되도록
+    <div className="relative h-[calc(100dvh-6rem)] flex flex-col overflow-hidden">
       {/* 배경 */}
       <div
         className="absolute inset-0 -z-10

@@ -1,43 +1,87 @@
 // 미션 수행 화면 — 말해보카 스타일 대화 UI
-// 상단 배경 + NPC 캐릭터 → 하단 말풍선(NPC 대사) + 선택지 답하기
-// 마지막 turn에서 옵션 선택 시 점수 +N 애니메이션 후 onComplete 호출.
+// 옵션 분기 + 수치 입력 + 적합도 누적 + {amount}/{compare} 치환 지원
+// 마지막 turn에서 옵션/입력 종료 시 점수 +N 애니메이션 후 onComplete(fitDelta) 호출.
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import type { Mission, BackgroundVariant } from "../data/missions";
+import {
+  fitDeltaForOption,
+  type BackgroundVariant,
+  type Mission,
+} from "../data/missions";
+import type { LifeStyleType } from "../data/residences";
 
 type Props = {
   mission: Mission;
+  residenceMatchType: LifeStyleType;
   onClose: () => void;
-  onComplete: () => void;
+  // 누적 적합도 변화량을 함께 전달
+  onComplete: (fitDelta: number) => void;
 };
 
 export default function MissionExecuteScreen({
   mission,
+  residenceMatchType,
   onClose,
   onComplete,
 }: Props) {
-  // 현재 대화 turn 인덱스
   const [turnIdx, setTurnIdx] = useState(0);
-  // 완료 애니메이션 상태
   const [showReward, setShowReward] = useState(false);
-  // 사용자가 거친 답변 기록 (회고용)
   const [picks, setPicks] = useState<string[]>([]);
+  // 누적 적합도 변화
+  const [fitDelta, setFitDelta] = useState(0);
+  // 수치 입력 단계의 임시 값
+  const [numericInput, setNumericInput] = useState("");
+  // 마지막 수치 입력값 (NPC 텍스트 치환용)
+  const [lastAmount, setLastAmount] = useState<number | null>(null);
+  // 수치 입력 비교 결과 ("절약형" / "보통" / "풍족형")
+  const [lastCompare, setLastCompare] = useState<string>("");
 
   const turn = mission.dialogues[turnIdx];
 
+  // {amount} / {compare} 치환
+  const npcText = turn.npc
+    .replace(
+      "{amount}",
+      lastAmount !== null ? lastAmount.toLocaleString() : ""
+    )
+    .replace("{compare}", lastCompare);
+
+  const finish = (extraDelta: number) => {
+    const total = fitDelta + extraDelta;
+    setFitDelta(total);
+    setShowReward(true);
+    window.setTimeout(() => onComplete(total), 1800);
+  };
+
   const handlePick = (optionIdx: number) => {
-    const opt = turn.options[optionIdx];
-    const nextPicks = [...picks, opt.label];
-    setPicks(nextPicks);
+    const opt = turn.options?.[optionIdx];
+    if (!opt) return;
+    const delta = fitDeltaForOption(opt, residenceMatchType);
+    setPicks((p) => [...p, opt.label]);
 
     if (opt.next === undefined) {
-      // 마지막 옵션 — 미션 완료 트리거
-      setShowReward(true);
-      window.setTimeout(() => onComplete(), 1800);
+      finish(delta);
       return;
     }
+    setFitDelta((d) => d + delta);
     setTurnIdx(opt.next);
+  };
+
+  const handleNumericSubmit = () => {
+    if (!turn.numeric) return;
+    const v = Number(numericInput.replace(/[^0-9]/g, ""));
+    if (!Number.isFinite(v) || v <= 0) return;
+    setLastAmount(v);
+    // 벤치마크 기반 비교 라벨
+    const bm = turn.numeric.benchmarks;
+    if (bm) {
+      if (v < bm.low) setLastCompare("이 동네 평균보다 절약형이에요.");
+      else if (v > bm.high) setLastCompare("이 동네 평균보단 좀 많이 쓰셨어요.");
+      else setLastCompare("이 동네 평균 정도예요.");
+    }
+    setNumericInput("");
+    setTurnIdx(turn.numeric.next);
   };
 
   return (
@@ -104,7 +148,6 @@ export default function MissionExecuteScreen({
         >
           {/* 말풍선 */}
           <div className="relative">
-            {/* 말풍선 꼬리 — 위쪽 */}
             <div
               className="absolute left-6 -top-3 w-5 h-5 bg-cream-100 border-l border-t border-cream-200 rotate-45"
               aria-hidden
@@ -113,27 +156,65 @@ export default function MissionExecuteScreen({
               <p className="text-[10px] font-bold text-ink-mute mb-1">
                 {mission.npc.name}
               </p>
-              <p className="text-ink text-[14px] leading-relaxed">
-                {turn.npc}
+              <p className="text-ink text-[14px] leading-relaxed whitespace-pre-line">
+                {npcText}
               </p>
             </div>
           </div>
 
-          {/* 선택지 */}
-          <div className="mt-3 space-y-2">
-            {turn.options.map((opt, i) => (
+          {/* 옵션 분기 OR 수치 입력 */}
+          {turn.options && (
+            <div className="mt-3 space-y-2">
+              {turn.options.map((opt, i) => (
+                <button
+                  key={`${turnIdx}-${i}`}
+                  type="button"
+                  onClick={() => handlePick(i)}
+                  className="w-full text-left px-4 py-3 rounded-2xl
+                             bg-white border border-cream-200 text-ink text-[13px] font-semibold
+                             hover:bg-cream-50 active:scale-[0.99] transition"
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {turn.numeric && (
+            <div className="mt-3">
+              <label className="text-[11px] font-bold text-ink-soft block mb-1.5">
+                {turn.numeric.prompt}
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={numericInput}
+                  onChange={(e) =>
+                    setNumericInput(e.target.value.replace(/[^0-9]/g, ""))
+                  }
+                  placeholder={turn.numeric.placeholder}
+                  className="flex-1 px-4 py-3 rounded-2xl border border-cream-200
+                             bg-white text-ink text-[14px] focus:outline-none
+                             focus:border-primary placeholder:text-ink-mute"
+                />
+                <span className="self-center text-ink-soft text-[12px] font-bold pr-1">
+                  {turn.numeric.unit}
+                </span>
+              </div>
               <button
-                key={`${turnIdx}-${i}`}
                 type="button"
-                onClick={() => handlePick(i)}
-                className="w-full text-left px-4 py-3 rounded-2xl
-                           bg-white border border-cream-200 text-ink text-[13px] font-semibold
-                           hover:bg-cream-50 active:scale-[0.99] transition"
+                onClick={handleNumericSubmit}
+                disabled={!numericInput}
+                className="mt-2 w-full py-3 rounded-2xl bg-primary text-white
+                           text-[14px] font-extrabold shadow-soft
+                           active:scale-[0.99] transition
+                           disabled:opacity-40 disabled:active:scale-100"
               >
-                {opt.label}
+                기록하기
               </button>
-            ))}
-          </div>
+            </div>
+          )}
 
           {/* 진행 인디케이터 */}
           <p className="mt-3 text-center text-[10px] text-ink-mute">

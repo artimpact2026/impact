@@ -14,6 +14,8 @@ import MoveInScreen from "./screens/MoveInScreen";
 import ResidenceListScreen from "./screens/ResidenceListScreen";
 import ResidenceDetailScreen from "./screens/ResidenceDetailScreen";
 import SettingsScreen from "./screens/SettingsScreen";
+import MailboxModal from "./components/MailboxModal";
+import { storiesByResidenceId } from "./data/stories";
 import HospitalMissionScreen from "./screens/mission/HospitalMissionScreen";
 import OnboardingShell, {
   type OnboardingResult,
@@ -125,6 +127,8 @@ export default function App() {
   const [residenceListRegion, setResidenceListRegion] = useState<string | null>(null);
   // 상세에서 뒤로 갈 때 list로 갈지 report로 갈지 추적
   const [detailEntry, setDetailEntry] = useState<"list" | "report">("list");
+  // 미션 리스트에서 우편함 미션을 누른 경우 (모달로 노출)
+  const [mailboxFromMission, setMailboxFromMission] = useState(false);
 
   // 진행 상태 localStorage 영속
   useEffect(() => {
@@ -200,9 +204,14 @@ export default function App() {
     setTab1Route("arrival");
   };
 
-  const handleMissionComplete = () => {
+  const handleMissionComplete = (fitDelta = 0) => {
     if (!activeMission || !selected) return;
-    const newProgress = completeMissionFor(regionProgress, selected.id, activeMission);
+    const newProgress = completeMissionFor(
+      regionProgress,
+      selected.id,
+      activeMission,
+      fitDelta
+    );
     setRegionProgress(newProgress);
     setActiveMission(null);
 
@@ -211,6 +220,31 @@ export default function App() {
       updatedRecord?.completedMissionIds.includes(m.id)
     );
     setTab1Route(allDone ? "daily-summary" : "mission-list");
+  };
+
+  // 미션 선택 시 mode에 따라 라우팅 분기
+  const handleSelectMission = (m: Mission) => {
+    setActiveMission(m);
+    if (m.mode === "mailbox") {
+      // 우편함은 별도 — 도착 화면의 모달 흐름과 동일하게 모달 노출
+      setMailboxFromMission(true);
+      return;
+    }
+    if (m.mode === "map-dialogue" || m.mode === "map-info") {
+      setTab1Route("mission-traveling");
+    } else {
+      // dialogue / numeric — 바로 수행 화면
+      setTab1Route("mission-execute");
+    }
+  };
+
+  // 우편함 모달 닫힐 때 — 미션 완료 처리
+  const handleMailboxMissionClose = () => {
+    if (activeMission) {
+      // 우편함 미션: 보상 +3 고정, fitDelta 0
+      handleMissionComplete(0);
+    }
+    setMailboxFromMission(false);
   };
 
   const handleOpenReport = (residence: Residence) => {
@@ -326,13 +360,12 @@ export default function App() {
         {tab === "home" && tab1Route === "mission-list" && selected && (
           <MissionListScreen
             region={selected.region}
+            residenceId={selected.id}
             completedIds={currentCompletedIds}
             totalScore={currentScore}
+            fitScore={currentRecord?.fitScore ?? 0}
             onBack={() => setTab1Route("arrival")}
-            onSelectMission={(m) => {
-              setActiveMission(m);
-              setTab1Route("mission-traveling");
-            }}
+            onSelectMission={handleSelectMission}
             onSelectFinal={() => setTab1Route("daily-summary")}
           />
         )}
@@ -340,13 +373,21 @@ export default function App() {
         {tab === "home" && tab1Route === "mission-traveling" && activeMission && (
           <MissionTravelingScreen
             mission={activeMission}
-            onComplete={() => setTab1Route("mission-execute")}
+            onComplete={() => {
+              // 지도 안내 미션은 도착 후 바로 완료 처리(짧은 정보 카드만 짚고)
+              if (activeMission.mode === "map-info") {
+                setTab1Route("mission-execute");
+              } else {
+                setTab1Route("mission-execute");
+              }
+            }}
           />
         )}
 
-        {tab === "home" && tab1Route === "mission-execute" && activeMission && (
+        {tab === "home" && tab1Route === "mission-execute" && activeMission && selected && (
           <MissionExecuteScreen
             mission={activeMission}
+            residenceMatchType={selected.matchType}
             onClose={() => {
               setActiveMission(null);
               setTab1Route("mission-list");
@@ -456,6 +497,13 @@ export default function App() {
       </main>
 
       <BottomNav active={tab} onChange={handleTabChange} />
+
+      {/* 우편함 미션 모달 — 미션 리스트에서 우편함 카드 누른 경우 */}
+      <MailboxModal
+        open={mailboxFromMission}
+        story={selected ? storiesByResidenceId[selected.id] ?? null : null}
+        onClose={handleMailboxMissionClose}
+      />
     </div>
   );
 }

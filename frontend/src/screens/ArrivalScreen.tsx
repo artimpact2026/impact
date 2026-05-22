@@ -1,11 +1,10 @@
 // 지역 마을 도착 홈 — 동물의 숲 톤의 홈 화면
-// 상단 헤더(마을명) + 중앙 히어로 씬(배경/캐릭터/표지판/우편함) + 오늘의 미션 카드
-// 글로벌 BottomNav(홈/나의 여정)와 함께 사용 — 자체 탭 없음
+// 상단 헤더(마을명) + 도착 메시지 + 마을 씬 위에 단순 "○○ 알아보기" CTA
 
 import { useState } from "react";
+import { motion } from "framer-motion";
 import RegionHeader from "../components/arrival/RegionHeader";
 import RegionHeroScene from "../components/arrival/RegionHeroScene";
-import TodayMissionCard from "../components/arrival/TodayMissionCard";
 import MailboxModal from "../components/MailboxModal";
 import { storiesByResidenceId } from "../data/stories";
 import {
@@ -58,26 +57,30 @@ export default function ArrivalScreen({
         </p>
       </div>
 
-      {/* 히어로 씬 */}
-      <RegionHeroScene
-        theme={config.theme}
-        signLabel={config.signLabel}
-        speechBubble={config.speechBubble}
-        unreadLetters={unreadLetters}
-        onMailboxClick={() => setShowMail(true)}
-      />
-
-      {/* 오늘의 미션 카드 */}
-      <section className="px-5 mt-4 pb-8">
-        <TodayMissionCard
-          title={config.missionTitle}
-          description={config.missionDescription}
-          progressCurrent={config.progressCurrent}
-          progressTotal={config.progressTotal}
-          rewardShells={config.rewardShells}
-          rewardTickets={config.rewardTickets}
-          onClick={onStartMissions}
+      {/* 마을 씬 + 그 위에 단순 CTA */}
+      <section className="relative px-4 mt-2 pb-12">
+        <RegionHeroScene
+          theme={config.theme}
+          signLabel={config.signLabel}
+          speechBubble={config.speechBubble}
+          unreadLetters={unreadLetters}
+          onMailboxClick={() => setShowMail(true)}
         />
+
+        {/* 단순 CTA — "○○ 알아보기" */}
+        <div className="absolute left-1/2 -translate-x-1/2 -bottom-3 z-10">
+          <motion.button
+            type="button"
+            onClick={onStartMissions}
+            whileTap={{ scale: 0.97 }}
+            className="px-7 py-3.5 rounded-full bg-primary text-white
+                       text-[15px] font-extrabold whitespace-nowrap
+                       shadow-[0_10px_24px_-8px_rgba(255,112,67,0.5)]
+                       border-2 border-white transition"
+          >
+            {residence.region} 알아보기 →
+          </motion.button>
+        </div>
       </section>
 
       {/* 우편함 모달 */}

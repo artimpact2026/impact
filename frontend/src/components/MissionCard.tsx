@@ -1,6 +1,5 @@
 // 잠시섬 미션 카드 — 말해보카 회화 UI 스타일
-// 카드 구성: 좌측 아이콘 / 제목 / 카테고리·소요시간·난이도 / 우측 축적 점수 + 완료 여부
-// done 상태는 데이터가 아니라 외부 상태(MissionListScreen)에서 주입한다.
+// 좌측 아이콘 / 제목 + 카테고리·모드 / 우측 점수 + 완료 여부
 
 import type { Mission } from "../data/missions";
 
@@ -10,10 +9,24 @@ type Props = {
   onClick?: () => void;
 };
 
-export default function MissionCard({ mission, done, onClick }: Props) {
-  const stars =
-    "★".repeat(mission.difficulty) + "☆".repeat(3 - mission.difficulty);
+function modeLabel(mode: Mission["mode"]): string {
+  switch (mode) {
+    case "map-dialogue":
+      return "지도 + 대화";
+    case "map-info":
+      return "지도 안내";
+    case "dialogue":
+      return "대화";
+    case "numeric":
+      return "대화 + 입력";
+    case "mailbox":
+      return "우편함";
+    case "final":
+      return "자동 생성";
+  }
+}
 
+export default function MissionCard({ mission, done, onClick }: Props) {
   return (
     <button
       type="button"
@@ -40,9 +53,8 @@ export default function MissionCard({ mission, done, onClick }: Props) {
         <p className="text-ink text-[14px] font-bold leading-tight truncate">
           {mission.title}
         </p>
-        <p className="mt-0.5 text-ink-mute text-[11px]">
-          {mission.category} · {mission.duration} · 난이도{" "}
-          <span className="text-primary">{stars}</span>
+        <p className="mt-0.5 text-ink-mute text-[11px] truncate">
+          {mission.category} · {modeLabel(mission.mode)}
         </p>
       </div>
 
