@@ -12,12 +12,17 @@ import ResidenceSheet from "../components/ResidenceSheet";
 import MissionMarker from "../components/MissionMarker";
 import VillageMissionCard from "../components/VillageMissionCard";
 import MissionDetailSheet from "../components/MissionDetailSheet";
-import { residences, type Residence } from "../data/residences";
+import {
+  residences,
+  type LifeStyleType,
+  type Residence,
+} from "../data/residences";
 import { HOME_POSITIONS, type RegionPos } from "../data/regions";
 import { selectNearbyMissions } from "../data/villageMissions";
 
 type Props = {
   homeRegion: string;
+  lifestyle: LifeStyleType | null;
   onBack: () => void;
   onDepart: (residence: Residence) => void;
 };
@@ -26,7 +31,12 @@ type ViewMode = "recommended" | "all";
 
 const MISSION_COUNT = 15;
 
-export default function DepartureScreen({ homeRegion, onBack, onDepart }: Props) {
+export default function DepartureScreen({
+  homeRegion,
+  lifestyle,
+  onBack,
+  onDepart,
+}: Props) {
   const [view, setView] = useState<ViewMode>("recommended");
 
   // ── 추천(레지던스) 상태 ──
@@ -61,7 +71,13 @@ export default function DepartureScreen({ homeRegion, onBack, onDepart }: Props)
       ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [activeMissionKey, view]);
 
-  const recommended = residences.filter((r) => r.recommended);
+  // 추천 = recommended:true AND matchType === 사용자 라이프스타일 (보통 2개)
+  // 라이프스타일이 없으면 fallback: 추천 전체
+  const recommended = residences.filter((r) => {
+    if (!r.recommended) return false;
+    if (!lifestyle) return true;
+    return r.matchType === lifestyle;
+  });
   const detailMission =
     missions.find((m) => m.key === detailKey) ?? null;
 
@@ -108,7 +124,9 @@ export default function DepartureScreen({ homeRegion, onBack, onDepart }: Props)
       <div className="mt-2 px-5 flex items-center justify-between gap-2 shrink-0">
         <p className="text-ink-soft text-[12px] leading-relaxed">
           {view === "recommended"
-            ? "취향에 맞춘 추천 레지던스예요."
+            ? lifestyle
+              ? `${lifestyle}에 어울리는 ${recommended.length}곳을 골라봤어요.`
+              : "추천 레지던스예요."
             : `${homeRegion}에서 가까운 문화 미션 ${missions.length}곳이에요.`}
         </p>
         <div className="flex bg-white border border-cream-200 rounded-full p-0.5 shadow-soft shrink-0">

@@ -330,6 +330,7 @@ export default function App() {
         {tab === "home" && tab1Route === "departure" && (
           <DepartureScreen
             homeRegion={homeRegion}
+            lifestyle={profile.lifestyle}
             onBack={() => setTab1Route("home")}
             onDepart={(r: Residence) => {
               setSelected(r);
