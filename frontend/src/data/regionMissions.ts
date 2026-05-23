@@ -22,6 +22,12 @@ const ganghwaMissions: Mission[] = [
     background: "neighbor",
     npc: { name: "갯벌 안내인", emoji: "🦀" },
     description: "썰물 시간의 갯벌 — 강화의 가장 강한 풍경",
+    realRoadview: [
+      "https://picsum.photos/seed/ganghwa-mudflat-depart/800/600",
+      "https://picsum.photos/seed/ganghwa-mudflat-alley/800/600",
+      "https://picsum.photos/seed/ganghwa-mudflat-approach/800/600",
+      "https://picsum.photos/seed/ganghwa-mudflat-arrive/800/600",
+    ],
     dialogues: [
       {
         npc:
@@ -556,6 +562,12 @@ const taeanMissions: Mission[] = [
     background: "neighbor",
     npc: { name: "노을 사진가", emoji: "📸" },
     description: "서해 노을이 가장 길게 머무는 해변",
+    realRoadview: [
+      "https://picsum.photos/seed/taean-sunset-depart/800/600",
+      "https://picsum.photos/seed/taean-sunset-alley/800/600",
+      "https://picsum.photos/seed/taean-sunset-approach/800/600",
+      "https://picsum.photos/seed/taean-sunset-arrive/800/600",
+    ],
     dialogues: [
       {
         npc:
@@ -727,6 +739,12 @@ const yeongwolMissions: Mission[] = [
     background: "library",
     npc: { name: "천문 해설사", emoji: "🔭" },
     description: "도시에선 못 본다는 진짜 별하늘",
+    realRoadview: [
+      "https://picsum.photos/seed/yeongwol-stars-depart/800/600",
+      "https://picsum.photos/seed/yeongwol-stars-alley/800/600",
+      "https://picsum.photos/seed/yeongwol-stars-approach/800/600",
+      "https://picsum.photos/seed/yeongwol-stars-arrive/800/600",
+    ],
     dialogues: [
       {
         npc:
@@ -1078,6 +1096,12 @@ const jindoMissions: Mission[] = [
     background: "library",
     npc: { name: "미술관 해설사", emoji: "👨‍🎨" },
     description: "한국화의 고향, 운림산방에서 한 시간",
+    realRoadview: [
+      "https://picsum.photos/seed/jindo-art-depart/800/600",
+      "https://picsum.photos/seed/jindo-art-alley/800/600",
+      "https://picsum.photos/seed/jindo-art-approach/800/600",
+      "https://picsum.photos/seed/jindo-art-arrive/800/600",
+    ],
     dialogues: [
       {
         npc:
@@ -1298,6 +1322,12 @@ const jeongseonMissions: Mission[] = [
     background: "library",
     npc: { name: "동굴 안내자", emoji: "👨‍🔬" },
     description: "5억년 전 자연의 흔적 — 한 시간 산책",
+    realRoadview: [
+      "https://picsum.photos/seed/jeongseon-cave-depart/800/600",
+      "https://picsum.photos/seed/jeongseon-cave-alley/800/600",
+      "https://picsum.photos/seed/jeongseon-cave-approach/800/600",
+      "https://picsum.photos/seed/jeongseon-cave-arrive/800/600",
+    ],
     dialogues: [
       {
         npc:

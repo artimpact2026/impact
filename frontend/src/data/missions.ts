@@ -75,6 +75,10 @@ export type Mission = {
   npc: { name: string; emoji: string };
   dialogues: DialogueTurn[];
   description?: string;      // 카드 보조 설명
+  // 실제 로드뷰 사진 URL 배열 — 슬라이드 순서대로 [출발, 골목, 다가옴, 도착]
+  // 길이가 4 미만이거나 일부 undefined여도 OK — 있는 슬라이드에만 카메라 버튼이 뜸
+  // 추후 실제 카카오 로드뷰 스냅샷 → 일러스트화한 자산으로 교체할 예정
+  realRoadview?: (string | undefined)[];
 };
 
 // =====================================================================

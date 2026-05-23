@@ -5,7 +5,7 @@
 // 4. 도착! — 목적지 풀 뷰 + 미션 시작 CTA
 
 import { useState } from "react";
-import { motion, type PanInfo } from "framer-motion";
+import { motion, AnimatePresence, type PanInfo } from "framer-motion";
 import type { Mission } from "../data/missions";
 
 type Props = {
@@ -71,6 +71,14 @@ function getStory(mission: Mission): string {
   );
 }
 
+// 슬라이드 단계 라벨 — 모달 캡션 등에 사용
+const SLIDE_LABEL: Record<"depart" | "alley" | "approach" | "arrive", string> = {
+  depart: "출발지",
+  alley: "골목길",
+  approach: "다가옴",
+  arrive: "도착",
+};
+
 // 도착 슬라이드의 CTA 라벨 — 미션 모드에 맞게 분기
 function getArrivalCtaLabel(mission: Mission): string {
   switch (mission.mode) {
@@ -86,6 +94,7 @@ function getArrivalCtaLabel(mission: Mission): string {
 
 export default function MissionTravelingScreen({ mission, onComplete }: Props) {
   const [idx, setIdx] = useState(0);
+  const [showRoadview, setShowRoadview] = useState(false);
   const destination = getDestinationLabel(mission);
   const ctaLabel = getArrivalCtaLabel(mission);
 
@@ -146,21 +155,40 @@ export default function MissionTravelingScreen({ mission, onComplete }: Props) {
         dragElastic={0.18}
         onDragEnd={handleDragEnd}
       >
-        {slides.map((slide) => (
-          <div
-            key={slide.id}
-            className="w-full h-full shrink-0 relative select-none"
-          >
-            <Snapshot kind={slide.id} mission={mission} />
-            <SlideSubtitle text={slide.subtitle} />
+        {slides.map((slide, slideIdx) => {
+          const photoUrl = mission.realRoadview?.[slideIdx];
+          return (
+            <div
+              key={slide.id}
+              className="w-full h-full shrink-0 relative select-none"
+            >
+              <Snapshot kind={slide.id} mission={mission} />
+              <SlideSubtitle text={slide.subtitle} />
 
-            {slide.story && (
-              <StoryCard speaker={mission.npc.name} text={slide.story} />
-            )}
+              {/* 슬라이드별 실제 로드뷰 토글 — 사진 URL 있을 때만 */}
+              {photoUrl && (
+                <button
+                  type="button"
+                  onClick={() => setShowRoadview(true)}
+                  aria-label="실제 로드뷰 보기"
+                  className="absolute top-[64px] right-4 z-20
+                             w-10 h-10 rounded-full bg-white/85 backdrop-blur
+                             shadow-soft border border-white/60
+                             flex items-center justify-center text-base
+                             active:scale-[0.96]"
+                >
+                  📷
+                </button>
+              )}
 
-            {slide.isLast && <ArrivalLabel destination={destination} />}
-          </div>
-        ))}
+              {slide.story && (
+                <StoryCard speaker={mission.npc.name} text={slide.story} />
+              )}
+
+              {slide.isLast && <ArrivalLabel destination={destination} />}
+            </div>
+          );
+        })}
       </motion.div>
 
       {/* 하단 — 도트 + 다음 / 미션 시작 */}
@@ -203,7 +231,89 @@ export default function MissionTravelingScreen({ mission, onComplete }: Props) {
           좌우로 스와이프하거나 '다음'을 눌러요
         </p>
       </footer>
+
+      {/* 실제 로드뷰 모달 — 현재 슬라이드의 사진을 표시 */}
+      <AnimatePresence>
+        {showRoadview && mission.realRoadview?.[idx] && (
+          <RoadviewModal
+            photoUrl={mission.realRoadview[idx]!}
+            caption={`${SLIDE_LABEL[slides[idx].id]} · ${destination}`}
+            stepIndex={idx + 1}
+            totalSteps={slides.length}
+            onClose={() => setShowRoadview(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
+  );
+}
+
+// =====================================================================
+// 실제 로드뷰 모달 — 전체 화면 라이트박스
+// =====================================================================
+
+function RoadviewModal({
+  photoUrl,
+  caption,
+  stepIndex,
+  totalSteps,
+  onClose,
+}: {
+  photoUrl: string;
+  caption: string;
+  stepIndex: number;
+  totalSteps: number;
+  onClose: () => void;
+}) {
+  return (
+    <>
+      <motion.button
+        type="button"
+        aria-label="닫기"
+        onClick={onClose}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-black/85 z-40"
+      />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.94 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.96 }}
+        transition={{ type: "spring", damping: 22, stiffness: 240 }}
+        className="absolute inset-0 z-50 flex flex-col items-center justify-center px-5 pointer-events-none"
+      >
+        <div className="w-full max-w-[360px] bg-white rounded-3xl overflow-hidden shadow-soft pointer-events-auto">
+          <div className="relative">
+            <img
+              src={photoUrl}
+              alt="실제 로드뷰"
+              className="w-full h-auto block aspect-[4/3] object-cover"
+            />
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="닫기"
+              className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/95
+                         flex items-center justify-center text-[#3E2C20] shadow-soft"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="p-3 text-center">
+            <p className="text-[10px] font-bold text-[#9A8778] tracking-widest uppercase">
+              {stepIndex} / {totalSteps} 지점
+            </p>
+            <p className="mt-0.5 text-[13px] font-extrabold text-[#3E2C20]">
+              {caption}
+            </p>
+            <p className="mt-0.5 text-[11px] text-[#9A8778]">
+              실제 로드뷰 · 일러스트와 비교해보세요
+            </p>
+          </div>
+        </div>
+      </motion.div>
+    </>
   );
 }
 
