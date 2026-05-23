@@ -75,10 +75,24 @@ export type Mission = {
   npc: { name: string; emoji: string };
   dialogues: DialogueTurn[];
   description?: string;      // 카드 보조 설명
-  // 실제 로드뷰 사진 URL 배열 — 슬라이드 순서대로 [출발, 골목, 다가옴, 도착]
-  // 길이가 4 미만이거나 일부 undefined여도 OK — 있는 슬라이드에만 카메라 버튼이 뜸
-  // 추후 실제 카카오 로드뷰 스냅샷 → 일러스트화한 자산으로 교체할 예정
+  // 실제 로드뷰 사진(캡처) 배열 — 슬라이드 순서대로 [출발, 골목, 다가옴, 도착]
+  // 길이가 4 미만이거나 일부 undefined여도 OK — 있는 슬라이드에만 📷 버튼이 뜸
   realRoadview?: (string | undefined)[];
+  // 도착 지점에서 "🗺️ 로드뷰로 확인해보기" 버튼이 새 탭으로 여는 네이버/카카오 공유링크
+  arrivalRoadviewUrl?: string;
+  // 정의되면 4슬라이드 카드 대신 미니 로드뷰(5-6 지점 화살표 네비)로 진행
+  // 마지막 step이 도착 지점
+  roadviewSteps?: RoadviewStep[];
+};
+
+// ── 미니 로드뷰 한 지점 ────────────────────────
+export type RoadviewStep = {
+  photo: string;        // 캡처 사진 URL
+  caption: string;      // 짧은 위치 라벨 — "강화 읍내 진입"
+  story?: string;       // 이 지점에서 자동으로 뜨는 NPC 멘트 (선택)
+  // 이 지점에서 다음으로 가는 방향 — UI 화살표를 회전시켜 동선 감각 부여
+  // 생략 시 "straight" (직진)
+  forwardDirection?: "straight" | "left" | "right";
 };
 
 // =====================================================================

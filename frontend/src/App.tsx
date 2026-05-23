@@ -374,6 +374,11 @@ export default function App() {
         {tab === "home" && tab1Route === "mission-traveling" && activeMission && (
           <MissionTravelingScreen
             mission={activeMission}
+            onBack={() => {
+              // 이동 화면 닫고 미션 리스트로 복귀
+              setActiveMission(null);
+              setTab1Route("mission-list");
+            }}
             onComplete={() => {
               // 지도 안내 미션은 도착 후 바로 완료 처리(짧은 정보 카드만 짚고)
               if (activeMission.mode === "map-info") {

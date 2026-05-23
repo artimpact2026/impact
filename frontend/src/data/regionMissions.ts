@@ -138,6 +138,89 @@ const ganghwaMissions: Mission[] = [
   },
 
   {
+    id: "ganghwa-market",
+    title: "강화풍물시장 둘러보기",
+    icon: "🛍️",
+    category: "관계형성형",
+    mode: "map-dialogue",
+    reward: 12,
+    background: "market",
+    npc: { name: "풍물시장 사장님", emoji: "🧓" },
+    description: "아삭아삭 순무민박에서 강화풍물시장까지 — 강화 대표 시장",
+    // 4지점 GPS — 네이버 거리뷰가 가까운 panoId 자동 매칭
+    // 좌표는 대략적 — 실제 거리뷰는 가장 가까운 촬영 지점으로 자동 스냅됨
+    // 미니 로드뷰 — 화살표 누르며 6지점 전진
+    // 사진은 일단 placeholder, 팀원이 네이버/카카오 로드뷰에서 캡처해 교체
+    roadviewSteps: [
+      {
+        photo: "https://picsum.photos/seed/ganghwa-market-1/1200/1600",
+        caption: "아삭아삭 순무민박 앞",
+        story: "민박 골목 입구에서 출발해요. 우측 길로 빠지면 읍내예요.",
+        forwardDirection: "right",
+      },
+      {
+        photo: "https://picsum.photos/seed/ganghwa-market-2/1200/1600",
+        caption: "우회전 후 읍내 진입",
+        forwardDirection: "straight",
+      },
+      {
+        photo: "https://picsum.photos/seed/ganghwa-market-3/1200/1600",
+        caption: "읍내 골목 — 작은 갈림길",
+        story: "강화는 옛 도읍지라 길이 좁고 휘어요. 천천히 걷기 좋은 동네예요.",
+        forwardDirection: "left",
+      },
+      {
+        photo: "https://picsum.photos/seed/ganghwa-market-4/1200/1600",
+        caption: "좌회전 후 시장 방향",
+        forwardDirection: "straight",
+      },
+      {
+        photo: "https://picsum.photos/seed/ganghwa-market-5/1200/1600",
+        caption: "강화풍물시장 간판이 보여요",
+        forwardDirection: "straight",
+      },
+      {
+        photo: "https://picsum.photos/seed/ganghwa-market-6/1200/1600",
+        caption: "풍물시장 안쪽 — 도착",
+      },
+    ],
+    // 도착 후 "실제 로드뷰로 확인해보기" — 새 탭에서 카카오맵 거리뷰
+    arrivalRoadviewUrl: "https://kko.to/R4HFdMJL2_",
+    dialogues: [
+      {
+        npc:
+          "어머, 처음 보는 얼굴이네요? 강화 순무 보러 오셨어요? 강화 순무는 진짜 다른 데랑 달라요.",
+        options: [
+          { label: "순무가 그렇게 유명한가요?", next: 1, traits: ["자연탐험형"] },
+          { label: "그냥 시장 분위기 보러 왔어요", next: 2, traits: ["자연탐험형", "집돌이형"] },
+        ],
+      },
+      {
+        npc:
+          "강화 순무는 갯벌 미네랄 머금어서 아삭아삭 맛이 진해요. 한 개 1,500원 정도예요. 11월~2월이 제일 좋고요.",
+        options: [
+          { label: "겨울에 다시 오고 싶어요", next: 3, traits: ["자연탐험형"] },
+          { label: "한 개 살게요", next: 3, traits: ["자연탐험형", "집돌이형"] },
+        ],
+      },
+      {
+        npc:
+          "천천히 보세요. 인삼·새우젓·강화도 약쑥… 다 강화 특산물이에요. 안 사도 괜찮으니까 인사만 해도 동네 사람 돼요.",
+        options: [
+          { label: "그런 분위기가 좋아요", next: 3, traits: ["자연탐험형", "집돌이형"] },
+        ],
+      },
+      {
+        npc:
+          "다음에 또 와요. 한 번 오면 우리 집 단골이에요. 매주 토요일이 5일장이라 더 활기차요.",
+        options: [
+          { label: "꼭 다시 올게요", traits: ["자연탐험형", "집돌이형"] },
+        ],
+      },
+    ],
+  },
+
+  {
     id: "ganghwa-sunset",
     title: "일몰 보러 가기",
     icon: "🌅",

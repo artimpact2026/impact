@@ -7,10 +7,13 @@
 import { useState } from "react";
 import { motion, AnimatePresence, type PanInfo } from "framer-motion";
 import type { Mission } from "../data/missions";
+import MiniRoadview from "../components/MiniRoadview";
 
 type Props = {
   mission: Mission;
   onComplete: () => void;
+  // 뒤로가기 — 이동 화면을 닫고 미션 리스트로 돌아감
+  onBack?: () => void;
 };
 
 // 미션별 도착지 라벨
@@ -92,11 +95,25 @@ function getArrivalCtaLabel(mission: Mission): string {
   }
 }
 
-export default function MissionTravelingScreen({ mission, onComplete }: Props) {
+export default function MissionTravelingScreen({ mission, onComplete, onBack }: Props) {
   const [idx, setIdx] = useState(0);
   const [showRoadview, setShowRoadview] = useState(false);
   const destination = getDestinationLabel(mission);
   const ctaLabel = getArrivalCtaLabel(mission);
+
+  // 미니 로드뷰 자산이 있으면 그 모드로 진행 — 4슬라이드 카드는 fallback
+  if (mission.roadviewSteps && mission.roadviewSteps.length > 0) {
+    return (
+      <MiniRoadview
+        steps={mission.roadviewSteps}
+        mission={mission}
+        destination={destination}
+        ctaLabel={ctaLabel}
+        onBack={onBack ?? onComplete}
+        onComplete={onComplete}
+      />
+    );
+  }
 
   const slides: Array<{
     id: "depart" | "alley" | "approach" | "arrive";
@@ -128,12 +145,13 @@ export default function MissionTravelingScreen({ mission, onComplete }: Props) {
       <header className="absolute top-0 left-0 right-0 z-30 px-4 pt-4 pb-3 flex items-center gap-2 bg-gradient-to-b from-black/45 via-black/15 to-transparent">
         <button
           type="button"
-          onClick={onComplete}
-          aria-label="건너뛰기"
-          className="w-8 h-8 rounded-full bg-white/85 backdrop-blur shadow-soft
-                     text-[#3E2C20] text-[11px] font-bold"
+          onClick={onBack ?? onComplete}
+          aria-label="미션 리스트로 돌아가기"
+          className="w-8 h-8 rounded-full bg-white/90 backdrop-blur shadow-soft
+                     text-[#3E2C20] text-[14px] font-bold
+                     flex items-center justify-center active:scale-[0.96]"
         >
-          ⤴
+          ←
         </button>
         <div className="flex-1 min-w-0 text-white">
           <p className="text-[10px] font-bold opacity-85 tracking-widest uppercase">
@@ -165,12 +183,12 @@ export default function MissionTravelingScreen({ mission, onComplete }: Props) {
               <Snapshot kind={slide.id} mission={mission} />
               <SlideSubtitle text={slide.subtitle} />
 
-              {/* 슬라이드별 실제 로드뷰 토글 — 사진 URL 있을 때만 */}
+              {/* 슬라이드별 캡처 사진 — 일러스트와 실사 비교용 */}
               {photoUrl && (
                 <button
                   type="button"
                   onClick={() => setShowRoadview(true)}
-                  aria-label="실제 로드뷰 보기"
+                  aria-label="실제 사진 보기"
                   className="absolute top-[64px] right-4 z-20
                              w-10 h-10 rounded-full bg-white/85 backdrop-blur
                              shadow-soft border border-white/60
@@ -214,17 +232,32 @@ export default function MissionTravelingScreen({ mission, onComplete }: Props) {
             다음 →
           </button>
         ) : (
-          <motion.button
-            type="button"
-            onClick={onComplete}
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.3 }}
-            className="px-6 py-3 rounded-full bg-primary text-white
-                       text-[14px] font-extrabold shadow-soft active:scale-[0.99]"
-          >
-            {ctaLabel}
-          </motion.button>
+          <div className="flex flex-col items-center gap-2">
+            {/* 도착 슬라이드: 실제 로드뷰 확인 외부링크 — 공유링크 있을 때만 */}
+            {mission.arrivalRoadviewUrl && (
+              <a
+                href={mission.arrivalRoadviewUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-1.5 rounded-full bg-white/15 backdrop-blur
+                           border border-white/40 text-white text-[11px] font-bold
+                           active:scale-[0.99]"
+              >
+                🗺️ 실제 로드뷰로 확인해보기
+              </a>
+            )}
+            <motion.button
+              type="button"
+              onClick={onComplete}
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.3 }}
+              className="px-6 py-3 rounded-full bg-primary text-white
+                         text-[14px] font-extrabold shadow-soft active:scale-[0.99]"
+            >
+              {ctaLabel}
+            </motion.button>
+          </div>
         )}
 
         <p className="text-white/60 text-[10px]">
@@ -232,7 +265,7 @@ export default function MissionTravelingScreen({ mission, onComplete }: Props) {
         </p>
       </footer>
 
-      {/* 실제 로드뷰 모달 — 현재 슬라이드의 사진을 표시 */}
+      {/* 실제 사진 모달 — 슬라이드의 캡처 사진을 라이트박스로 표시 */}
       <AnimatePresence>
         {showRoadview && mission.realRoadview?.[idx] && (
           <RoadviewModal
@@ -283,18 +316,18 @@ function RoadviewModal({
         transition={{ type: "spring", damping: 22, stiffness: 240 }}
         className="absolute inset-0 z-50 flex flex-col items-center justify-center px-5 pointer-events-none"
       >
-        <div className="w-full max-w-[360px] bg-white rounded-3xl overflow-hidden shadow-soft pointer-events-auto">
+        <div className="w-full max-w-[380px] bg-white rounded-3xl overflow-hidden shadow-soft pointer-events-auto">
           <div className="relative">
             <img
               src={photoUrl}
-              alt="실제 로드뷰"
+              alt="실제 사진"
               className="w-full h-auto block aspect-[4/3] object-cover"
             />
             <button
               type="button"
               onClick={onClose}
               aria-label="닫기"
-              className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/95
+              className="absolute top-2 right-2 z-10 w-8 h-8 rounded-full bg-white/95
                          flex items-center justify-center text-[#3E2C20] shadow-soft"
             >
               ✕
@@ -308,7 +341,7 @@ function RoadviewModal({
               {caption}
             </p>
             <p className="mt-0.5 text-[11px] text-[#9A8778]">
-              실제 로드뷰 · 일러스트와 비교해보세요
+              실제 사진 · 일러스트와 비교해보세요
             </p>
           </div>
         </div>
