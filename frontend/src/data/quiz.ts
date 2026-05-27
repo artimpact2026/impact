@@ -13,7 +13,7 @@ export type BalanceC = "hanok" | "modern";
 
 export type OnboardingData = {
   email: string;
-  birth: { year: string; month: string; day: string };
+  birth: { year: string };         // 태어난 년도만 수집
   homeRegion: string;              // 현재 거주 지역 (서울/부산/...)
   interests: string[];            // 취미/관심사 (multi)
   balanceA?: BalanceA;             // 산 vs 바다
@@ -27,7 +27,7 @@ export type OnboardingData = {
 
 export const initialOnboardingData: OnboardingData = {
   email: "",
-  birth: { year: "", month: "", day: "" },
+  birth: { year: "" },
   homeRegion: "",
   interests: [],
   values: [],
