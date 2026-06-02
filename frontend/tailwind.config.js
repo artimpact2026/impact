@@ -43,6 +43,7 @@ export default {
       },
       fontFamily: {
         sans: [
+          "Toss Product Sans",
           "Pretendard Variable",
           "Pretendard",
           "-apple-system",
