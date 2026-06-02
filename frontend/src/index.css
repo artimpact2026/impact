@@ -14,9 +14,16 @@ body,
 body {
   background: #f3ece2;
   color: #3e2c20;
-  font-family: Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  /* Pretendard Variable 우선 — index.html에서 동적 서브셋 로드 */
+  font-family: "Pretendard Variable", Pretendard, -apple-system,
+    BlinkMacSystemFont, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  /* 한글 타이포 통일: 자간 살짝 좁게, 단어 단위 줄바꿈 */
+  letter-spacing: -0.01em;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
 /* 데스크톱 브라우저에서도 모바일 프레임으로 미리보기 */
