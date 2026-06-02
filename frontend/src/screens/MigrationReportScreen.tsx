@@ -101,6 +101,12 @@ function reportNumber(id: string): string {
   return String(10000 + (h % 90000));
 }
 
+// 캐릭터 링 둘레에 흩뿌릴 화환 장식 점(베리) 좌표 — 링 박스 기준 %
+const WREATH_DOTS = Array.from({ length: 10 }, (_, i) => {
+  const a = (i / 10) * Math.PI * 2 - Math.PI / 2;
+  return { x: 50 + 50 * Math.cos(a), y: 50 + 50 * Math.sin(a) };
+});
+
 export default function MigrationReportScreen({
   residence,
   record,
@@ -146,7 +152,10 @@ export default function MigrationReportScreen({
   const meta = lifestyleMeta[cardType];
   const theme = LIFESTYLE_THEME[cardType];
   const reportNo = reportNumber(residence.id);
-  const completedCount = record.completedMissionIds.length;
+  const today = new Date();
+  const issueDate = `${today.getFullYear()}.${String(
+    today.getMonth() + 1
+  ).padStart(2, "0")}.${String(today.getDate()).padStart(2, "0")}`;
 
   const cardRef = useRef<HTMLDivElement>(null);
   const [saving, setSaving] = useState(false);
@@ -233,7 +242,7 @@ export default function MigrationReportScreen({
           {/* 캡처 대상 — 애니메이션 transform 영향 없는 정적 카드 */}
           <div
             ref={cardRef}
-            className="relative overflow-hidden rounded-[28px] p-6 shadow-soft"
+            className="relative overflow-hidden rounded-[28px] px-6 py-7 shadow-soft"
             style={{ background: theme.cardBg }}
           >
             {/* 대각선 인증 스탬프 워터마크 */}
@@ -277,57 +286,70 @@ export default function MigrationReportScreen({
             </div>
 
             {/* 캐릭터 링 (화환 느낌) */}
-            <div className="relative mt-5 flex justify-center">
+            <div className="relative mt-6 flex justify-center">
               <div
-                className="relative w-[148px] h-[148px] rounded-full flex items-center justify-center"
+                className="relative w-[150px] h-[150px] rounded-full flex items-center justify-center"
                 style={{
                   background: theme.ringBg,
-                  boxShadow: `inset 0 0 0 7px ${theme.ringInner}`,
+                  boxShadow: `inset 0 0 0 8px ${theme.ringInner}`,
                 }}
               >
-                <div className="w-[108px] h-[108px] rounded-full bg-white/80 flex items-center justify-center shadow-inner">
-                  <span className="text-[62px] leading-none" aria-hidden>
+                {/* 화환 장식 베리 — 링 둘레에 번갈아 점 배치 */}
+                {WREATH_DOTS.map((d, i) => (
+                  <span
+                    key={i}
+                    aria-hidden
+                    className="absolute w-2 h-2 rounded-full"
+                    style={{
+                      left: `${d.x}%`,
+                      top: `${d.y}%`,
+                      transform: "translate(-50%,-50%)",
+                      background: i % 2 ? theme.accent : "#E8765A",
+                      opacity: 0.85,
+                    }}
+                  />
+                ))}
+                <div className="w-[110px] h-[110px] rounded-full bg-white/85 flex items-center justify-center shadow-inner">
+                  <span className="text-[64px] leading-none" aria-hidden>
                     {meta.emoji}
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* 유형명 + 태그라인 */}
-            <div className="relative mt-4 text-center">
+            {/* 유형명 + 싱크로율 한 줄 강조 */}
+            <div className="relative mt-5 text-center">
               <h2
-                className="text-[26px] font-extrabold leading-tight"
+                className="text-[27px] font-extrabold leading-tight"
                 style={{ color: theme.title }}
               >
                 {cardType}
               </h2>
-              <p
-                className="mt-1 text-[13px] font-bold"
-                style={{ color: theme.accent }}
-              >
-                {meta.tagline}
+              <p className="mt-2 text-[14px] text-ink-soft">
+                {residence.region}와 싱크로율{" "}
+                <span
+                  className="text-[15px] font-extrabold"
+                  style={{ color: theme.accent }}
+                >
+                  {match}%
+                </span>
               </p>
             </div>
 
-            {/* 디바이더 */}
+            {/* 디바이더 (티켓 절취선 느낌) */}
             <div
-              className="relative my-4 h-px"
-              style={{ background: theme.divider }}
+              className="relative my-5 border-t border-dashed"
+              style={{ borderColor: theme.divider }}
             />
 
-            {/* 정보 행 */}
+            {/* 정보 행 — 담당 지역 / 발급일 2개만 */}
             <div className="relative space-y-2.5">
               <CardRow label="담당 지역" value={residence.region} color={theme.title} />
-              <CardRow label="적합도" value={`${match}%`} color={theme.title} />
-              <CardRow
-                label="체험 미션"
-                value={`${completedCount} / 8`}
-                color={theme.title}
-              />
+              <CardRow label="발급일" value={issueDate} color={theme.title} />
             </div>
 
             {/* 브랜드 */}
-            <div className="relative mt-5 flex items-center justify-center gap-1.5 opacity-80">
+            <div className="relative mt-6 flex items-center justify-center gap-1.5 opacity-80">
               <span className="text-[15px]" aria-hidden>
                 🍃
               </span>
