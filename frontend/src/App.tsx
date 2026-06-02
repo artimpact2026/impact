@@ -17,6 +17,7 @@ import SettingsScreen from "./screens/SettingsScreen";
 import MailboxModal from "./components/MailboxModal";
 import { storiesByResidenceId } from "./data/stories";
 import HospitalMissionScreen from "./screens/mission/HospitalMissionScreen";
+import ReportPreview from "./screens/ReportPreview";
 import OnboardingShell, {
   type OnboardingResult,
 } from "./screens/onboarding/OnboardingShell";
@@ -157,6 +158,7 @@ export default function App() {
   }, []);
 
   if (hash === "#hospital") return <HospitalMissionScreen />;
+  if (hash === "#report") return <ReportPreview />;
 
   const handleOnboardingComplete = (r: OnboardingResult) => {
     const email = r.data.email || "";
