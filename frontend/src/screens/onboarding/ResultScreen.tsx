@@ -110,6 +110,19 @@ export default function ResultScreen({ type, onStart }: Props) {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.1, duration: 0.4 }}
+          className="text-center mb-3"
+        >
+          <p className="text-ink text-[14px] font-bold leading-snug">
+            잠시, 다른 지역의 바람을 짓고 와볼래요?
+          </p>
+          <p className="mt-1 text-ink-soft text-[12px]">
+            살아보기 전에 먼저 살아봐요
+          </p>
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.25, duration: 0.4 }}
         >
           <PrimaryButton onClick={onStart}>시작하기 🍃</PrimaryButton>
         </motion.div>

@@ -57,7 +57,8 @@ type Tab1Route =
   | "mission-list"
   | "mission-traveling"
   | "mission-execute"
-  | "daily-summary";
+  | "daily-summary"
+  | "traveling-back";
 
 // 탭2 화면 흐름
 type Tab2Route =
@@ -135,9 +136,10 @@ export default function App() {
     saveProgress(regionProgress);
   }, [regionProgress]);
 
-  // 데모 리셋
+  // 데모 리셋 + mock 진행도 채우기 (콘솔 헬퍼)
   useEffect(() => {
-    (window as unknown as { cheongpung?: { reset: () => void } }).cheongpung = {
+    const api = {
+      // 모든 상태 초기화 → 온보딩부터
       reset: () => {
         localStorage.removeItem(PROFILE_KEY);
         localStorage.removeItem(PROGRESS_KEY);
@@ -153,7 +155,49 @@ export default function App() {
         setViewingResidenceId(null);
         setResidenceListRegion(null);
       },
+      // 지역의 8개 미션을 모두 완료 처리하고 '하루 요약' 화면으로 점프
+      // 사용법: cheongpung.skipTo()  → 첫 번째 지역
+      //        cheongpung.skipTo("ganghwa") → 특정 지역
+      skipTo: (residenceId?: string) => {
+        const target = residenceId
+          ? residences.find((r) => r.id === residenceId)
+          : residences[0];
+        if (!target) {
+          console.warn(
+            `[cheongpung] 지역을 찾을 수 없어요: ${residenceId}. 사용 가능한 id:`,
+            residences.map((r) => r.id)
+          );
+          return;
+        }
+        // 8개 공통 미션 전부 완료 + 적합도 +12(보너스 살짝)
+        const filled: RegionRecord = {
+          residenceId: target.id,
+          visitCount: 1,
+          completedMissionIds: baseMissions.map((m) => m.id),
+          score: baseMissions.reduce((sum, m) => sum + m.reward, 0),
+          fitScore: 12,
+        };
+        setRegionProgress((p) => ({ ...p, [target.id]: filled }));
+        setSelected(target);
+        setActiveMission(null);
+        setTab("home");
+        setTab1Route("daily-summary");
+        console.log(
+          `[cheongpung] ${target.region} 8/8 미션 완료 mock 적용 → 하루 요약 화면`
+        );
+      },
+      // 사용 가능한 지역 id 목록 출력
+      regions: () => {
+        const list = residences.map((r) => ({ id: r.id, region: r.region }));
+        console.table(list);
+        return list;
+      },
     };
+    (window as unknown as { cheongpung?: typeof api }).cheongpung = api;
+    console.log(
+      "%c[cheongpung] 데모 헬퍼 준비됨 — reset() / skipTo(id?) / regions()",
+      "color:#FF7043;font-weight:bold"
+    );
   }, []);
 
   if (hash === "#hospital") return <HospitalMissionScreen />;
@@ -194,7 +238,13 @@ export default function App() {
   const currentScore = currentRecord?.score ?? 0;
 
   const handleTabChange = (next: TabKey) => {
-    if (next === "home" && tab1Route !== "traveling") setTab1Route("home");
+    // 이동 애니메이션 중에는 무시
+    const inTransit = tab1Route === "traveling" || tab1Route === "traveling-back";
+    if (next === "home" && !inTransit) {
+      // 강화도 등 마을에 체류 중이면 '홈'은 마을 홈(ArrivalScreen)
+      if (selected) setTab1Route("arrival");
+      else setTab1Route("home");
+    }
     if (next === "journey") setTab2Route("journey");
     setTab(next);
   };
@@ -202,6 +252,13 @@ export default function App() {
   const handleTravelComplete = () => {
     if (selected) setRegionProgress((p) => bumpVisit(p, selected.id));
     setTab1Route("arrival");
+  };
+
+  // 마을 → 본 지역 역방향 이동 완료
+  const handleReturnHomeComplete = () => {
+    setSelected(null);
+    setActiveMission(null);
+    setTab1Route("home");
   };
 
   const handleMissionComplete = (fitDelta = 0) => {
@@ -250,6 +307,8 @@ export default function App() {
   const handleOpenReport = (residence: Residence) => {
     setReportResidenceId(residence.id);
     setTab2Route("report");
+    // 탭1(하루 요약)에서 진입해도 탭2 리포트로 전환되도록
+    setTab("journey");
   };
 
   const handleDecideMove = () => {
@@ -350,11 +409,22 @@ export default function App() {
         {tab === "home" && tab1Route === "arrival" && selected && (
           <ArrivalScreen
             residence={selected}
-            onBack={() => {
-              setSelected(null);
-              setTab1Route("home");
-            }}
+            homeRegion={homeRegion}
+            onReturnHome={() => setTab1Route("traveling-back")}
             onStartMissions={() => setTab1Route("mission-list")}
+          />
+        )}
+
+        {tab === "home" && tab1Route === "traveling-back" && selected && (
+          <TravelingScreen
+            origin={{
+              xPct: selected.xPct,
+              yPct: selected.yPct,
+              region: selected.region,
+            }}
+            destination={{ ...homePos, region: homeRegion }}
+            caption="집으로 돌아가는 중"
+            onComplete={handleReturnHomeComplete}
           />
         )}
 
@@ -417,6 +487,10 @@ export default function App() {
               selected,
               currentRecord
             )}
+            allMissionsDone={baseMissions.every((m) =>
+              currentCompletedIds.has(m.id)
+            )}
+            onSeeReport={() => handleOpenReport(selected)}
             onSeeResidences={handleSeeResidencesFromSummary}
             onSeeJourney={() => {
               setTab("journey");

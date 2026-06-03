@@ -13,6 +13,9 @@ type Props = {
   todayScore: number;       // 오늘 얻은 점수
   prevMatch: number;        // 변화 전 적합도
   newMatch: number;         // 변화 후 적합도
+  // 8개 미션 모두 완료 시 활성 — 이주 결정 리포트 진입
+  allMissionsDone: boolean;
+  onSeeReport: () => void;
   onSeeResidences: () => void;
   onSeeJourney: () => void;
   onClose: () => void;
@@ -49,6 +52,8 @@ export default function DailySummaryScreen({
   todayScore,
   prevMatch,
   newMatch,
+  allMissionsDone,
+  onSeeReport,
   onSeeResidences,
   onSeeJourney,
   onClose,
@@ -191,13 +196,31 @@ export default function DailySummaryScreen({
         </section>
       </main>
 
-      {/* 하단 CTA 2분할 */}
+      {/* 하단 CTA — 8/8 미션 완료 시엔 '이주 결정 리포트'가 primary */}
       <footer className="px-5 pb-6 pt-3 border-t border-cream-200 bg-white/80 backdrop-blur space-y-2">
+        {allMissionsDone && (
+          <motion.button
+            type="button"
+            onClick={onSeeReport}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.4 }}
+            whileTap={{ scale: 0.99 }}
+            className="w-full py-4 rounded-2xl bg-primary text-white text-[15px] font-extrabold
+                       shadow-soft transition"
+          >
+            📋 이주 결정 리포트 작성하기 →
+          </motion.button>
+        )}
         <button
           type="button"
           onClick={onSeeResidences}
-          className="w-full py-4 rounded-2xl bg-primary text-white text-[15px] font-extrabold
-                     shadow-soft active:scale-[0.99] transition"
+          className={`w-full py-4 rounded-2xl text-[15px] font-extrabold transition active:scale-[0.99]
+            ${
+              allMissionsDone
+                ? "bg-white text-ink border border-cream-200"
+                : "bg-primary text-white shadow-soft"
+            }`}
         >
           이 지역 레지던스 보기 →
         </button>

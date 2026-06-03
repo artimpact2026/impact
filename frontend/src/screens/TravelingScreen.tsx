@@ -5,12 +5,15 @@
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import KoreaMap from "../components/KoreaMap";
-import type { Residence } from "../data/residences";
 import type { RegionPos } from "../data/regions";
 
+type Endpoint = RegionPos & { region: string };
+
 type Props = {
-  origin: RegionPos & { region: string };
-  destination: Residence;
+  origin: Endpoint;
+  destination: Endpoint;
+  // 헤더 안내문(상단 작은 글씨). 역방향 시 "집으로 돌아가는 중" 등으로 사용
+  caption?: string;
   onComplete: () => void;
 };
 
@@ -19,7 +22,12 @@ const TRAVEL_MS = 2400;
 const FADE_MS = 700;
 const TOTAL_MS = TRAVEL_MS + FADE_MS;
 
-export default function TravelingScreen({ origin, destination, onComplete }: Props) {
+export default function TravelingScreen({
+  origin,
+  destination,
+  caption = "바람을 따라 이동 중",
+  onComplete,
+}: Props) {
   // 애니메이션 종료 후 부모에게 알림 → 도착 화면으로 전환
   useEffect(() => {
     const t = setTimeout(onComplete, TOTAL_MS);
@@ -41,7 +49,7 @@ export default function TravelingScreen({ origin, destination, onComplete }: Pro
 
       {/* 상단 안내 */}
       <header className="pt-12 px-6 text-center">
-        <p className="text-ink-soft text-[12px] font-medium">바람을 따라 이동 중</p>
+        <p className="text-ink-soft text-[12px] font-medium">{caption}</p>
         <h1 className="mt-1 text-ink text-[20px] font-extrabold">
           {origin.region} <span className="text-primary">→</span> {destination.region}
         </h1>

@@ -9,6 +9,8 @@ import {
   type LifeStyleType,
 } from "../data/residences";
 import { calculateMatch, type RegionRecord } from "../data/journey";
+import { baseMissions } from "../data/missions";
+import { missionInsights } from "../data/missionInsights";
 
 type Props = {
   residence: Residence;
@@ -81,6 +83,20 @@ export default function MigrationReportScreen({
     (r) => r.id !== residence.id && (allProgress[r.id]?.visitCount ?? 0) > 0
   );
 
+  // 축적 — 사용자가 이 지역과 쌓아온 것
+  const completedCount = record.completedMissionIds.length;
+  const totalMissions = baseMissions.length;
+  // 시작 적합도: 라이프스타일 매칭 베이스(70 or 50) — 미션 보너스/fitDelta 제외
+  const baseMatch =
+    lifestyle && lifestyle === residence.matchType ? 70 : 50;
+  const matchDelta = match - baseMatch;
+
+  // 완료한 미션에서 얻은 발견 — 순서는 baseMissions 정의 순서
+  const discoveredInsights = baseMissions
+    .filter((m) => record.completedMissionIds.includes(m.id))
+    .map((m) => ({ missionId: m.id, insight: missionInsights[m.id] }))
+    .filter((x) => x.insight);
+
   return (
     <div className="relative min-h-[calc(100dvh-6rem)] flex flex-col bg-cream">
       <header className="pt-10 px-5 flex items-center gap-3">
@@ -133,6 +149,50 @@ export default function MigrationReportScreen({
           </p>
         </section>
 
+        {/* 나의 축적 — 사용자가 이 지역과 쌓아온 것 */}
+        <section>
+          <h2 className="text-ink text-[15px] font-extrabold mb-2">
+            {residence.region}과 함께한 시간
+          </h2>
+          <div className="bg-white border border-cream-200 rounded-2xl p-4 shadow-soft">
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <AccumStat
+                label="방문"
+                value={`${record.visitCount}`}
+                suffix="번"
+                tone="primary"
+              />
+              <AccumStat
+                label="완료 미션"
+                value={`${completedCount}`}
+                suffix={`/${totalMissions}`}
+                tone="nature"
+              />
+              <AccumStat
+                label="축적 점수"
+                value={`${record.score}`}
+                suffix="점"
+                tone="ink"
+              />
+            </div>
+            <div className="mt-3 pt-3 border-t border-cream-200 flex items-center justify-between text-[12px]">
+              <span className="text-ink-soft font-bold">적합도 변화</span>
+              <span className="flex items-baseline gap-1.5">
+                <span className="text-ink-mute tabular-nums">{baseMatch}%</span>
+                <span className="text-ink-mute">→</span>
+                <span className="text-primary font-extrabold tabular-nums">
+                  {match}%
+                </span>
+                {matchDelta > 0 && (
+                  <span className="text-nature-600 text-[11px] font-extrabold">
+                    +{matchDelta}
+                  </span>
+                )}
+              </span>
+            </div>
+          </div>
+        </section>
+
         {/* 핵심 지표 4개 */}
         <section>
           <h2 className="text-ink text-[15px] font-extrabold mb-2">핵심 지표</h2>
@@ -143,6 +203,20 @@ export default function MigrationReportScreen({
             <MetricCard label="비용감" value={metrics.cost} tone="sky" emoji="💰" />
           </div>
         </section>
+
+        {/* 미션에서 발견한 것 — 사용자가 알게 된 핵심 정보 요약 */}
+        {discoveredInsights.length > 0 && (
+          <section>
+            <h2 className="text-ink text-[15px] font-extrabold mb-2">
+              미션에서 발견한 것
+            </h2>
+            <div className="bg-white border border-cream-200 rounded-2xl shadow-soft divide-y divide-cream-200">
+              {discoveredInsights.map(({ missionId, insight }) => (
+                <InsightRow key={missionId} insight={insight} />
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* 맞는 이유 / 우려 이유 */}
         <section className="grid grid-cols-1 gap-2">
@@ -229,6 +303,63 @@ export default function MigrationReportScreen({
 // =====================================================================
 // 서브 컴포넌트
 // =====================================================================
+
+// 축적 카드 안의 작은 stat — 방문/미션/점수
+function AccumStat({
+  label,
+  value,
+  suffix,
+  tone,
+}: {
+  label: string;
+  value: string;
+  suffix: string;
+  tone: "primary" | "nature" | "ink";
+}) {
+  const text =
+    tone === "primary"
+      ? "text-primary"
+      : tone === "nature"
+      ? "text-nature-600"
+      : "text-ink";
+  return (
+    <div>
+      <p className="text-[10px] text-ink-mute font-bold uppercase tracking-wider">
+        {label}
+      </p>
+      <p className={`mt-0.5 ${text}`}>
+        <span className="text-[20px] font-extrabold tabular-nums">{value}</span>
+        <span className="text-[12px] font-bold ml-0.5">{suffix}</span>
+      </p>
+    </div>
+  );
+}
+
+// 미션에서 발견한 것 — 한 줄 정보
+function InsightRow({
+  insight,
+}: {
+  insight: import("../data/missionInsights").MissionInsight;
+}) {
+  return (
+    <div className="px-3 py-2.5 flex items-start gap-2.5">
+      <span className="text-lg shrink-0 mt-0.5" aria-hidden>
+        {insight.icon}
+      </span>
+      <div className="flex-1 min-w-0">
+        <p className="text-ink-mute text-[10px] font-bold uppercase tracking-wider">
+          {insight.category}
+        </p>
+        <p className="text-ink text-[13px] font-extrabold leading-snug mt-0.5">
+          {insight.headline}
+        </p>
+        <p className="text-ink-soft text-[11px] leading-relaxed mt-0.5">
+          {insight.detail}
+        </p>
+      </div>
+    </div>
+  );
+}
 
 function MetricCard({
   label,

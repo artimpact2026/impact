@@ -1,32 +1,21 @@
-// 미션 리스트 — 공통 9개 + 지역 4개 + 최종 미션
-// 카테고리(생활현실/관계형성/감정·분위기)별로 그룹화
+// 미션 리스트 — 가로 스와이프 카드뉴스 형식
+// 각 카드: 카테고리 / 큰 아이콘 / 흥미 질문 / 티저 / 배울 점 / 시작 CTA
 
 import { motion } from "framer-motion";
-import MissionCard from "../components/MissionCard";
-import { finalMission, type Mission, type MissionCategory } from "../data/missions";
+import MissionStoryCard from "../components/MissionStoryCard";
+import { finalMission, type Mission } from "../data/missions";
 import { missionsForResidence } from "../data/regionMissions";
+import { missionHooks } from "../data/missionHooks";
 
 type Props = {
-  region: string;            // 표시용 지역 이름 (예: "거제도")
-  residenceId: string;       // 미션 매핑용 (ganghwa/gwangyang/geoje)
+  region: string;
+  residenceId: string;
   completedIds: Set<string>;
   totalScore: number;
   fitScore?: number;
   onBack: () => void;
   onSelectMission: (mission: Mission) => void;
   onSelectFinal?: () => void;
-};
-
-const CATEGORY_ORDER: MissionCategory[] = [
-  "생활현실형",
-  "관계형성형",
-  "감정/분위기형",
-];
-
-const CATEGORY_LABEL: Record<MissionCategory, string> = {
-  생활현실형: "생활 현실",
-  관계형성형: "관계 형성",
-  "감정/분위기형": "감정·분위기",
 };
 
 export default function MissionListScreen({
@@ -45,16 +34,7 @@ export default function MissionListScreen({
   const percent = Math.round((doneCount / total) * 100);
   const allDone = doneCount === total;
 
-  // 카테고리별 그룹화
-  const grouped: Record<MissionCategory, Mission[]> = {
-    생활현실형: [],
-    관계형성형: [],
-    "감정/분위기형": [],
-  };
-  for (const m of allMissions) grouped[m.category].push(m);
-
   return (
-    // h-[...] 고정 + 미션 그룹 영역만 자체 스크롤
     <div className="relative h-[calc(100dvh-6rem)] flex flex-col bg-cream overflow-hidden">
       {/* 헤더 */}
       <header className="pt-12 px-5 flex items-center gap-3 shrink-0">
@@ -125,80 +105,90 @@ export default function MissionListScreen({
         </div>
       </section>
 
-      {/* 카테고리별 그룹 — 자체 스크롤 */}
-      <section className="flex-1 min-h-0 overflow-y-auto px-5 mt-4 pb-8 space-y-4">
-        {CATEGORY_ORDER.map((cat) => {
-          const list = grouped[cat];
-          if (list.length === 0) return null;
-          return (
-            <div key={cat}>
-              <h2 className="text-ink text-[13px] font-extrabold mb-2 flex items-center gap-2">
-                {CATEGORY_LABEL[cat]}
-                <span className="text-ink-mute text-[11px] font-bold">
-                  {list.length}개
-                </span>
-              </h2>
-              <ul className="space-y-2">
-                {list.map((m, i) => (
-                  <motion.li
-                    key={m.id}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.03, duration: 0.3 }}
-                  >
-                    <MissionCard
-                      mission={m}
-                      done={completedIds.has(m.id)}
-                      onClick={() => onSelectMission(m)}
-                    />
-                  </motion.li>
-                ))}
-              </ul>
-            </div>
-          );
-        })}
+      {/* 안내 — 스와이프 힌트 */}
+      <div className="px-5 mt-4 shrink-0 flex items-center justify-between">
+        <h2 className="text-ink text-[13px] font-extrabold">
+          오늘의 체험 카드
+        </h2>
+        <p className="text-ink-mute text-[11px]">← 옆으로 넘겨보기 →</p>
+      </div>
 
-        {/* 최종 미션 */}
+      {/* 가로 스와이프 카드 덱 */}
+      <section
+        className="flex-1 min-h-0 mt-3
+                   overflow-x-auto overflow-y-hidden
+                   snap-x snap-mandatory
+                   flex items-stretch gap-3 px-5 pb-6
+                   [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {allMissions.map((m, i) => (
+          <motion.div
+            key={m.id}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.04, duration: 0.3 }}
+            className="snap-center shrink-0 w-[85%] max-w-[320px] flex"
+          >
+            <MissionStoryCard
+              mission={m}
+              hook={missionHooks[m.id]}
+              done={completedIds.has(m.id)}
+              onClick={() => onSelectMission(m)}
+            />
+          </motion.div>
+        ))}
+
+        {/* 최종 미션 — 마지막 카드 */}
         <motion.div
-          initial={{ opacity: 0, y: 6 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.3 }}
+          transition={{ delay: allMissions.length * 0.04, duration: 0.3 }}
+          className="snap-center shrink-0 w-[85%] max-w-[320px] flex"
         >
           <button
             type="button"
             disabled={!allDone}
             onClick={onSelectFinal}
-            className={`w-full flex items-center gap-3 px-3.5 py-3.5 rounded-2xl
+            className={`relative w-full h-full flex flex-col p-5 rounded-3xl
                         border text-left shadow-soft transition
                         ${
                           allDone
                             ? "bg-gradient-to-br from-primary-50 to-nature-50 border-primary active:scale-[0.99]"
-                            : "bg-cream-100 border-cream-200 opacity-60 cursor-not-allowed"
+                            : "bg-cream-100 border-cream-200 opacity-70 cursor-not-allowed"
                         }`}
           >
-            <div
-              className={`w-11 h-11 rounded-2xl flex items-center justify-center text-xl shrink-0
-                ${allDone ? "bg-white" : "bg-cream-200"}`}
-              aria-hidden
-            >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-extrabold tracking-widest uppercase text-primary">
+                FINAL
+              </span>
+              <span className="text-[12px] font-extrabold text-primary tabular-nums">
+                +{finalMission.reward}점
+              </span>
+            </div>
+
+            <div className="mt-4 text-[56px] leading-none" aria-hidden>
               {finalMission.icon}
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-ink text-[14px] font-extrabold leading-tight">
-                {finalMission.title}
-              </p>
-              <p className="mt-0.5 text-ink-mute text-[11px]">
-                {allDone
-                  ? "모든 체험이 끝났어요. 리포트를 만들어보세요"
-                  : "모든 미션 완료 후 활성화"}
-              </p>
-            </div>
-            <span
-              className={`shrink-0 text-[12px] font-extrabold
+
+            <p className="mt-3 text-ink-mute text-[11px] font-bold tracking-wide">
+              {finalMission.title}
+            </p>
+            <h3 className="mt-1 text-ink text-[19px] font-extrabold leading-snug">
+              {allDone
+                ? "오늘의 체험을 한 장의 리포트로"
+                : "모든 체험 완료 후 열려요"}
+            </h3>
+
+            <p className="mt-2 text-ink-soft text-[13px] leading-relaxed">
+              {finalMission.description}
+            </p>
+
+            <div
+              className={`mt-auto pt-5 text-[12px] font-extrabold
                 ${allDone ? "text-primary" : "text-ink-mute"}`}
             >
-              +{finalMission.reward}점
-            </span>
+              {allDone ? "리포트 만들기 →" : "🔒 잠금"}
+            </div>
           </button>
         </motion.div>
       </section>
