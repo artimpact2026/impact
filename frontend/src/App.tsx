@@ -14,6 +14,11 @@ import MoveInScreen from "./screens/MoveInScreen";
 import ResidenceListScreen from "./screens/ResidenceListScreen";
 import ResidenceDetailScreen from "./screens/ResidenceDetailScreen";
 import SettingsScreen from "./screens/SettingsScreen";
+import CommunityScreen from "./screens/CommunityScreen";
+import BookingScreen from "./screens/BookingScreen";
+import BookingDetailScreen from "./screens/BookingDetailScreen";
+import BookingFormScreen from "./screens/BookingFormScreen";
+import BookingDoneScreen from "./screens/BookingDoneScreen";
 import MailboxModal from "./components/MailboxModal";
 import { storiesByResidenceId } from "./data/stories";
 import HospitalMissionScreen from "./screens/mission/HospitalMissionScreen";
@@ -22,6 +27,7 @@ import OnboardingShell, {
 } from "./screens/onboarding/OnboardingShell";
 import BottomNav, { type TabKey } from "./components/BottomNav";
 import {
+  recommendedResidences,
   residences,
   type Residence,
   type LifeStyleType,
@@ -69,6 +75,12 @@ type Tab2Route =
   | "residence-list"
   | "residence-detail";
 
+// 탭3(커뮤니티) 화면 흐름 — 골격 단계, 추후 detail/write 등 확장
+type Tab3Route = "community";
+
+// 탭4(레지던스 예약) 화면 흐름
+type Tab4Route = "booking" | "booking-detail" | "booking-form" | "booking-done";
+
 // localStorage 키
 const PROFILE_KEY = "cheongpung.onboarding.v1";
 const PROGRESS_KEY = "cheongpung.progress.v1";
@@ -115,6 +127,8 @@ export default function App() {
   const [tab, setTab] = useState<TabKey>("home");
   const [tab1Route, setTab1Route] = useState<Tab1Route>("home");
   const [tab2Route, setTab2Route] = useState<Tab2Route>("journey");
+  const [tab3Route, setTab3Route] = useState<Tab3Route>("community");
+  const [tab4Route, setTab4Route] = useState<Tab4Route>("booking");
   const [selected, setSelected] = useState<Residence | null>(null);
   const [activeMission, setActiveMission] = useState<Mission | null>(null);
   const [regionProgress, setRegionProgress] = useState<
@@ -130,6 +144,14 @@ export default function App() {
   const [detailEntry, setDetailEntry] = useState<"list" | "report">("list");
   // 미션 리스트에서 우편함 미션을 누른 경우 (모달로 노출)
   const [mailboxFromMission, setMailboxFromMission] = useState(false);
+  // 예약 탭 — 선택된 레지던스 id + 진행 중인 예약 폼 데이터(완료 화면에서 사용)
+  const [bookingResidenceId, setBookingResidenceId] = useState<string | null>(null);
+  const [bookingDraft, setBookingDraft] = useState<{
+    startDate: string;
+    durationMonths: number;
+  } | null>(null);
+  // 예약 찜(하트) — 화면 상태만, 영속 X
+  const [bookingLiked, setBookingLiked] = useState<Set<string>>(new Set());
 
   // 진행 상태 localStorage 영속
   useEffect(() => {
@@ -147,6 +169,11 @@ export default function App() {
         setSelected(null);
         setTab1Route("home");
         setTab2Route("journey");
+        setTab3Route("community");
+        setTab4Route("booking");
+        setBookingResidenceId(null);
+        setBookingDraft(null);
+        setBookingLiked(new Set());
         setTab("home");
         setActiveMission(null);
         setRegionProgress({});
@@ -246,6 +273,8 @@ export default function App() {
       else setTab1Route("home");
     }
     if (next === "journey") setTab2Route("journey");
+    if (next === "community") setTab3Route("community");
+    if (next === "booking") setTab4Route("booking");
     setTab(next);
   };
 
@@ -574,6 +603,97 @@ export default function App() {
             }}
           />
         )}
+
+        {/* ===== 탭3: 커뮤니티(이야기) — 골격 ===== */}
+        {tab === "community" && tab3Route === "community" && <CommunityScreen />}
+
+        {/* ===== 탭4: 레지던스 예약 ===== */}
+        {tab === "booking" && tab4Route === "booking" && (
+          <BookingScreen
+            residences={recommendedResidences}
+            onSelectResidence={(r) => {
+              setBookingResidenceId(r.id);
+              setTab4Route("booking-detail");
+            }}
+          />
+        )}
+
+        {tab === "booking" &&
+          tab4Route === "booking-detail" &&
+          bookingResidenceId &&
+          (() => {
+            const r = recommendedResidences.find(
+              (x) => x.id === bookingResidenceId
+            );
+            if (!r) return null;
+            return (
+              <BookingDetailScreen
+                residence={r}
+                liked={bookingLiked.has(r.id)}
+                onToggleLike={() =>
+                  setBookingLiked((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(r.id)) next.delete(r.id);
+                    else next.add(r.id);
+                    return next;
+                  })
+                }
+                onBack={() => {
+                  setBookingResidenceId(null);
+                  setTab4Route("booking");
+                }}
+                onBook={() => setTab4Route("booking-form")}
+              />
+            );
+          })()}
+
+        {tab === "booking" &&
+          tab4Route === "booking-form" &&
+          bookingResidenceId &&
+          (() => {
+            const r = recommendedResidences.find(
+              (x) => x.id === bookingResidenceId
+            );
+            if (!r) return null;
+            return (
+              <BookingFormScreen
+                residence={r}
+                onBack={() => setTab4Route("booking-detail")}
+                onSubmit={(draft) => {
+                  setBookingDraft(draft);
+                  setTab4Route("booking-done");
+                }}
+              />
+            );
+          })()}
+
+        {tab === "booking" &&
+          tab4Route === "booking-done" &&
+          bookingResidenceId &&
+          bookingDraft &&
+          (() => {
+            const r = recommendedResidences.find(
+              (x) => x.id === bookingResidenceId
+            );
+            if (!r) return null;
+            return (
+              <BookingDoneScreen
+                residence={r}
+                draft={bookingDraft}
+                onBackToList={() => {
+                  setBookingResidenceId(null);
+                  setBookingDraft(null);
+                  setTab4Route("booking");
+                }}
+                onGoHome={() => {
+                  setBookingResidenceId(null);
+                  setBookingDraft(null);
+                  setTab4Route("booking");
+                  setTab("home");
+                }}
+              />
+            );
+          })()}
       </main>
 
       <BottomNav active={tab} onChange={handleTabChange} />

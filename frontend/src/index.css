@@ -24,3 +24,12 @@ body {
   display: flex;
   justify-content: center;
 }
+
+/* 스크롤바 숨김 — 가로 칩 스크롤 등에 사용 */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
