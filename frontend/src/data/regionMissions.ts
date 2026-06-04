@@ -224,7 +224,7 @@ const ganghwaMissions: Mission[] = [
 // =====================================================================
 // 광양 — 디지털노마드형 (4개)
 // =====================================================================
-const gwangyangMissions: Mission[] = [
+export const gwangyangMissions: Mission[] = [
   {
     id: "gwangyang-cafework",
     title: "카페에서 일해보기",
@@ -412,7 +412,7 @@ const gwangyangMissions: Mission[] = [
 // =====================================================================
 // 거제도 — 레저형 (4개)
 // =====================================================================
-const geojeMissions: Mission[] = [
+export const geojeMissions: Mission[] = [
   {
     id: "geoje-walk-sea",
     title: "바다까지 걸어가기",
@@ -597,7 +597,7 @@ const geojeMissions: Mission[] = [
 // =====================================================================
 // 태안 — 레저형 (4개)
 // =====================================================================
-const taeanMissions: Mission[] = [
+export const taeanMissions: Mission[] = [
   {
     id: "taean-sunset",
     title: "만리포 노을 산책",
@@ -768,9 +768,9 @@ const taeanMissions: Mission[] = [
 ];
 
 // =====================================================================
-// 영월 — 자연탐험형 (4개)
+// 영월 — 자연탐험형 (구버전, 미사용) - 별마로 천문대 컨셉
 // =====================================================================
-const yeongwolMissions: Mission[] = [
+export const yeongwolMissionsOld: Mission[] = [
   {
     id: "yeongwol-stars",
     title: "별마로 천문대 야간 관측",
@@ -953,7 +953,7 @@ const yeongwolMissions: Mission[] = [
 // =====================================================================
 // 양양 — 디지털노마드형 (4개)
 // =====================================================================
-const yangyangMissions: Mission[] = [
+export const yangyangMissions: Mission[] = [
   {
     id: "yangyang-coworking",
     title: "인구해변 코워킹 입주",
@@ -1127,7 +1127,7 @@ const yangyangMissions: Mission[] = [
 // =====================================================================
 // 진도 — 집돌이형 (4개)
 // =====================================================================
-const jindoMissions: Mission[] = [
+export const jindoMissions: Mission[] = [
   {
     id: "jindo-art",
     title: "운림산방 한국화 감상",
@@ -1306,7 +1306,7 @@ const jindoMissions: Mission[] = [
 // =====================================================================
 // 정선 — 집돌이형 (4개)
 // =====================================================================
-const jeongseonMissions: Mission[] = [
+export const jeongseonMissions: Mission[] = [
   {
     id: "jeongseon-market",
     title: "정선 5일장 체험",
@@ -1487,18 +1487,807 @@ const jeongseonMissions: Mission[] = [
 ];
 
 // =====================================================================
+// 🌊 영덕 뚜벅이마을 — 천천히 걷기 (sea / alone_rest)
+// =====================================================================
+const yeongdeokMissions: Mission[] = [
+  {
+    id: "yeongdeok-blueroad",
+    title: "블루로드 첫 구간 걷기",
+    icon: "🥾",
+    category: "감정/분위기형",
+    mode: "map-info",
+    reward: 10,
+    background: "neighbor",
+    npc: { name: "뚜벅이마을 호스트", emoji: "🥾" },
+    description: "동해안 트레킹 명소 — 천천히 걷기 시작",
+    dialogues: [
+      {
+        npc: "영덕 블루로드는 64km 동해안 도보 코스예요. 강구에서 시작해 고래불해변까지 이어져요. 한 번에 다 못 걸어요. 천천히, 조금씩 걷는 게 뚜벅이 라이프예요.",
+        options: [
+          { label: "오늘은 한 구간만 걸어볼게요", next: 1, traits: ["자연탐험형"] },
+          { label: "한 번에 다 걷고 싶은데요", next: 1, traits: ["레저형"] },
+        ],
+      },
+      {
+        npc: "조급할 필요 없어요. 동해 바람 맞으면서 한 시간씩 천천히 걷다 보면, 도시에서 쌓인 게 다 날아가요. 마을 사람들 인사 받으면서 걷는 게 진짜예요.",
+        options: [
+          { label: "그런 시간이 필요했어요", traits: ["자연탐험형", "집돌이형"] },
+          { label: "걸으면서 마음도 정리되겠네요", traits: ["자연탐험형"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "yeongdeok-walking-day",
+    title: "차 없는 하루 살아보기",
+    icon: "🚶",
+    category: "생활현실형",
+    mode: "dialogue",
+    reward: 8,
+    background: "transit",
+    npc: { name: "정착 청년", emoji: "🧑" },
+    description: "차 없이 영덕에서 일상 보내기",
+    dialogues: [
+      {
+        npc: "저도 도시에서 차 없이 살아본 적 없었거든요. 처음엔 답답했는데 영덕에서는 모든 게 걸어서 닿아요. 시장도 우체국도 카페도 10분 안에요.",
+        options: [
+          { label: "그게 가능하다니 신기해요", next: 1, traits: ["자연탐험형"] },
+          { label: "정말 시내까지 다 걸어가요?", next: 1, traits: ["집돌이형"] },
+        ],
+      },
+      {
+        npc: "시내는 좀 멀어요. 한 달에 두세 번 일 있을 때만 버스 타요. 동네 안은 무조건 걸어요. 자전거 없는 사람도 많아요. 발이 그냥 익숙해져요.",
+        options: [
+          { label: "걷는 게 일상이 되겠네요", traits: ["자연탐험형", "집돌이형"] },
+          { label: "차 한 대는 있어야 마음 편할 것 같아요", traits: ["디지털노마드형", "레저형"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "yeongdeok-daege",
+    title: "강구항에서 대게 한 마리",
+    icon: "🦀",
+    category: "관계형성형",
+    mode: "map-dialogue",
+    reward: 10,
+    background: "market",
+    npc: { name: "강구항 어부", emoji: "🧓" },
+    description: "강구항 대게 — 영덕의 대표 음식",
+    dialogues: [
+      {
+        npc: "강구항은 새벽 4시부터 어선이 들어와요. 대게철이 11월부터 5월까지예요. 그때는 전국에서 사람 와요. 비철엔 한가하고 좋아요.",
+        options: [
+          { label: "비철에 와서 한적할 때 보고 싶어요", next: 1, traits: ["집돌이형", "자연탐험형"] },
+          { label: "대게철 활기 느껴보고 싶어요", next: 1, traits: ["레저형"] },
+        ],
+      },
+      {
+        npc: "한 번 단골 식당 정해두면 사장님이 얼굴 기억해요. 식사 끝나고 항구 한 바퀴 도는 게 영덕 사람들 일상이에요.",
+        options: [
+          { label: "단골 만들고 싶어요", traits: ["레저형", "자연탐험형"] },
+          { label: "그 일상이 부럽네요", traits: ["집돌이형"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "yeongdeok-sunrise",
+    title: "해맞이공원에서 멍 때리기",
+    icon: "🌅",
+    category: "감정/분위기형",
+    mode: "map-info",
+    reward: 12,
+    background: "neighbor",
+    npc: { name: "동네 산책자", emoji: "👵" },
+    description: "동해 일출 + 풍력단지 풍경",
+    dialogues: [
+      {
+        npc: "해맞이공원은 영덕에서 일출 가장 잘 보이는 곳이에요. 풍력발전기들도 함께 보여요. 거대한 날개가 천천히 돌아가는 풍경, 한 번 보면 잊을 수 없어요.",
+        options: [
+          { label: "그 풍경 진짜 보고 싶어요", next: 1, traits: ["자연탐험형"] },
+          { label: "풍력단지가 일상에 있다니", next: 1, traits: ["디지털노마드형"] },
+        ],
+      },
+      {
+        npc: "거기 벤치에 앉아서 한 시간씩 멍 때리는 분이 많아요. 도시에서 받은 자극이 거기서 다 빠져나가요.",
+        options: [
+          { label: "그런 시간이 진짜 필요해요", traits: ["자연탐험형", "집돌이형"] },
+        ],
+      },
+    ],
+  },
+];
+
+// =====================================================================
+// 🏔 영월 밭멍 — 퍼머컬처·비움 (mountain / alone_rest)
+// =====================================================================
+const yeongwolMissions: Mission[] = [
+  {
+    id: "yeongwol-leaf-garden",
+    title: "하늘에서 보이는 나뭇잎밭",
+    icon: "🍃",
+    category: "감정/분위기형",
+    mode: "map-info",
+    reward: 10,
+    background: "neighbor",
+    npc: { name: "밭멍 호스트", emoji: "🌱" },
+    description: "옛 공장 자리에 그려진 나뭇잎 모양 밭",
+    dialogues: [
+      {
+        npc: "여기 보이는 게 밭멍의 '나뭇잎밭'이에요. 옛 절임배추공장이랑 메주공장 자리예요. 위에서 보면 진짜 나뭇잎 모양이에요. 땅에서는 잘 안 보여요.",
+        options: [
+          { label: "공장 자리가 밭이 됐다니 신기해요", next: 1, traits: ["자연탐험형"] },
+          { label: "왜 나뭇잎 모양이에요?", next: 1, traits: ["디지털노마드형"] },
+        ],
+      },
+      {
+        npc: "퍼머컬처 설계예요. 보행로엔 낮은 클로버, 그 옆에 메리골드(벌레 쫓는 꽃), 컴프리(영양분 끌어올림). 다 의미가 있어요. 자연이 스스로 자라요.",
+        options: [
+          { label: "자연을 따라 짓는 거네요", traits: ["자연탐험형"] },
+          { label: "한 번 직접 걸어보고 싶어요", traits: ["자연탐험형", "집돌이형"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "yeongwol-permaculture",
+    title: "퍼머컬처 첫 수업",
+    icon: "🌾",
+    category: "관계형성형",
+    mode: "dialogue",
+    reward: 12,
+    background: "office",
+    npc: { name: "PDC 강사", emoji: "🧑‍🌾" },
+    description: "경운 없는 농법 철학",
+    dialogues: [
+      {
+        npc: "퍼머컬처(Permaculture)는 땅을 '갈지' 않아요. 관행농업은 땅을 갈아 부드럽게 만드는데, 그게 토양 생태를 망쳐요. 우리는 그냥 둬요.",
+        options: [
+          { label: "갈지 않아도 자라나요?", next: 1, traits: ["디지털노마드형"] },
+          { label: "지구에 무해한 농법이네요", next: 1, traits: ["자연탐험형"] },
+        ],
+      },
+      {
+        npc: "겨울이 흙을 부드럽게 만들어요. 만물이 잠드는 계절을 지나면 봄에 자생력이 깨어나요. 사람이 강제로 힘 가하는 게 아니라, 땅이 스스로 회복해요.",
+        options: [
+          { label: "이런 농법이 있다니", traits: ["자연탐험형"] },
+          { label: "여기서 배워보고 싶어요", traits: ["디지털노마드형"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "yeongwol-social-garden",
+    title: "사회적 밭 함께 만들기",
+    icon: "🌻",
+    category: "관계형성형",
+    mode: "dialogue",
+    reward: 10,
+    background: "neighbor",
+    npc: { name: "동료 청년 농부", emoji: "👩‍🌾" },
+    description: "주민들과 함께 짓는 밭",
+    dialogues: [
+      {
+        npc: "첫 해 나뭇잎밭은 식용작물로 채웠어요. 다 못 먹어서 아쉬웠어요. 그래서 이듬해는 약용식물이랑 꽃들로 바꿨어요. 주민들도 보러 오시고요.",
+        options: [
+          { label: "주민들과 함께 짓는 거네요", next: 1, traits: ["레저형"] },
+          { label: "혼자만 갖는 게 아니라 좋네요", next: 1, traits: ["자연탐험형"] },
+        ],
+      },
+      {
+        npc: "여기서는 '동료'가 필요해요. 농사가 혼자선 안 돼요. 같이 손 모으고, 같이 수확하고, 같이 나눠요. 그게 청년마을 컨셉이에요.",
+        options: [
+          { label: "그런 동료가 그리웠어요", traits: ["레저형", "자연탐험형"] },
+          { label: "함께 짓는 의미가 크네요", traits: ["레저형"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "yeongwol-batmeong",
+    title: "밭에서 진짜 멍 때리기",
+    icon: "🌅",
+    category: "감정/분위기형",
+    mode: "dialogue",
+    reward: 12,
+    background: "neighbor",
+    npc: { name: "이었던 대표", emoji: "👩" },
+    description: "비움의 경험 — 산·하늘·바람",
+    dialogues: [
+      {
+        npc: "산과 밭, 하늘과 흙, 볕과 바람. 밭멍의 슬로건이에요. 여기서는 그냥 멍 때리는 게 일상이에요. 도시에서는 그 시간이 없잖아요.",
+        options: [
+          { label: "그 시간이 진짜 필요했어요", next: 1, traits: ["자연탐험형", "집돌이형"] },
+          { label: "멍 때리기가 일이 되는 곳", next: 1, traits: ["집돌이형"] },
+        ],
+      },
+      {
+        npc: "비움이 채움이에요. 머리 비우면 보이는 게 달라져요. 흙 만져보고, 바람 들어보고, 볕 받아보고. 그게 다예요.",
+        options: [
+          { label: "그런 단순함이 그리웠어요", traits: ["자연탐험형"] },
+        ],
+      },
+    ],
+  },
+];
+
+// =====================================================================
+// 🏔 무주 산타지 — 산골 판타지 (mountain / alone_make)
+// =====================================================================
+const mujuMissions: Mission[] = [
+  {
+    id: "muju-school",
+    title: "비워진 폐교에 발걸음",
+    icon: "🏫",
+    category: "감정/분위기형",
+    mode: "map-info",
+    reward: 10,
+    background: "library",
+    npc: { name: "산타지 호스트", emoji: "🌳" },
+    description: "무풍면 폐교 — 비워진 건물에 청년 상상력 채우기",
+    dialogues: [
+      {
+        npc: "여기가 산타지 폐교예요. 무풍면 외진 산골에 있어요. 학교는 닫혔지만 건물은 살아 있어요. 청년들이 들어와서 채워가는 중이에요.",
+        options: [
+          { label: "비워진 공간이 매력이네요", next: 1, traits: ["디지털노마드형"] },
+          { label: "산골 한가운데 폐교라니", next: 1, traits: ["자연탐험형"] },
+        ],
+      },
+      {
+        npc: "도시의 속도에서 벗어난 시간이에요. 산이 둘러싸고 있어서 자기 호흡으로 살게 돼요. 폐교 안에서 작업하고, 밖에 나가서 산 보고.",
+        options: [
+          { label: "그런 환경에서 작업하면 좋겠어요", traits: ["디지털노마드형"] },
+          { label: "산골에서의 판타지같아요", traits: ["자연탐험형"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "muju-jeongchak",
+    title: "정착 요정의 이야기",
+    icon: "🧚",
+    category: "관계형성형",
+    mode: "dialogue",
+    reward: 12,
+    background: "cafe",
+    npc: { name: "서선아 대표", emoji: "👩" },
+    description: "여성 귀농인 리더의 정착 이야기",
+    dialogues: [
+      {
+        npc: "안녕하세요, 산타지 대표 서선아예요. 사람들이 저를 '정착 요정'이라고 불러요. 청년이 무풍면 정착하려면 도와줄 게 많아요.",
+        options: [
+          { label: "정착이 그렇게 어렵나요?", next: 1, traits: ["디지털노마드형"] },
+          { label: "도와주는 사람 있으면 든든하겠어요", next: 1, traits: ["집돌이형"] },
+        ],
+      },
+      {
+        npc: "혼자 시골에 들어오면 정말 외로워요. 동네 사람 얼굴 익히는 데 시간 걸리고, 행정 절차도 어렵고. 산타지는 그 모든 걸 함께 해요.",
+        options: [
+          { label: "그런 손길이 그리웠어요", traits: ["집돌이형", "디지털노마드형"] },
+          { label: "정착하려면 동료가 필요하네요", traits: ["레저형"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "muju-sangol-walk",
+    title: "무풍면 산골 한 바퀴",
+    icon: "🏔",
+    category: "감정/분위기형",
+    mode: "map-dialogue",
+    reward: 10,
+    background: "neighbor",
+    npc: { name: "동네 어르신", emoji: "🧓" },
+    description: "덕유산 자락 산골 풍경",
+    dialogues: [
+      {
+        npc: "무풍은 깊은 산골이에요. 덕유산 자락이에요. 새벽엔 안개가 산 사이로 흐르고, 저녁엔 별이 쏟아져요. 도시 사람들 처음 오면 너무 조용해서 놀라요.",
+        options: [
+          { label: "그 조용함이 좋아요", next: 1, traits: ["자연탐험형", "집돌이형"] },
+          { label: "별 보러 가고 싶어요", next: 1, traits: ["자연탐험형"] },
+        ],
+      },
+      {
+        npc: "여기 살면 시간 흐름이 달라져요. 하늘 보고, 산 보고, 흙 만지고. 그러다 보면 하루가 어떻게 가는지 몰라요. 도시에선 못 누리는 시간이에요.",
+        options: [
+          { label: "그런 시간이 그리웠어요", traits: ["자연탐험형"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "muju-myseat",
+    title: "폐교 안에 내 자리 만들기",
+    icon: "🪑",
+    category: "감정/분위기형",
+    mode: "dialogue",
+    reward: 12,
+    background: "home",
+    npc: { name: "산타지 운영진", emoji: "🧑‍🎨" },
+    description: "비워둔 공간에 내 흔적 더하기",
+    dialogues: [
+      {
+        npc: "산타지는 '완성형'이 아니에요. 머무는 사람마다 다른 모습이에요. 한 청년이 작업실로 쓰고, 다음엔 카페로 바뀌고. 비워둔 공간이라 변신해요.",
+        options: [
+          { label: "내 색깔로 채우고 싶어요", next: 1, traits: ["디지털노마드형"] },
+          { label: "다음 사람을 위해 비워두는 거네요", next: 1, traits: ["자연탐험형"] },
+        ],
+      },
+      {
+        npc: "그래서 산타지는 살아 있어요. 사람이 바뀔 때마다 공간도 바뀌어요. 당신 차례가 오면, 어떤 공간으로 만들 거예요?",
+        options: [
+          { label: "조용한 작업실이요", traits: ["디지털노마드형", "집돌이형"] },
+          { label: "사람들 모이는 곳이요", traits: ["레저형"] },
+        ],
+      },
+    ],
+  },
+];
+
+// =====================================================================
+// 🌾 세종 농땡이월드 — 농사+문화 (field / together_rest)
+// =====================================================================
+const sejongMissions: Mission[] = [
+  {
+    id: "sejong-kitchen-garden",
+    title: "키친가든에서 농땡이",
+    icon: "🥬",
+    category: "감정/분위기형",
+    mode: "map-info",
+    reward: 10,
+    background: "market",
+    npc: { name: "농땡이월드 호스트", emoji: "🌾" },
+    description: "직접 재배·바로 요리하는 호주식 셰프 컨셉",
+    dialogues: [
+      {
+        npc: "농땡이월드 키친가든이에요. 호주식이에요 — 농사 짓는 셰프 컨셉. 직접 키운 채소로 바로 요리해요. 5월부터 감자 캐고, 7월에 땡초, 9월에 전부치기 해요.",
+        options: [
+          { label: "직접 키워서 바로 먹는 거 신기해요", next: 1, traits: ["자연탐험형"] },
+          { label: "농사 셰프라니, 멋지네요", next: 1, traits: ["레저형"] },
+        ],
+      },
+      {
+        npc: "농땡이 부린다고 게으른 거 아니에요. 농사가 얼마나 부지런해야 하는데요. 그저 농촌에서 '땡잡는' 거예요 — 좋은 일 만나는 거요.",
+        options: [
+          { label: "농촌이 땡기네요", traits: ["레저형", "자연탐험형"] },
+          { label: "농사 짓는 일상 부러워요", traits: ["자연탐험형"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "sejong-moonlight",
+    title: "달빛레시피 함께 먹기",
+    icon: "🌙",
+    category: "관계형성형",
+    mode: "dialogue",
+    reward: 12,
+    background: "cafe",
+    npc: { name: "농킴", emoji: "🧑‍🍳" },
+    description: "달빛바비큐 — 농촌의 사회망",
+    dialogues: [
+      {
+        npc: "안녕하세요, 농킴이에요. 농땡이월드 생산기획팀장이에요. 달빛레시피 시식회 잘 오셨어요. 오늘 메뉴는 직접 키운 땡초로 만든 땡초버거예요.",
+        options: [
+          { label: "버거에 땡초가 들어가요?", next: 1, traits: ["레저형"] },
+          { label: "직접 키운 재료라니 기대돼요", next: 1, traits: ["자연탐험형"] },
+        ],
+      },
+      {
+        npc: "땡초가 매운 풋고추 같은 거예요. 여기 사람들과 같이 먹는 게 진짜예요. 혼자 먹는 음식이랑 달라요. 농촌의 사회망이 음식에서 시작해요.",
+        options: [
+          { label: "그런 분위기 좋네요", traits: ["레저형"] },
+          { label: "같이 먹는 게 진짜 식사네요", traits: ["레저형", "자연탐험형"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "sejong-farmer-calendar",
+    title: "농부의 달력 한 페이지",
+    icon: "📅",
+    category: "생활현실형",
+    mode: "dialogue",
+    reward: 8,
+    background: "office",
+    npc: { name: "농땡이월드 운영진", emoji: "🧑‍🌾" },
+    description: "월별 문화농사 십오야 이야기",
+    dialogues: [
+      {
+        npc: "농촌은 도시랑 달리 계절에 맞춰 살아요. 5월 감자, 7월 땡초, 8월 신서유기, 9월 명절 전부치기, 10월 가래떡. 매달 다른 콘텐츠가 있어요.",
+        options: [
+          { label: "달마다 다른 일상이라니 재밌어요", next: 1, traits: ["자연탐험형"] },
+          { label: "지금이 무슨 달인가요?", next: 1, traits: ["디지털노마드형"] },
+        ],
+      },
+      {
+        npc: "달력 따라가다 보면 1년이 어떻게 가는지 모를 정도예요. 도시 달력이랑 농촌 달력은 완전 다른 시간이에요.",
+        options: [
+          { label: "농촌 달력 따라 살고 싶어요", traits: ["자연탐험형"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "sejong-gobok",
+    title: "고복저수지 메기매운탕",
+    icon: "🍜",
+    category: "관계형성형",
+    mode: "map-dialogue",
+    reward: 10,
+    background: "market",
+    npc: { name: "메기집 사장님", emoji: "👩‍🍳" },
+    description: "동네에서 가장 유명한 단골집",
+    dialogues: [
+      {
+        npc: "여기 고복저수지 메기매운탕이에요. 동네에서 가장 유명한 집이에요. 청년마을 사람들도 자주 와요. 매운탕에 청양고추 더 넣어도 돼요?",
+        options: [
+          { label: "매운 거 좋아해요!", next: 1, traits: ["레저형"] },
+          { label: "보통 맛으로 부탁드려요", next: 1, traits: ["집돌이형"] },
+        ],
+      },
+      {
+        npc: "여기 단골 되면 청양고추 얼마나 넣을지 자동으로 알아요. 세종은 청년 이주민 많아서, 우리도 그분들 다 알아요.",
+        options: [
+          { label: "단골 가게가 있는 일상", traits: ["레저형"] },
+          { label: "그런 거리감이 좋아요", traits: ["집돌이형"] },
+        ],
+      },
+    ],
+  },
+];
+
+// =====================================================================
+// 🌾 의성 나만의-성 — 로컬프러너 (field / together_make)
+// =====================================================================
+const uiseongMissions: Mission[] = [
+  {
+    id: "uiseong-geumgang",
+    title: "옛 여관 금강장 도착",
+    icon: "🏨",
+    category: "감정/분위기형",
+    mode: "map-info",
+    reward: 10,
+    background: "home",
+    npc: { name: "현지인 페이스메이커", emoji: "🧑" },
+    description: "옛 여관이 청년 주거공간으로 변신",
+    dialogues: [
+      {
+        npc: "금강장이라는 옛 여관이에요. 의성역 가까이 있어요. 청년들이 들어와서 주거공간으로 바꿨어요. 화장실 한쪽 벽면이 황금으로 장식돼 있어요. 부럽죠? 😁",
+        options: [
+          { label: "옛 여관이 청년 공간으로 바뀌다니", next: 1, traits: ["디지털노마드형"] },
+          { label: "황금 화장실은 처음 들어봐요", next: 1, traits: ["레저형"] },
+        ],
+      },
+      {
+        npc: "의성은 시골빈집 수리·리모델링이 자연스러운 곳이에요. 청년마을의 전유물이라고 할 정도예요. 손때 묻은 공간이 다시 살아나요.",
+        options: [
+          { label: "공간을 살리는 일", traits: ["디지털노마드형", "레저형"] },
+          { label: "여기서 머물러보고 싶어요", traits: ["집돌이형"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "uiseong-running-lab",
+    title: "로컬러닝랩 첫 모임",
+    icon: "💡",
+    category: "관계형성형",
+    mode: "dialogue",
+    reward: 12,
+    background: "office",
+    npc: { name: "나만의성 운영진", emoji: "🧑‍💼" },
+    description: "문제 발견→솔루션 개발 — 로컬프러너 양성",
+    dialogues: [
+      {
+        npc: "로컬러닝랩이에요. 문제 발견→정의→솔루션 개발 과정이에요. 의성 동네 문제를 직접 찾아 해결해요. 노인 낙상사고, 버스정류소 더위, 보청기 수리 같은 것들.",
+        options: [
+          { label: "지역 문제 해결, 의미 있네요", next: 1, traits: ["레저형"] },
+          { label: "직접 부딪쳐서 해보는 거네요", next: 1, traits: ["디지털노마드형"] },
+        ],
+      },
+      {
+        npc: "여기서는 '로컬프러너'라고 불러요. 정착보다 경험을 통해 청년이 지역에서 성장하는 게 우선이에요. 같이 하면 더 빨라요.",
+        options: [
+          { label: "로컬프러너 한 번 해보고 싶어요", traits: ["레저형", "디지털노마드형"] },
+          { label: "함께하는 사람들이 매력이에요", traits: ["레저형"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "uiseong-star-club",
+    title: "근의 공식 — 별 관측 모임",
+    icon: "⭐",
+    category: "감정/분위기형",
+    mode: "dialogue",
+    reward: 10,
+    background: "neighbor",
+    npc: { name: "프러너 '근'", emoji: "🧑‍🚀" },
+    description: "'별 볼 일밖에 없는' 의성의 반전 명소",
+    dialogues: [
+      {
+        npc: "안녕하세요, 별 보는 근이에요. 의성은 '별 볼 일밖에 없는 동네'잖아요. 그래서 별 관측 모임을 만들었어요. 이름이 '근의 공식'이에요.",
+        options: [
+          { label: "이름이 진짜 ㅋㅋ", next: 1, traits: ["레저형"] },
+          { label: "별 보러 가고 싶어요", next: 1, traits: ["자연탐험형"] },
+        ],
+      },
+      {
+        npc: "도시는 별이 안 보여요. 의성은 밤하늘이 보석이에요. 매주 만나서 같이 별 봐요. 망원경 있어도 좋고, 없으면 빌려드려요.",
+        options: [
+          { label: "같이 별 보는 사람들", traits: ["레저형"] },
+          { label: "그런 모임이 일상이라니", traits: ["자연탐험형"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "uiseong-yongju",
+    title: "용주밥상 단골 되기",
+    icon: "🍚",
+    category: "관계형성형",
+    mode: "map-dialogue",
+    reward: 10,
+    background: "market",
+    npc: { name: "용주밥상 사장님", emoji: "👵" },
+    description: "마늘이 가득한 의성 백반",
+    dialogues: [
+      {
+        npc: "어서와요! 의성 용주밥상이에요. 청년들이 자주 와요. 백반에 마늘이 들어가요 — 의성=마늘이에요. 정성 가득한 밑반찬이에요. 두번, 세번 드세요!",
+        options: [
+          { label: "마늘 정말 가득이네요", next: 1, traits: ["레저형"] },
+          { label: "사장님 인심이 좋아요", next: 1, traits: ["집돌이형"] },
+        ],
+      },
+      {
+        npc: "여기 단골 되면 얼굴 보고 인사해요. 청년마을 친구들도 자주 와요. 의성 동네 사람 되는 거예요.",
+        options: [
+          { label: "단골이라니 좋네요", traits: ["레저형"] },
+          { label: "동네 사람이 되는 거", traits: ["집돌이형"] },
+        ],
+      },
+    ],
+  },
+];
+
+// =====================================================================
+// 🏘 홍성 집단지성 — 로컬스타트업 빌리지 (village / together_make)
+// =====================================================================
+const hongseongMissions: Mission[] = [
+  {
+    id: "hongseong-basecamp",
+    title: "베이스 캠프 입장",
+    icon: "🏕",
+    category: "감정/분위기형",
+    mode: "map-info",
+    reward: 10,
+    background: "office",
+    npc: { name: "집단지성 운영진", emoji: "🧑‍💻" },
+    description: "골목 한가운데 로컬 워커의 베이스 캠프",
+    dialogues: [
+      {
+        npc: "집단지성이에요. 홍성 골목 한가운데에 있는 '로컬 워커의 베이스 캠프'예요. 여기 모인 사람들은 다 자기 브랜드, 자기 공간, 자기 업을 만들어가는 사람들이에요.",
+        options: [
+          { label: "로컬 창업 베이스 캠프네요", next: 1, traits: ["디지털노마드형"] },
+          { label: "골목 한가운데 모임이라니", next: 1, traits: ["레저형"] },
+        ],
+      },
+      {
+        npc: "단단한 성취는 큰 결과가 아니에요. 과정을 함께 버텨내는 힘이에요. 골목에서 만들어지는 작은 변화들이 쌓여요.",
+        options: [
+          { label: "그 과정이 진짜 자산이네요", traits: ["디지털노마드형"] },
+          { label: "함께 버티는 사람들", traits: ["레저형"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "hongseong-localworker",
+    title: "로컬워커 한 명 만나기",
+    icon: "🧑‍💼",
+    category: "관계형성형",
+    mode: "dialogue",
+    reward: 12,
+    background: "cafe",
+    npc: { name: "로컬워커", emoji: "👩" },
+    description: "도시에서 온 사람의 정착 이야기",
+    dialogues: [
+      {
+        npc: "저는 작년에 서울에서 왔어요. 디자인 일했었는데, 이제 홍성 골목에서 작은 가게를 만들어가요. 처음엔 막막했는데 집단지성에 들어와서 친구 생겼어요.",
+        options: [
+          { label: "어떤 가게에요?", next: 1, traits: ["디지털노마드형"] },
+          { label: "친구 생기는 게 큰 변화예요", next: 1, traits: ["레저형"] },
+        ],
+      },
+      {
+        npc: "원래는 작은 카페 만들고 싶었는데, 집단지성에서 다른 사람들 보면서 생각이 넓어졌어요. 지금은 카페 + 작업 공간으로 만들고 있어요.",
+        options: [
+          { label: "같이 있으면 시야가 넓어지네요", traits: ["레저형", "디지털노마드형"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "hongseong-market",
+    title: "골목 마켓 함께 준비",
+    icon: "🎪",
+    category: "관계형성형",
+    mode: "dialogue",
+    reward: 10,
+    background: "market",
+    npc: { name: "마켓 기획자", emoji: "🧑‍🎨" },
+    description: "골목 자체가 브랜드가 되는 일",
+    dialogues: [
+      {
+        npc: "이번 주말에 골목 마켓 열어요. 집단지성 사람들이 다 같이 셀러로 참여해요. 한 분이 빵 굽고, 다른 분이 비누 만들고, 또 다른 분이 옷 팔아요.",
+        options: [
+          { label: "같이 만드는 시장이네요", next: 1, traits: ["레저형"] },
+          { label: "어떤 상품 만들고 계세요?", next: 1, traits: ["디지털노마드형"] },
+        ],
+      },
+      {
+        npc: "이런 마켓이 모여서 홍성 골목이 살아나요. 한 사람 가게가 아니라 골목 자체가 브랜드가 돼요. 그게 우리가 하는 일이에요.",
+        options: [
+          { label: "골목 자체가 브랜드", traits: ["레저형", "디지털노마드형"] },
+          { label: "함께 만드는 의미가 크네요", traits: ["레저형"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "hongseong-achievement",
+    title: "단단한 성취란",
+    icon: "🪨",
+    category: "감정/분위기형",
+    mode: "dialogue",
+    reward: 10,
+    background: "office",
+    npc: { name: "집단지성 대표", emoji: "🧑‍💼" },
+    description: "과정을 함께 버텨내는 힘",
+    dialogues: [
+      {
+        npc: "단단한 성취는 큰 결과가 아니에요. 골목에서 작은 변화 하나하나, 그걸 함께 버텨내는 힘이에요. 그 과정이 자산이에요.",
+        options: [
+          { label: "과정 중심의 가치네요", next: 1, traits: ["디지털노마드형"] },
+          { label: "함께 버티는 힘이 진짜 자산", next: 1, traits: ["레저형"] },
+        ],
+      },
+      {
+        npc: "혼자 큰 성과 만드는 것보다, 여럿이 작은 성과 쌓아가는 게 오래 가요. 그게 로컬에서 일하는 방식이에요.",
+        options: [
+          { label: "오래 갈 일이 진짜 일이에요", traits: ["레저형"] },
+        ],
+      },
+    ],
+  },
+];
+
+// =====================================================================
+// 🏘 대전 weave on 중촌 — 패션·창작 실험 (village / alone_make)
+// =====================================================================
+const daejeonMissions: Mission[] = [
+  {
+    id: "daejeon-jungchon",
+    title: "중촌동 맞춤패션 거리",
+    icon: "🧵",
+    category: "감정/분위기형",
+    mode: "map-info",
+    reward: 10,
+    background: "market",
+    npc: { name: "weave on 호스트", emoji: "🧵" },
+    description: "60년대부터 이어진 맞춤복 골목",
+    dialogues: [
+      {
+        npc: "대전 중구 중촌동 '맞춤패션 특화거리'예요. 양복점, 한복집, 셔츠 가게가 골목 따라 줄지어 있어요. 60년대부터 있던 거리예요. 옛 손기술이 살아 있어요.",
+        options: [
+          { label: "역사 깊은 거리네요", next: 1, traits: ["자연탐험형"] },
+          { label: "맞춤복은 처음 봐요", next: 1, traits: ["디지털노마드형"] },
+        ],
+      },
+      {
+        npc: "weave on은 이 장인들과 청년 창작자를 연결해요. 옛 기술이랑 새로운 디자인이 만나요. 그게 weave on의 '직조'예요.",
+        options: [
+          { label: "장인과 청년이 만나는 거네요", traits: ["디지털노마드형"] },
+          { label: "그 연결이 의미있어요", traits: ["레저형"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "daejeon-master",
+    title: "맞춤복 장인과의 대화",
+    icon: "👴",
+    category: "관계형성형",
+    mode: "dialogue",
+    reward: 12,
+    background: "market",
+    npc: { name: "맞춤복 장인", emoji: "🧓" },
+    description: "40년 손기술의 세계",
+    dialogues: [
+      {
+        npc: "내 가게 40년 됐어요. 양복 한 벌 짓는 데 일주일 걸려요. 옷감 고르고, 재단하고, 박음질하고, 다림질하고. 손이 익어야 옷이 사람한테 맞아요.",
+        options: [
+          { label: "한 벌에 일주일이라니", next: 1, traits: ["자연탐험형"] },
+          { label: "손기술의 세계군요", next: 1, traits: ["디지털노마드형"] },
+        ],
+      },
+      {
+        npc: "요즘 청년들이 들어와서 같이 일해요. 디자인은 청년이, 손기술은 내가. 옛 거 살리는 거랑 새 거 만드는 거랑 다르지 않아요.",
+        options: [
+          { label: "세대를 잇는 작업이네요", traits: ["자연탐험형", "디지털노마드형"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "daejeon-fashion-making",
+    title: "내 아이디어가 옷이 되기",
+    icon: "✂️",
+    category: "감정/분위기형",
+    mode: "dialogue",
+    reward: 12,
+    background: "office",
+    npc: { name: "패션메이킹 강사", emoji: "🧑‍🎨" },
+    description: "AI 스케치부터 박음질까지",
+    dialogues: [
+      {
+        npc: "패션메이킹 입문과정이에요. 본인이 그린 아이디어를 옷으로 만들어요. AI로 아이디어 스케치하고, 패턴 뽑고, 직접 박음질해요.",
+        options: [
+          { label: "내가 그린 게 옷이 된다니", next: 1, traits: ["디지털노마드형"] },
+          { label: "AI도 쓴다니 흥미로워요", next: 1, traits: ["디지털노마드형"] },
+        ],
+      },
+      {
+        npc: "혼자가 아니에요. 다른 창작자들이 옆에서 같이 작업해요. 의상 만드는 사람, 그래픽 디자인하는 사람, 영상 찍는 사람. 영감이 흐르는 곳이에요.",
+        options: [
+          { label: "그 분위기에서 일해보고 싶어요", traits: ["디지털노마드형"] },
+        ],
+      },
+    ],
+  },
+  {
+    id: "daejeon-showcase",
+    title: "콜라보 쇼케이스 참가",
+    icon: "🎭",
+    category: "관계형성형",
+    mode: "dialogue",
+    reward: 12,
+    background: "office",
+    npc: { name: "콘텐츠 제작자", emoji: "🎬" },
+    description: "의상·예술·콘텐츠 협업 페스티벌",
+    dialogues: [
+      {
+        npc: "weave on의 페스티벌이에요. 의상 창작자가 옷 만들고, 예술가가 퍼포먼스 하고, 콘텐츠 제작자가 영상으로 남겨요. 하나의 브랜드 콜라보예요.",
+        options: [
+          { label: "한 자리에 다양한 창작자가", next: 1, traits: ["디지털노마드형", "레저형"] },
+          { label: "주민들도 같이 참여해요?", next: 1, traits: ["레저형"] },
+        ],
+      },
+      {
+        npc: "주민들과 함께하는 지역 축제로 마무리돼요. 청년 창작 + 동네 문화가 만나요. 혼자보다 함께 만드는 창작의 힘이에요.",
+        options: [
+          { label: "함께 만드는 창작", traits: ["디지털노마드형", "레저형"] },
+        ],
+      },
+    ],
+  },
+];
+
+// =====================================================================
 // 통합 매핑
 // =====================================================================
 
 export const regionMissions: Record<string, Mission[]> = {
   ganghwa: ganghwaMissions,
-  gwangyang: gwangyangMissions,
-  geoje: geojeMissions,
-  taean: taeanMissions,
+  yeongdeok: yeongdeokMissions,
   yeongwol: yeongwolMissions,
-  yangyang: yangyangMissions,
-  jindo: jindoMissions,
-  jeongseon: jeongseonMissions,
+  muju: mujuMissions,
+  sejong: sejongMissions,
+  uiseong: uiseongMissions,
+  hongseong: hongseongMissions,
+  daejeon: daejeonMissions,
 };
 
 // 특정 지역(residence.id)에서 풀어볼 미션 = 공통 + 지역 미션
