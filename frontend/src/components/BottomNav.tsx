@@ -1,5 +1,5 @@
 // 하단 고정 네비게이션 — 4탭 구조
-// 탭1: 홈/떠나기 / 탭2: 나의 여정/아트맵 / 탭3: 커뮤니티/이야기 / 탭4: 레지던스/예약
+// 탭1: 홈 / 탭2: 나의 여정 / 탭3: 커뮤니티 / 탭4: 레지던스
 
 export type TabKey = "home" | "journey" | "community" | "booking";
 
@@ -13,34 +13,30 @@ export default function BottomNav({ active, onChange }: Props) {
     <nav
       className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[420px]
                  bg-white/90 backdrop-blur border-t border-cream-200
-                 px-2 pt-2 pb-[max(env(safe-area-inset-bottom),12px)]
+                 px-2 pt-2.5 pb-[max(env(safe-area-inset-bottom),12px)]
                  flex justify-around items-center"
       aria-label="하단 탭"
     >
       <TabButton
         label="홈"
-        sub="떠나기"
         isActive={active === "home"}
         onClick={() => onChange("home")}
         icon={<HomeIcon active={active === "home"} />}
       />
       <TabButton
         label="나의 여정"
-        sub="아트맵"
         isActive={active === "journey"}
         onClick={() => onChange("journey")}
         icon={<MapIcon active={active === "journey"} />}
       />
       <TabButton
         label="커뮤니티"
-        sub="이야기"
         isActive={active === "community"}
         onClick={() => onChange("community")}
         icon={<CommunityIcon active={active === "community"} />}
       />
       <TabButton
         label="레지던스"
-        sub="예약"
         isActive={active === "booking"}
         onClick={() => onChange("booking")}
         icon={<BookingIcon active={active === "booking"} />}
@@ -49,16 +45,14 @@ export default function BottomNav({ active, onChange }: Props) {
   );
 }
 
-// 개별 탭 버튼
+// 개별 탭 버튼 — 아이콘 + 메인 라벨만, 빈 공간을 살린 균형 배치
 function TabButton({
   label,
-  sub,
   isActive,
   onClick,
   icon,
 }: {
   label: string;
-  sub: string;
   isActive: boolean;
   onClick: () => void;
   icon: React.ReactNode;
@@ -67,15 +61,18 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`flex flex-col items-center gap-1 px-2 py-1 rounded-2xl transition
+      className={`flex flex-col items-center gap-1.5 px-2 py-1.5 rounded-2xl transition
         ${isActive ? "text-primary" : "text-ink-mute"}`}
       aria-pressed={isActive}
     >
       {icon}
-      <span className={`text-[11px] font-semibold leading-none ${isActive ? "text-primary" : "text-ink-soft"}`}>
+      <span
+        className={`text-[12px] font-semibold leading-none ${
+          isActive ? "text-primary" : "text-ink-soft"
+        }`}
+      >
         {label}
       </span>
-      <span className="text-[9px] leading-none text-ink-mute">{sub}</span>
     </button>
   );
 }

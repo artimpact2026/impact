@@ -18,7 +18,7 @@ export default function ResidenceSheet({ residence, onClose, onDepart }: Props) 
     <AnimatePresence>
       {residence && (
         <>
-          {/* 백드롭 — 클릭 시 닫기 */}
+          {/* 백드롭 — 빈 화면 클릭 시 닫기. z-40으로 마커(zIndex ≤ 30) 차단 */}
           <motion.button
             type="button"
             aria-label="닫기"
@@ -26,16 +26,16 @@ export default function ResidenceSheet({ residence, onClose, onDepart }: Props) 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/20"
+            className="absolute inset-0 bg-black/20 z-40"
           />
 
-          {/* 시트 본체 */}
+          {/* 시트 본체 — 백드롭보다 위 */}
           <motion.div
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 28, stiffness: 280 }}
-            className="absolute left-0 right-0 bottom-0
+            className="absolute left-0 right-0 bottom-0 z-50
                        bg-white rounded-t-3xl shadow-soft
                        px-6 pt-3 pb-6"
             role="dialog"
