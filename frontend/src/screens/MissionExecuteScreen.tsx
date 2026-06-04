@@ -20,6 +20,22 @@ const SCENE_BG: Partial<Record<BackgroundVariant, string>> = {
   home: "/character1/clay-hanok-nap.png",
 };
 
+// 미션별 override — variant가 너무 광범위하거나 미션 성격이 더 구체적일 때
+// (대화 미션 중 그라데이션만 깔리던 케이스를 미션 톤에 맞춰 보강)
+const MISSION_ID_BG: Record<string, string> = {
+  cost: "/character1/clay-market.png",
+  food: "/character1/clay-market.png",
+  neighbor: "/character1/clay-barbershop.png",
+  "ganghwa-farm": "/character1/clay-market.png",
+  "gwangyang-cafework": "/character1/clay-stream-watermelon.png",
+  "gwangyang-creator": "/character1/clay-barbershop.png",
+  "geoje-leisure": "/character1/clay-beach.png",
+  "taean-community": "/character1/clay-beach.png",
+  "yangyang-cafe-work": "/character1/clay-beach.png",
+  "yangyang-nomad": "/character1/clay-beach.png",
+  "jindo-tea": "/character1/clay-hanok-nap.png",
+};
+
 // NPC 이름 → 클레이 캐릭터 (배경 제거된 투명 PNG)
 // 외부에서 온 이주자/노마드 계열은 바람(파랑), 그 외 로컬은 지음(주황)
 function pickNpcAvatar(name: string): string {
@@ -102,7 +118,8 @@ export default function MissionExecuteScreen({
     setTurnIdx(turn.numeric.next);
   };
 
-  const sceneBg = SCENE_BG[mission.background];
+  // 미션별 override가 있으면 우선, 없으면 variant 매핑
+  const sceneBg = MISSION_ID_BG[mission.id] ?? SCENE_BG[mission.background];
   const avatarSrc = pickNpcAvatar(mission.npc.name);
 
   return (
@@ -315,7 +332,7 @@ function SceneBackground({ sceneBg }: { sceneBg: string | undefined }) {
     >
       {/* 베이지 그라데이션 베이스 */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#FFE4C8] via-cream to-cream-100" />
-      {/* 클레이 씬 이미지 — 블러 + 채도/밝기 ↓, 가장자리 부드럽게 scale-110 */}
+      {/* 클레이 씬 이미지 — 은은하게 알아볼 정도, 가장자리 부드럽게 scale-110 */}
       {sceneBg && (
         <img
           src={sceneBg}
@@ -325,13 +342,14 @@ function SceneBackground({ sceneBg }: { sceneBg: string | undefined }) {
           draggable={false}
           className="absolute inset-0 w-full h-full object-cover scale-110 select-none pointer-events-none"
           style={{
-            filter: "blur(10px) brightness(0.96) saturate(0.7)",
-            opacity: 0.55,
+            filter: "blur(4px) brightness(1) saturate(0.85)",
+            opacity: 0.72,
           }}
         />
       )}
-      {/* 하단으로 갈수록 단단해지는 마스크 — 말풍선/옵션 가독성 우선 */}
-      <div className="absolute inset-0 bg-gradient-to-b from-cream/25 via-cream/40 to-cream" />
+      {/* 하단으로 갈수록 단단해지는 마스크 — 말풍선/옵션 가독성 우선
+          (상단은 얇게 해서 씬이 더 잘 보이게) */}
+      <div className="absolute inset-0 bg-gradient-to-b from-cream/15 via-cream/35 to-cream" />
     </div>
   );
 }
