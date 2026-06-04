@@ -14,6 +14,13 @@ import {
   isAllMissionsDone,
   type RegionRecord,
 } from "../data/journey";
+import { missionsForResidence } from "../data/regionMissions";
+import {
+  buildDayPlan,
+  houseStageFromProgress,
+  SPACE_STAGE_NAMES,
+} from "../data/dayPlan";
+import HouseStage from "../components/HouseStage";
 
 type ViewMode = "score" | "match";
 
@@ -367,6 +374,15 @@ function RegionBottomSheet({
   const completedCount = completedIds.size;
   const allDone = isAllMissionsDone(record);
 
+  // 만들어가는 나의 공간 — 완료한 일차(currentDay - 1) 기반
+  const { dayCount } = buildDayPlan(
+    residence,
+    missionsForResidence(residence.id)
+  );
+  const currentDay = record?.currentDay ?? 1;
+  const completedDays = visited ? Math.max(0, currentDay - 1) : 0;
+  const spaceStage = houseStageFromProgress(completedDays, dayCount);
+
   return (
     <>
       {/* 백드롭 */}
@@ -407,6 +423,27 @@ function RegionBottomSheet({
         <p className="mt-0.5 text-ink-soft text-[12px]">
           {residence.name} · {residence.duration}
         </p>
+
+        {/* 만들고 있는 나의 공간 */}
+        {visited && (
+          <div className="mt-3 bg-cream-50 border border-cream-200 rounded-2xl p-2.5
+                          flex items-center gap-3">
+            <div className="w-20 shrink-0">
+              <HouseStage stage={spaceStage} className="w-full h-auto" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-bold text-ink-mute uppercase tracking-widest">
+                만들고 있는 나의 공간
+              </p>
+              <p className="mt-0.5 text-ink text-[14px] font-extrabold">
+                {SPACE_STAGE_NAMES[spaceStage]}
+              </p>
+              <p className="mt-0.5 text-ink-soft text-[11px]">
+                Day {currentDay} / {dayCount} · {completedDays}일 마침
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* 두 막대그래프 */}
         <div className="mt-3 space-y-2.5">

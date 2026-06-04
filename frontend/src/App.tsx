@@ -8,6 +8,7 @@ import MissionListScreen from "./screens/MissionListScreen";
 import MissionTravelingScreen from "./screens/MissionTravelingScreen";
 import MissionExecuteScreen from "./screens/MissionExecuteScreen";
 import DailySummaryScreen from "./screens/DailySummaryScreen";
+import DayEndCeremonyScreen from "./screens/DayEndCeremonyScreen";
 import JourneyScreen from "./screens/JourneyScreen";
 import MigrationReportScreen from "./screens/MigrationReportScreen";
 import MoveInScreen from "./screens/MoveInScreen";
@@ -33,13 +34,20 @@ import {
   type LifeStyleType,
 } from "./data/residences";
 import { HOME_POSITIONS, type RegionPos } from "./data/regions";
-import { baseMissions, type Mission } from "./data/missions";
+import { type Mission } from "./data/missions";
 import {
+  advanceDay,
   bumpVisit,
   calculateMatch,
   completeMissionFor,
   type RegionRecord,
 } from "./data/journey";
+import { missionsForResidence } from "./data/regionMissions";
+import {
+  buildDayPlan,
+  houseStageFromProgress,
+  isDayComplete,
+} from "./data/dayPlan";
 
 // hash 라우팅 — #hospital 해시로 단독 프리뷰
 function useHashRoute() {
@@ -64,7 +72,8 @@ type Tab1Route =
   | "mission-traveling"
   | "mission-execute"
   | "daily-summary"
-  | "traveling-back";
+  | "traveling-back"
+  | "day-end-ceremony";
 
 // 탭2 화면 흐름
 type Tab2Route =
@@ -196,13 +205,16 @@ export default function App() {
           );
           return;
         }
-        // 8개 공통 미션 전부 완료 + 적합도 +12(보너스 살짝)
+        // 전체 미션 완료(공통+지역) + 적합도 보너스 + 마지막 일차로 점프
+        const missions = missionsForResidence(target.id);
+        const { dayCount } = buildDayPlan(target, missions);
         const filled: RegionRecord = {
           residenceId: target.id,
           visitCount: 1,
-          completedMissionIds: baseMissions.map((m) => m.id),
-          score: baseMissions.reduce((sum, m) => sum + m.reward, 0),
+          completedMissionIds: missions.map((m) => m.id),
+          score: missions.reduce((sum, m) => sum + m.reward, 0),
           fitScore: 12,
+          currentDay: dayCount,
         };
         setRegionProgress((p) => ({ ...p, [target.id]: filled }));
         setSelected(target);
@@ -264,6 +276,12 @@ export default function App() {
   const currentCompletedIds = new Set(currentRecord?.completedMissionIds ?? []);
   const currentScore = currentRecord?.score ?? 0;
 
+  // 현재 지역의 일차 계획
+  const currentDayPlan = selected
+    ? buildDayPlan(selected, missionsForResidence(selected.id))
+    : null;
+  const currentDay = currentRecord?.currentDay ?? 1;
+
   const handleTabChange = (next: TabKey) => {
     // 이동 애니메이션 중에는 무시
     const inTransit = tab1Route === "traveling" || tab1Route === "traveling-back";
@@ -301,12 +319,64 @@ export default function App() {
     setRegionProgress(newProgress);
     setActiveMission(null);
 
+    // 현재 일차의 모든 미션이 끝났는지 확인 → 하루 끝 의식으로
     const updatedRecord = newProgress[selected.id];
-    const allDone = baseMissions.every((m) =>
-      updatedRecord?.completedMissionIds.includes(m.id)
+    const completedSet = new Set(updatedRecord?.completedMissionIds ?? []);
+    const { missionsByDay } = buildDayPlan(
+      selected,
+      missionsForResidence(selected.id)
     );
-    setTab1Route(allDone ? "daily-summary" : "mission-list");
+    const day = updatedRecord?.currentDay ?? 1;
+    const dayDone = isDayComplete(missionsByDay, day, completedSet);
+    setTab1Route(dayDone ? "day-end-ceremony" : "mission-list");
   };
+
+  // 하루 끝 의식에서 어디론가 떠날 때 — 일차 +1 후 목적지로
+  // 마지막 날 닫기는 일차 진행 없이 하루 요약으로 (체류 종료 흐름)
+  const finishDayAnd = (then: () => void) => {
+    if (!selected) return;
+    const { dayCount } = buildDayPlan(
+      selected,
+      missionsForResidence(selected.id)
+    );
+    const cur = currentRecord?.currentDay ?? 1;
+    if (cur < dayCount) {
+      setRegionProgress((p) => advanceDay(p, selected.id, dayCount));
+    }
+    then();
+  };
+
+  const handleDayCeremonyClose = () => {
+    if (!selected) return;
+    const { dayCount } = buildDayPlan(
+      selected,
+      missionsForResidence(selected.id)
+    );
+    const cur = currentRecord?.currentDay ?? 1;
+    if (cur >= dayCount) {
+      // 마지막 날 닫기 — 여정 마무리(하루 요약)
+      setTab1Route("daily-summary");
+      return;
+    }
+    finishDayAnd(() => setTab1Route("arrival"));
+  };
+
+  const handleCeremonyGoJourney = () =>
+    finishDayAnd(() => {
+      setTab("journey");
+      setTab2Route("journey");
+    });
+
+  const handleCeremonyGoCommunity = () =>
+    finishDayAnd(() => {
+      setTab("community");
+      setTab3Route("community");
+    });
+
+  const handleCeremonyGoReport = () =>
+    finishDayAnd(() => {
+      if (selected) handleOpenReport(selected);
+    });
 
   // 미션 선택 시 mode에 따라 라우팅 분기
   const handleSelectMission = (m: Mission) => {
@@ -460,13 +530,61 @@ export default function App() {
         {tab === "home" && tab1Route === "mission-list" && selected && (
           <MissionListScreen
             region={selected.region}
-            residenceId={selected.id}
+            residence={selected}
             completedIds={currentCompletedIds}
             totalScore={currentScore}
             fitScore={currentRecord?.fitScore ?? 0}
+            currentDay={currentDay}
             onBack={() => setTab1Route("arrival")}
             onSelectMission={handleSelectMission}
-            onSelectFinal={() => setTab1Route("daily-summary")}
+          />
+        )}
+
+        {tab === "home" && tab1Route === "day-end-ceremony" && selected && currentDayPlan && (
+          <DayEndCeremonyScreen
+            region={selected.region}
+            finishedDay={currentDay}
+            totalDays={currentDayPlan.dayCount}
+            prevStage={houseStageFromProgress(
+              currentDay - 1,
+              currentDayPlan.dayCount
+            )}
+            newStage={houseStageFromProgress(
+              currentDay,
+              currentDayPlan.dayCount
+            )}
+            onClose={handleDayCeremonyClose}
+            suggestions={
+              currentDay >= currentDayPlan.dayCount
+                ? [
+                    {
+                      icon: "📋",
+                      title: "이주 결정 리포트 보기",
+                      subtitle: "지금까지 쌓인 흔적이 한 장으로",
+                      onClick: handleCeremonyGoReport,
+                    },
+                    {
+                      icon: "🗺️",
+                      title: "나의 여정에서 돌아보기",
+                      subtitle: "다녀온 지역과 짓고 있는 집",
+                      onClick: handleCeremonyGoJourney,
+                    },
+                  ]
+                : [
+                    {
+                      icon: "🗺️",
+                      title: "나의 여정에서 진행 보기",
+                      subtitle: "오늘까지 쌓인 흔적과 자라는 집",
+                      onClick: handleCeremonyGoJourney,
+                    },
+                    {
+                      icon: "💬",
+                      title: "커뮤니티 가보기",
+                      subtitle: "다른 사람들의 잠시섬 이야기",
+                      onClick: handleCeremonyGoCommunity,
+                    },
+                  ]
+            }
           />
         )}
 
@@ -516,7 +634,7 @@ export default function App() {
               selected,
               currentRecord
             )}
-            allMissionsDone={baseMissions.every((m) =>
+            allMissionsDone={missionsForResidence(selected.id).every((m) =>
               currentCompletedIds.has(m.id)
             )}
             onSeeReport={() => handleOpenReport(selected)}

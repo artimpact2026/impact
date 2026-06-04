@@ -15,6 +15,8 @@ export type RegionRecord = {
   completedMissionIds: string[]; // Set 대신 Array (JSON 직렬화 위해)
   score: number;     // 축적 점수 — 미션 완료 시 mission.reward 합산
   fitScore: number;  // 적합도 추가 점수 — 미션 답변(traits)으로 누적 (-N ~ +N)
+  // 현재 일차 (1-based) — 잠시섬 체류 일자. 기본 1, 일차 완료 의식 후 +1
+  currentDay?: number;
 };
 
 // 적합도 (0~100) — 라이프스타일 매칭 베이스 + 미션 답변 누적
@@ -40,6 +42,24 @@ export function emptyRecord(residenceId: string): RegionRecord {
     completedMissionIds: [],
     score: 0,
     fitScore: 0,
+    currentDay: 1,
+  };
+}
+
+// 다음 일차로 진행 (일차 의식 통과 후 호출)
+export function advanceDay(
+  progress: Record<string, RegionRecord>,
+  residenceId: string,
+  totalDays: number
+): Record<string, RegionRecord> {
+  const existing = progress[residenceId] ?? emptyRecord(residenceId);
+  const cur = existing.currentDay ?? 1;
+  return {
+    ...progress,
+    [residenceId]: {
+      ...existing,
+      currentDay: Math.min(totalDays, cur + 1),
+    },
   };
 }
 

@@ -1,12 +1,12 @@
-// 미션 리스트 — 카테고리 4섹션 + 코버플로우 캐러셀
-// 헤더/진행률 그대로, 그 아래 sticky 카테고리 탭 + 세로 스크롤 섹션들
+// 미션 리스트 — 잠시섬 일차별 분기
+// 헤더(Day N/Total) + 진행률(오늘) + 카테고리 4섹션(오늘 미션만)
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import CategoryTabs from "../components/CategoryTabs";
 import MissionCarousel from "../components/MissionCarousel";
 import MissionImageCard from "../components/MissionImageCard";
-import { finalMission, type Mission } from "../data/missions";
+import { type Mission } from "../data/missions";
 import { missionsForResidence } from "../data/regionMissions";
 import {
   MISSION_GROUP_ORDER,
@@ -14,33 +14,56 @@ import {
   missionGroupMeta,
   type MissionGroup,
 } from "../data/missionCategories";
+import { buildDayPlan, missionIdsForDay } from "../data/dayPlan";
+import type { Residence } from "../data/residences";
 
 type Props = {
   region: string;
-  residenceId: string;
+  residence: Residence;
   completedIds: Set<string>;
   totalScore: number;
   fitScore?: number;
+  currentDay: number;
   onBack: () => void;
   onSelectMission: (mission: Mission) => void;
-  onSelectFinal?: () => void;
 };
 
 export default function MissionListScreen({
   region,
-  residenceId,
+  residence,
   completedIds,
   totalScore,
   fitScore = 0,
+  currentDay,
   onBack,
   onSelectMission,
-  onSelectFinal,
 }: Props) {
   const allMissions = useMemo(
-    () => missionsForResidence(residenceId),
-    [residenceId]
+    () => missionsForResidence(residence.id),
+    [residence.id]
   );
-  const grouped = useMemo(() => groupMissions(allMissions), [allMissions]);
+
+  // 일차 분배 — 같은 결정 로직을 부모와 공유 가능하게 export 된 buildDayPlan 사용
+  const { dayCount, missionsByDay } = useMemo(
+    () => buildDayPlan(residence, allMissions),
+    [residence, allMissions]
+  );
+
+  // 오늘의 미션 집합
+  const todayIds = useMemo(
+    () => missionIdsForDay(missionsByDay, currentDay),
+    [missionsByDay, currentDay]
+  );
+
+  // 오늘 미션만 추려서 카테고리 그룹핑
+  const todayMissions = useMemo(
+    () => allMissions.filter((m) => todayIds.has(m.id)),
+    [allMissions, todayIds]
+  );
+  const grouped = useMemo(
+    () => groupMissions(todayMissions),
+    [todayMissions]
+  );
 
   const counts: Record<MissionGroup, number> = {
     roadview: grouped.roadview.length,
@@ -49,10 +72,10 @@ export default function MissionListScreen({
     rest: grouped.rest.length,
   };
 
-  const total = allMissions.length;
-  const doneCount = allMissions.filter((m) => completedIds.has(m.id)).length;
-  const percent = total === 0 ? 0 : Math.round((doneCount / total) * 100);
-  const allDone = total > 0 && doneCount === total;
+  const todayTotal = todayMissions.length;
+  const todayDone = todayMissions.filter((m) => completedIds.has(m.id)).length;
+  const todayPercent =
+    todayTotal === 0 ? 0 : Math.round((todayDone / todayTotal) * 100);
 
   // 세로 스크롤 컨테이너 + 섹션 ref — sticky 탭 활성 추적용
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -64,7 +87,6 @@ export default function MissionListScreen({
   });
   const [activeGroup, setActiveGroup] = useState<MissionGroup>("roadview");
 
-  // IntersectionObserver — 가장 화면 중앙에 가까운 섹션을 active로
   useEffect(() => {
     const root = scrollRef.current;
     if (!root) return;
@@ -92,7 +114,7 @@ export default function MissionListScreen({
       if (el) observer.observe(el);
     }
     return () => observer.disconnect();
-  }, []);
+  }, [currentDay]);
 
   const handleTabSelect = (g: MissionGroup) => {
     const el = sectionRefs.current[g];
@@ -109,7 +131,7 @@ export default function MissionListScreen({
         <button
           type="button"
           onClick={onBack}
-          aria-label="도착 화면으로"
+          aria-label="마을로"
           className="w-9 h-9 rounded-full bg-white shadow-soft
                      flex items-center justify-center text-ink"
         >
@@ -125,7 +147,7 @@ export default function MissionListScreen({
         </button>
         <div className="flex-1 min-w-0">
           <p className="text-ink-soft text-[11px] font-bold tracking-widest uppercase">
-            {region} 잠시섬 미션
+            {region} · DAY {currentDay} / {dayCount}
           </p>
           <h1 className="text-ink text-[20px] font-extrabold leading-tight">
             오늘 하루, 어떤 걸 해볼까요?
@@ -133,21 +155,44 @@ export default function MissionListScreen({
         </div>
       </header>
 
-      {/* 진행률 + 축적 점수 + 적합도 변화 */}
+      {/* 일차 진행 도트 */}
+      <div className="px-5 mt-3 flex items-center gap-1.5">
+        {Array.from({ length: dayCount }).map((_, i) => {
+          const day = i + 1;
+          const isPast = day < currentDay;
+          const isCurrent = day === currentDay;
+          return (
+            <div
+              key={day}
+              className={`h-1.5 rounded-full transition-all
+                ${
+                  isPast
+                    ? "flex-1 bg-primary"
+                    : isCurrent
+                    ? "flex-[2] bg-primary"
+                    : "flex-1 bg-cream-200"
+                }`}
+              aria-hidden
+            />
+          );
+        })}
+      </div>
+
+      {/* 오늘 진행률 + 축적 점수 + 적합도 */}
       <section className="px-5 mt-4">
         <div className="bg-white rounded-2xl p-3.5 shadow-soft border border-cream-200">
           <div className="flex items-baseline justify-between">
-            <p className="text-ink text-[12px] font-bold">미션 진행률</p>
+            <p className="text-ink text-[12px] font-bold">오늘의 진행률</p>
             <p className="text-[12px] text-ink-mute">
-              <span className="text-primary font-extrabold">{doneCount}</span>{" "}
-              / {total} 완료
+              <span className="text-primary font-extrabold">{todayDone}</span>{" "}
+              / {todayTotal} 완료
             </p>
           </div>
           <div className="mt-2 h-2 rounded-full bg-cream-200 overflow-hidden">
             <motion.div
               className="h-full bg-gradient-to-r from-nature-300 to-primary"
               initial={{ width: 0 }}
-              animate={{ width: `${percent}%` }}
+              animate={{ width: `${todayPercent}%` }}
               transition={{ duration: 0.6, ease: "easeOut" }}
             />
           </div>
@@ -182,11 +227,21 @@ export default function MissionListScreen({
         onSelect={handleTabSelect}
       />
 
-      {/* 카테고리 섹션 4개 */}
+      {/* 오늘 미션이 없는 일차 — 안내 */}
+      {todayTotal === 0 && (
+        <div className="px-5 py-10 text-center">
+          <p className="text-ink-soft text-[14px] leading-relaxed">
+            오늘은 머무는 하루예요.<br />
+            마을 홈에서 동네를 둘러보고 푹 쉬어요.
+          </p>
+        </div>
+      )}
+
+      {/* 카테고리 섹션 — 오늘 미션만 */}
       {MISSION_GROUP_ORDER.map((g, gi) => {
-        const meta = missionGroupMeta[g];
         const items = grouped[g];
         if (items.length === 0) return null;
+        const meta = missionGroupMeta[g];
         return (
           <section
             key={g}
@@ -226,63 +281,7 @@ export default function MissionListScreen({
         );
       })}
 
-      {/* 최종 미션 */}
-      <section className="px-5 pt-4 pb-10">
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-ink text-[16px] font-extrabold">
-            🏁 오늘의 마무리
-          </h2>
-        </div>
-        <p className="text-ink-soft text-[12px] mt-0.5 mb-3">
-          모든 체험이 끝나면 리포트가 열려요
-        </p>
-        <button
-          type="button"
-          disabled={!allDone}
-          onClick={onSelectFinal}
-          className={`relative w-full flex flex-col p-5 rounded-3xl
-                      border text-left shadow-soft transition
-                      ${
-                        allDone
-                          ? "bg-gradient-to-br from-primary-50 to-nature-50 border-primary active:scale-[0.99]"
-                          : "bg-cream-100 border-cream-200 opacity-70 cursor-not-allowed"
-                      }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-extrabold tracking-widest uppercase text-primary">
-              FINAL
-            </span>
-            <span className="text-[12px] font-extrabold text-primary tabular-nums">
-              +{finalMission.reward}점
-            </span>
-          </div>
-
-          <div className="mt-4 text-[56px] leading-none" aria-hidden>
-            {finalMission.icon}
-          </div>
-
-          <p className="mt-3 text-ink-mute text-[11px] font-bold tracking-wide">
-            {finalMission.title}
-          </p>
-          <h3 className="mt-1 text-ink text-[19px] font-extrabold leading-snug">
-            {allDone
-              ? "오늘의 체험을 한 장의 리포트로"
-              : "모든 체험 완료 후 열려요"}
-          </h3>
-
-          <p className="mt-2 text-ink-soft text-[13px] leading-relaxed">
-            {finalMission.description}
-          </p>
-
-          <div
-            className={`mt-5 text-[12px] font-extrabold ${
-              allDone ? "text-primary" : "text-ink-mute"
-            }`}
-          >
-            {allDone ? "리포트 만들기 →" : "🔒 잠금"}
-          </div>
-        </button>
-      </section>
+      <div className="h-10" />
     </div>
   );
 }
