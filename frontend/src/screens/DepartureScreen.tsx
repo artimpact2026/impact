@@ -146,8 +146,8 @@ export default function DepartureScreen({
       {/* ===== 추천 모드: 레지던스 마커 + 바텀시트 ===== */}
       {view === "recommended" && (
         <>
-          <section className="flex-1 px-3 mt-3 mb-4 flex items-start justify-center">
-            <div className="w-full max-w-[320px]">
+          <section className="flex-1 px-3 mb-4 flex items-start justify-center">
+            <div className="w-full max-w-[320px] mt-24">
               <KoreaMap>
                 {recommended.map((r) => (
                   <ResidenceMarker

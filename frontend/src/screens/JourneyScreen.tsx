@@ -287,8 +287,8 @@ function JourneyMarker({
       : Math.min(1, match / 100)
     : 0;
 
-  // 마커 크기 (px) — 미방문은 작게, 방문은 intensity 따라 32~56
-  const size = visited ? 32 + intensity * 24 : 18;
+  // 마커 크기 (px) — 미방문은 작게, 방문은 intensity 따라 더 크게
+  const size = visited ? 42 + intensity * 28 : 24;
   // 색 — 점수 보기는 주황 톤, 적합도 보기는 초록 톤. 미방문은 회색
   const color = !visited
     ? "#C5B89A"
@@ -317,7 +317,7 @@ function JourneyMarker({
           opacity,
         }}
       >
-        <span className="text-[12px] font-extrabold text-white drop-shadow tabular-nums">
+        <span className="text-[14px] font-extrabold text-white drop-shadow tabular-nums">
           {visited
             ? view === "score"
               ? score
@@ -335,7 +335,7 @@ function JourneyMarker({
         )}
       </span>
       <span
-        className={`mt-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold leading-none
+        className={`mt-1.5 px-2 py-1 rounded-md text-[12px] font-extrabold leading-none
           ${
             isActive
               ? "bg-primary text-white"

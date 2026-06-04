@@ -29,7 +29,7 @@ export default function ResidenceMarker({
     >
       {/* 지역명 칩 — 활성/비활성 톤 분기 */}
       <span
-        className={`mb-1 px-2 py-0.5 rounded-full text-[11px] font-bold leading-none
+        className={`mb-1.5 px-2.5 py-1 rounded-full text-[13px] font-extrabold leading-none
           transition shadow-soft
           ${
             isActive
@@ -43,14 +43,14 @@ export default function ResidenceMarker({
       {/* 집 모양 마커 + 핀 */}
       <span
         className={`relative inline-flex items-center justify-center
-          w-9 h-9 rounded-full shadow-soft transition
+          w-12 h-12 rounded-full shadow-soft transition
           ${isActive ? "bg-primary scale-110" : "bg-white"}`}
       >
         <HouseIcon active={isActive} />
         {/* 핀 끝 (작은 삼각형) */}
         <span
           className={`absolute -bottom-1.5 left-1/2 -translate-x-1/2
-            w-2.5 h-2.5 rotate-45
+            w-3 h-3 rotate-45
             ${isActive ? "bg-primary" : "bg-white"}`}
           aria-hidden
         />
@@ -64,7 +64,7 @@ function HouseIcon({ active }: { active: boolean }) {
   const stroke = active ? "#FFFFFF" : "#FF7043";
   const fill = active ? "#FF7043" : "#FFE0D3";
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden>
       <path
         d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1v-8Z"
         stroke={stroke}
