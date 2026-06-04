@@ -34,24 +34,24 @@ export type VillageMission = {
   colorTo: string; // 썸네일 그라데이션 끝색
 };
 
-// 시도 → 지도 대표 좌표(%) — KoreaMap(240x440) 위 육지에 위치하도록 보정
+// 시도 → 지도 대표 좌표(%) — KoreaMap(/korea-map.png, 남한 지도) 위 육지에 위치하도록 보정
 const SIDO_POSITIONS: Record<string, RegionPos> = {
-  경기: { xPct: 45, yPct: 43 },
-  인천: { xPct: 35, yPct: 44 },
-  강원: { xPct: 67, yPct: 38 },
-  충북: { xPct: 53, yPct: 55 },
-  세종: { xPct: 46, yPct: 57 },
-  충남: { xPct: 37, yPct: 57 },
-  대전: { xPct: 48, yPct: 60 },
-  전북: { xPct: 39, yPct: 69 },
-  광주: { xPct: 38, yPct: 79 },
-  전남: { xPct: 35, yPct: 83 },
-  경북: { xPct: 63, yPct: 57 },
-  대구: { xPct: 58, yPct: 69 },
-  경남: { xPct: 54, yPct: 80 },
-  부산: { xPct: 66, yPct: 82 },
-  울산: { xPct: 71, yPct: 73 },
-  제주: { xPct: 49, yPct: 95 },
+  경기: { xPct: 42.5, yPct: 27.7 },
+  인천: { xPct: 33.6, yPct: 24.7 },
+  강원: { xPct: 64.9, yPct: 29.5 },
+  충북: { xPct: 48.1, yPct: 44.7 },
+  세종: { xPct: 42.5, yPct: 48.3 },
+  충남: { xPct: 33.6, yPct: 49.2 },
+  대전: { xPct: 45.9, yPct: 51.0 },
+  전북: { xPct: 36.9, yPct: 59.0 },
+  광주: { xPct: 35.3, yPct: 69.4 },
+  전남: { xPct: 33.6, yPct: 75.1 },
+  경북: { xPct: 60.4, yPct: 51.9 },
+  대구: { xPct: 60.9, yPct: 64.0 },
+  경남: { xPct: 54.8, yPct: 71.6 },
+  부산: { xPct: 68.2, yPct: 77.3 },
+  울산: { xPct: 71.6, yPct: 69.8 },
+  제주: { xPct: 29.1, yPct: 91.2 },
 };
 
 // 대표 태그 우선순위 — 가장 시각적으로 구분되는 태그를 썸네일에 사용

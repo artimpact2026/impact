@@ -32,7 +32,7 @@ export default function MissionMarker({
       {/* 활성일 때만 지역명 칩 노출 (비활성은 점만 → 클러스터 깔끔) */}
       {isActive && (
         <span
-          className="mb-1 px-2 py-0.5 rounded-full text-[10px] font-bold leading-none
+          className="mb-1.5 px-2.5 py-1 rounded-full text-[12px] font-bold leading-none
                      bg-primary text-white shadow-soft whitespace-nowrap"
         >
           {region}
@@ -45,16 +45,16 @@ export default function MissionMarker({
           shadow-soft transition-all
           ${
             isActive
-              ? "w-9 h-9 bg-white ring-2 ring-primary scale-100"
-              : "w-[18px] h-[18px] bg-white/90 ring-1 ring-cream-200"
+              ? "w-12 h-12 bg-white ring-2 ring-primary scale-100"
+              : "w-7 h-7 bg-white/90 ring-1 ring-cream-200"
           }`}
       >
-        <span className={isActive ? "text-[16px]" : "text-[10px]"} aria-hidden>
+        <span className={isActive ? "text-[22px]" : "text-[15px]"} aria-hidden>
           {emoji}
         </span>
         {/* 핀 끝 */}
         <span
-          className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 rotate-45
+          className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-2.5 h-2.5 rotate-45
             ${isActive ? "bg-primary" : "bg-white/90"}`}
           aria-hidden
         />
