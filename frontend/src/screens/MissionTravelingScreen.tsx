@@ -157,24 +157,24 @@ export default function MissionTravelingScreen({ mission, onComplete, onBack }: 
   };
 
   return (
-    <div className="relative h-[calc(100dvh-6rem)] flex flex-col overflow-hidden bg-black">
+    <div className="relative h-[calc(100dvh-6rem)] flex flex-col overflow-hidden bg-[#F3ECE2]">
       {/* 상단 — 진행 + 미션 정보 */}
-      <header className="absolute top-0 left-0 right-0 z-30 px-4 pt-4 pb-3 flex items-center gap-2 bg-gradient-to-b from-black/45 via-black/15 to-transparent">
+      <header className="absolute top-0 left-0 right-0 z-30 px-4 pt-4 pb-3 flex items-center gap-2 bg-gradient-to-b from-cream/95 via-cream/55 to-transparent">
         <button
           type="button"
           onClick={onBack ?? onComplete}
           aria-label="미션 리스트로 돌아가기"
-          className="w-8 h-8 rounded-full bg-white/90 backdrop-blur shadow-soft
-                     text-[#3E2C20] text-[14px] font-bold
+          className="w-8 h-8 rounded-full bg-white shadow-soft
+                     text-ink text-[14px] font-bold
                      flex items-center justify-center active:scale-[0.96]"
         >
           ←
         </button>
-        <div className="flex-1 min-w-0 text-white">
-          <p className="text-[10px] font-bold opacity-85 tracking-widest uppercase">
+        <div className="flex-1 min-w-0 text-ink">
+          <p className="text-[10px] font-bold text-ink-mute tracking-widest uppercase">
             이동 중 · {idx + 1} / {slides.length}
           </p>
-          <p className="text-[13px] font-extrabold truncate drop-shadow">
+          <p className="text-[13px] font-extrabold truncate">
             {mission.icon} {destination}로 가는 길
           </p>
         </div>
@@ -207,8 +207,7 @@ export default function MissionTravelingScreen({ mission, onComplete, onBack }: 
                   onClick={() => setShowRoadview(true)}
                   aria-label="실제 사진 보기"
                   className="absolute top-[64px] right-4 z-20
-                             w-10 h-10 rounded-full bg-white/85 backdrop-blur
-                             shadow-soft border border-white/60
+                             w-10 h-10 rounded-full bg-white shadow-soft border border-cream-200
                              flex items-center justify-center text-base
                              active:scale-[0.96]"
                 >
@@ -226,6 +225,9 @@ export default function MissionTravelingScreen({ mission, onComplete, onBack }: 
         })}
       </motion.div>
 
+      {/* 캐릭터 레이어 — 슬라이드 트랙 바깥에 고정. 배경(SVG)만 뒤로 흐르고 캐릭터는 그 자리에서 통통 튀어 "걷는 느낌" */}
+      <WalkingCharacters isArrival={idx === slides.length - 1} />
+
       {/* 하단 — 도트 + 다음 / 미션 시작 */}
       <footer className="absolute bottom-6 left-0 right-0 z-30 px-6 flex flex-col items-center gap-3">
         <div className="flex gap-1.5" aria-hidden>
@@ -233,7 +235,7 @@ export default function MissionTravelingScreen({ mission, onComplete, onBack }: 
             <span
               key={i}
               className={`h-1.5 rounded-full transition-all
-                ${i === idx ? "bg-white w-6" : "bg-white/40 w-1.5"}`}
+                ${i === idx ? "bg-primary w-6" : "bg-ink-mute/30 w-1.5"}`}
             />
           ))}
         </div>
@@ -242,8 +244,8 @@ export default function MissionTravelingScreen({ mission, onComplete, onBack }: 
           <button
             type="button"
             onClick={next}
-            className="px-5 py-2.5 rounded-full bg-white/95 backdrop-blur
-                       text-[#3E2C20] text-[13px] font-extrabold shadow-soft
+            className="px-5 py-2.5 rounded-full bg-white
+                       text-ink text-[13px] font-extrabold shadow-soft border border-cream-200
                        active:scale-[0.99]"
           >
             다음 →
@@ -256,8 +258,8 @@ export default function MissionTravelingScreen({ mission, onComplete, onBack }: 
                 href={mission.arrivalRoadviewUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-4 py-1.5 rounded-full bg-white/15 backdrop-blur
-                           border border-white/40 text-white text-[11px] font-bold
+                className="px-4 py-1.5 rounded-full bg-white shadow-soft
+                           border border-cream-200 text-ink-soft text-[11px] font-bold
                            active:scale-[0.99]"
               >
                 🗺️ 실제 로드뷰로 확인해보기
@@ -277,7 +279,7 @@ export default function MissionTravelingScreen({ mission, onComplete, onBack }: 
           </div>
         )}
 
-        <p className="text-white/60 text-[10px]">
+        <p className="text-ink-mute text-[10px]">
           좌우로 스와이프하거나 '다음'을 눌러요
         </p>
       </footer>
@@ -371,6 +373,98 @@ function RoadviewModal({
 // Snapshot — 4가지 variant별 SVG 풍경
 // =====================================================================
 
+// ── 공용 일러스트 헬퍼 ────────────────────────────
+// 부드러운 구름 — 흰 타원 3개를 겹쳐서 통통한 실루엣
+function Cloud({
+  cx,
+  cy,
+  scale = 1,
+  opacity = 0.85,
+}: {
+  cx: number;
+  cy: number;
+  scale?: number;
+  opacity?: number;
+}) {
+  return (
+    <g
+      opacity={opacity}
+      transform={`translate(${cx} ${cy}) scale(${scale})`}
+    >
+      <ellipse cx="0" cy="0" rx="14" ry="6" fill="#FFFFFF" />
+      <ellipse cx="-8" cy="2" rx="8" ry="5" fill="#FFFFFF" />
+      <ellipse cx="9" cy="2" rx="9" ry="5" fill="#FFFFFF" />
+    </g>
+  );
+}
+
+// 나무 — 통통한 원형(plump) 또는 침엽수(cone)
+function Tree({
+  x,
+  y,
+  scale = 1,
+  variant = "round",
+}: {
+  x: number;
+  y: number;
+  scale?: number;
+  variant?: "round" | "cone";
+}) {
+  if (variant === "cone") {
+    return (
+      <g transform={`translate(${x} ${y}) scale(${scale})`}>
+        <rect x="-1.2" y="0" width="2.4" height="6" fill="#8B5E42" rx="0.3" />
+        <path d="M -9 0 L 0 -22 L 9 0 Z" fill="#8FBC9C" />
+        <path d="M -6 -8 L 0 -22 L 6 -8 Z" fill="#A8CFB5" />
+      </g>
+    );
+  }
+  return (
+    <g transform={`translate(${x} ${y}) scale(${scale})`}>
+      <rect x="-1.2" y="0" width="2.4" height="9" fill="#8B5E42" rx="0.3" />
+      <circle cx="0" cy="-2" r="10" fill="#8BCB90" />
+      <circle cx="-5" cy="-6" r="7" fill="#B1DCB5" />
+      <circle cx="5" cy="-4" r="6" fill="#A8CFB5" />
+    </g>
+  );
+}
+
+// 작은 새 두 마리 — m자 실루엣
+function Birds({ x, y }: { x: number; y: number }) {
+  return (
+    <g
+      stroke="#6B5446"
+      strokeWidth="0.8"
+      fill="none"
+      strokeLinecap="round"
+      opacity="0.55"
+    >
+      <path d={`M ${x} ${y} q 2 -2 4 0 q 2 -2 4 0`} />
+      <path d={`M ${x + 10} ${y + 3} q 1.5 -1.5 3 0 q 1.5 -1.5 3 0`} />
+    </g>
+  );
+}
+
+// 길가 작은 꽃 — 점 3~4개로 표현
+function FlowerCluster({
+  cx,
+  cy,
+  scale = 1,
+}: {
+  cx: number;
+  cy: number;
+  scale?: number;
+}) {
+  return (
+    <g transform={`translate(${cx} ${cy}) scale(${scale})`}>
+      <circle cx="0" cy="0" r="1.6" fill="#FFB6A8" />
+      <circle cx="3" cy="-1.5" r="1.4" fill="#FFE9A8" />
+      <circle cx="-2.5" cy="-1" r="1.4" fill="#FFC4DC" />
+      <circle cx="1.5" cy="2" r="1.2" fill="#FFFFFF" />
+    </g>
+  );
+}
+
 function Snapshot({
   kind,
   mission,
@@ -386,19 +480,39 @@ function Snapshot({
       aria-hidden
     >
       <defs>
+        {/* 하늘 — 연하늘 → 살구 → 크림 */}
         <linearGradient id="snapSky" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0" stopColor="#BDE7FF" />
-          <stop offset="0.55" stopColor="#FFE4C8" />
-          <stop offset="1" stopColor="#F4D8A8" />
+          <stop offset="0" stopColor="#D8EFFF" />
+          <stop offset="0.55" stopColor="#FFE9D6" />
+          <stop offset="1" stopColor="#FBE6C2" />
         </linearGradient>
+        {/* 길 — 따뜻한 베이지 */}
         <linearGradient id="snapRoad" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0" stopColor="#D8C49E" />
-          <stop offset="1" stopColor="#B89E78" />
+          <stop offset="0" stopColor="#F2DDB8" />
+          <stop offset="1" stopColor="#D8B98C" />
+        </linearGradient>
+        {/* 잔디 — 라이트 민트 */}
+        <linearGradient id="snapGrass" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0" stopColor="#DCEDD0" />
+          <stop offset="1" stopColor="#C2DDB7" />
+        </linearGradient>
+        {/* 먼 산 3겹 — 멀수록 옅고 푸르게 */}
+        <linearGradient id="snapMtnFar" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0" stopColor="#D5E1E8" />
+          <stop offset="1" stopColor="#C4D6DD" />
+        </linearGradient>
+        <linearGradient id="snapMtnMid" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0" stopColor="#BDD5CB" />
+          <stop offset="1" stopColor="#A6C5BA" />
+        </linearGradient>
+        <linearGradient id="snapMtnNear" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0" stopColor="#A8CFB5" />
+          <stop offset="1" stopColor="#8FBC9C" />
         </linearGradient>
       </defs>
 
-      {/* 하늘 */}
-      <rect width="200" height="160" fill="url(#snapSky)" />
+      {/* 하늘 (전체 배경) */}
+      <rect width="200" height="320" fill="url(#snapSky)" />
 
       {kind === "depart" && <DepartScene />}
       {kind === "alley" && <AlleyScene />}
@@ -412,42 +526,95 @@ function Snapshot({
 function DepartScene() {
   return (
     <g>
-      {/* 먼 산 */}
+      {/* 구름 + 새 */}
+      <Cloud cx={45} cy={30} scale={0.85} />
+      <Cloud cx={150} cy={50} scale={1} />
+      <Birds x={108} y={72} />
+
+      {/* 먼 산 3겹 — 멀수록 옅고 푸르게 */}
       <path
-        d="M -10 150 Q 40 110 90 130 Q 140 105 200 130 L 200 165 L -10 165 Z"
-        fill="#A8C8B0"
-        opacity="0.7"
+        d="M -10 130 Q 30 100 70 115 Q 110 95 150 110 Q 180 100 210 115 L 210 170 L -10 170 Z"
+        fill="url(#snapMtnFar)"
       />
-      {/* 잔디 */}
-      <rect y="160" width="200" height="160" fill="#D8E8C8" />
-      {/* 길 (사다리꼴) */}
       <path
-        d="M 80 160 L 30 320 L 170 320 L 120 160 Z"
+        d="M -10 145 Q 40 120 80 135 Q 120 110 160 130 Q 185 120 210 135 L 210 170 L -10 170 Z"
+        fill="url(#snapMtnMid)"
+      />
+      <path
+        d="M -10 158 Q 50 138 100 150 Q 150 138 210 152 L 210 175 L -10 175 Z"
+        fill="url(#snapMtnNear)"
+      />
+
+      {/* 잔디 */}
+      <rect y="165" width="200" height="155" fill="url(#snapGrass)" />
+
+      {/* 길 — 곡선 사다리꼴(앞으로 부드럽게 넓어짐) */}
+      <path
+        d="M 78 165 Q 62 220 28 320 L 172 320 Q 138 220 122 165 Z"
         fill="url(#snapRoad)"
       />
-      <path d="M 100 165 L 100 320" stroke="#FFFFFF" strokeWidth="1.5" strokeDasharray="6 10" opacity="0.55" />
+      <path
+        d="M 100 170 Q 100 240 100 320"
+        stroke="#FFF8F0"
+        strokeWidth="1.4"
+        strokeDasharray="5 9"
+        opacity="0.65"
+        fill="none"
+      />
 
-      {/* 좌측 한옥 */}
-      <g transform="translate(36 200)">
-        <rect x="-26" y="0" width="52" height="40" fill="#EEDDC0" />
-        <path d="M -32 0 L 0 -28 L 32 0 Z" fill="#7B5640" />
-        <path d="M -32 -2 L 32 -2 L 32 2 L -32 2 Z" fill="#5A3D2A" />
-        <rect x="-16" y="10" width="10" height="14" fill="#5A4630" />
-        <rect x="6" y="10" width="10" height="14" fill="#5A4630" />
-        <rect x="-5" y="22" width="10" height="18" fill="#5A4630" />
+      {/* 좌측 한옥 — 기와 곡선 강조 */}
+      <g transform="translate(34 200)">
+        {/* 본채 */}
+        <rect x="-26" y="-2" width="54" height="32" rx="1.5" fill="#F4DEC2" />
+        {/* 토대(밝은 그림자) */}
+        <rect x="-26" y="26" width="54" height="6" fill="#E8C8A4" />
+        {/* 기와 지붕 — 살짝 곡선 */}
+        <path
+          d="M -34 -2 Q -32 -9 -28 -11 L 28 -11 Q 32 -9 34 -2 Z"
+          fill="#C97D5C"
+        />
+        <path d="M -34 -2 L 34 -2 L 34 2 L -34 2 Z" fill="#A35F45" />
+        {/* 창문 */}
+        <rect
+          x="-15"
+          y="6"
+          width="11"
+          height="13"
+          rx="1"
+          fill="#C9E1EF"
+          stroke="#8B5E42"
+          strokeWidth="0.7"
+        />
+        <rect
+          x="4"
+          y="6"
+          width="11"
+          height="13"
+          rx="1"
+          fill="#C9E1EF"
+          stroke="#8B5E42"
+          strokeWidth="0.7"
+        />
+        {/* 문 */}
+        <rect x="-4" y="18" width="8" height="14" fill="#8B5E42" rx="0.5" />
       </g>
-      {/* 우측 작은 집 */}
-      <g transform="translate(170 220)">
-        <rect x="-16" y="0" width="32" height="22" fill="#E2CCAA" />
-        <path d="M -20 0 L 0 -14 L 20 0 Z" fill="#7B5640" />
-        <rect x="-4" y="8" width="8" height="14" fill="#5A4630" />
+
+      {/* 우측 작은 집 — 멀리, 작게 */}
+      <g transform="translate(172 218)">
+        <rect x="-14" y="0" width="28" height="20" rx="1" fill="#FFE0CC" />
+        <path d="M -17 0 L 0 -12 L 17 0 Z" fill="#E8A88A" />
+        <rect x="-12" y="2" width="6" height="6" rx="1" fill="#FFE9A8" />
+        <rect x="-3" y="8" width="6" height="12" fill="#8B5E42" rx="0.5" />
       </g>
-      {/* 나무 */}
-      <g transform="translate(166 180)">
-        <rect x="-1" y="0" width="2" height="14" fill="#7B5640" />
-        <circle r="11" fill="#7BA86F" />
-        <circle cx="-4" cy="-3" r="7" fill="#A0C690" />
-      </g>
+
+      {/* 나무 — 가까운 큰 나무 + 멀리 작은 나무들 */}
+      <Tree x={20} y={238} scale={1.1} />
+      <Tree x={165} y={186} scale={0.85} variant="cone" />
+      <Tree x={186} y={252} scale={0.65} />
+
+      {/* 전경 풀덤불 */}
+      <ellipse cx="55" cy="308" rx="14" ry="4" fill="#A8C695" opacity="0.7" />
+      <ellipse cx="158" cy="312" rx="18" ry="4" fill="#A8C695" opacity="0.7" />
     </g>
   );
 }
@@ -456,38 +623,113 @@ function DepartScene() {
 function AlleyScene() {
   return (
     <g>
-      {/* 골목 끝 빛 */}
-      <circle cx="100" cy="170" r="20" fill="#FFE5C8" opacity="0.7" />
+      {/* 살짝 구름 + 새 */}
+      <Cloud cx={100} cy={26} scale={0.7} opacity={0.8} />
+      <Birds x={40} y={60} />
 
-      {/* 좌측 담장 (퍼스펙티브) */}
-      <path d="M 0 165 L 80 165 L 30 320 L 0 320 Z" fill="#D8C0A0" />
-      <path d="M 0 165 L 80 165 L 80 170 L 0 170 Z" fill="#7B5640" opacity="0.4" />
-      {/* 우측 담장 */}
-      <path d="M 200 165 L 120 165 L 170 320 L 200 320 Z" fill="#E2CCAA" />
-      <path d="M 200 165 L 120 165 L 120 170 L 200 170 Z" fill="#7B5640" opacity="0.4" />
-
-      {/* 길 (사다리꼴) */}
-      <path d="M 80 165 L 30 320 L 170 320 L 120 165 Z" fill="url(#snapRoad)" />
-      {/* 길 중앙선 흐름 */}
-      <path d="M 100 170 L 100 320" stroke="#FFFFFF" strokeWidth="1.5" strokeDasharray="6 10" opacity="0.6" />
-
-      {/* 가로등 */}
-      <g>
-        <rect x="84" y="180" width="2" height="24" fill="#5A4630" />
-        <circle cx="85" cy="180" r="4" fill="#FFE5C8" />
-        <circle cx="85" cy="180" r="2.5" fill="#FFC53D" opacity="0.7" />
-      </g>
-
-      {/* 빨래줄 */}
+      {/* 골목 끝 원경 — 멀리 살짝 보이는 산/나무 + 빛 */}
       <path
-        d="M 30 175 Q 100 184 170 175"
-        stroke="#5A4630"
-        strokeWidth="0.5"
+        d="M 70 160 Q 100 148 130 160 L 128 175 L 72 175 Z"
+        fill="url(#snapMtnNear)"
+        opacity="0.55"
+      />
+      <circle cx="100" cy="172" r="22" fill="#FFE9D6" opacity="0.7" />
+
+      {/* 좌측 담장 (퍼스펙티브, 살구빛) */}
+      <path d="M 0 160 L 78 167 L 28 320 L 0 320 Z" fill="#F4DEC2" />
+      {/* 담장 상단 그림자 */}
+      <path
+        d="M 0 160 L 78 167 L 78 171 L 0 164 Z"
+        fill="#C97D5C"
+        opacity="0.55"
+      />
+      {/* 담장 줄기 패턴 */}
+      <path
+        d="M 20 200 L 14 320"
+        stroke="#E8C8A4"
+        strokeWidth="0.6"
+        opacity="0.8"
+      />
+      <path
+        d="M 45 200 L 38 320"
+        stroke="#E8C8A4"
+        strokeWidth="0.6"
+        opacity="0.8"
+      />
+
+      {/* 우측 담장 (크림) */}
+      <path d="M 200 160 L 122 167 L 172 320 L 200 320 Z" fill="#FFE0CC" />
+      <path
+        d="M 200 160 L 122 167 L 122 171 L 200 164 Z"
+        fill="#C97D5C"
+        opacity="0.55"
+      />
+      <path
+        d="M 180 200 L 186 320"
+        stroke="#F4C8AA"
+        strokeWidth="0.6"
+        opacity="0.8"
+      />
+      <path
+        d="M 155 200 L 162 320"
+        stroke="#F4C8AA"
+        strokeWidth="0.6"
+        opacity="0.8"
+      />
+
+      {/* 길 (곡선 사다리꼴) */}
+      <path
+        d="M 78 167 Q 60 220 28 320 L 172 320 Q 140 220 122 167 Z"
+        fill="url(#snapRoad)"
+      />
+      <path
+        d="M 100 172 Q 100 240 100 320"
+        stroke="#FFF8F0"
+        strokeWidth="1.4"
+        strokeDasharray="5 9"
+        opacity="0.7"
         fill="none"
       />
-      <rect x="60" y="178" width="6" height="9" fill="#FFE0D3" rx="0.5" />
-      <rect x="84" y="180" width="5" height="8" fill="#A8D5A8" rx="0.5" />
-      <rect x="120" y="178" width="6" height="9" fill="#FFFFFF" rx="0.5" />
+
+      {/* 가로등 — 따뜻한 노랑빛 */}
+      <g transform="translate(85 178)">
+        <rect x="-0.6" y="4" width="1.2" height="28" fill="#6B5446" rx="0.3" />
+        <circle cx="0" cy="0" r="6" fill="#FFE9A8" opacity="0.45" />
+        <circle cx="0" cy="0" r="3.5" fill="#FFCB6E" opacity="0.95" />
+        <path d="M -2.5 -4 L 2.5 -4 L 1.5 -2 L -1.5 -2 Z" fill="#6B5446" />
+      </g>
+
+      {/* 빨래줄 + 빨래 (파스텔) */}
+      <path
+        d="M 30 178 Q 100 186 170 178"
+        stroke="#8B5E42"
+        strokeWidth="0.4"
+        fill="none"
+      />
+      <rect x="50" y="182" width="6" height="9" fill="#FFD0BB" rx="1" />
+      <rect x="72" y="184" width="5" height="8" fill="#C9E1EF" rx="1" />
+      <rect x="98" y="184" width="6" height="9" fill="#FFFFFF" rx="1" />
+      <rect x="120" y="182" width="5" height="8" fill="#B1DCB5" rx="1" />
+      <rect x="140" y="184" width="5" height="8" fill="#FFE9A8" rx="1" />
+
+      {/* 화분 — 좌측 */}
+      <g transform="translate(38 274)">
+        <rect x="-5" y="2" width="10" height="7" fill="#C97D5C" rx="0.8" />
+        <ellipse cx="0" cy="1" rx="7" ry="4" fill="#8BCB90" />
+        <circle cx="-3" cy="-2" r="2.5" fill="#B1DCB5" />
+        <circle cx="3" cy="-3" r="2.8" fill="#A8CFB5" />
+        <circle cx="0" cy="-4.5" r="2" fill="#FFB6A8" />
+        <circle cx="-3.5" cy="-4" r="1.4" fill="#FFE9A8" />
+      </g>
+
+      {/* 화분 — 우측 (다른 꽃) */}
+      <g transform="translate(166 286)">
+        <rect x="-5" y="2" width="10" height="7" fill="#C97D5C" rx="0.8" />
+        <ellipse cx="0" cy="1" rx="7" ry="4" fill="#A8CFB5" />
+        <circle cx="-2" cy="-3" r="1.8" fill="#FFB6A8" />
+        <circle cx="2" cy="-4" r="1.8" fill="#FFC4DC" />
+        <circle cx="0" cy="-2" r="1.5" fill="#FFE9A8" />
+      </g>
     </g>
   );
 }
@@ -496,45 +738,69 @@ function AlleyScene() {
 function ApproachScene({ mission }: { mission: Mission }) {
   return (
     <g>
-      {/* 먼 산 */}
+      {/* 구름 + 새 */}
+      <Cloud cx={35} cy={32} scale={0.75} />
+      <Cloud cx={160} cy={48} scale={0.9} />
+      <Birds x={50} y={75} />
+
+      {/* 먼 산 3겹 */}
       <path
-        d="M -10 145 Q 40 105 90 125 Q 140 100 200 125 L 200 160 L -10 160 Z"
-        fill="#A8C8B0"
-        opacity="0.65"
+        d="M -10 125 Q 40 95 90 110 Q 140 92 210 108 L 210 165 L -10 165 Z"
+        fill="url(#snapMtnFar)"
       />
+      <path
+        d="M -10 140 Q 50 118 110 130 Q 160 115 210 128 L 210 165 L -10 165 Z"
+        fill="url(#snapMtnMid)"
+      />
+      <path
+        d="M -10 155 Q 60 138 130 148 Q 180 138 210 150 L 210 170 L -10 170 Z"
+        fill="url(#snapMtnNear)"
+      />
+
       {/* 잔디 */}
-      <rect y="160" width="200" height="160" fill="#D8E8C8" />
-      {/* 길 (사다리꼴) */}
-      <path d="M 80 160 L 30 320 L 170 320 L 120 160 Z" fill="url(#snapRoad)" />
-      <path d="M 100 165 L 100 320" stroke="#FFFFFF" strokeWidth="1.5" strokeDasharray="6 10" opacity="0.55" />
+      <rect y="160" width="200" height="160" fill="url(#snapGrass)" />
+
+      {/* 길 (곡선) */}
+      <path
+        d="M 82 160 Q 65 220 26 320 L 174 320 Q 135 220 118 160 Z"
+        fill="url(#snapRoad)"
+      />
+      <path
+        d="M 100 165 Q 100 240 100 320"
+        stroke="#FFF8F0"
+        strokeWidth="1.4"
+        strokeDasharray="5 9"
+        opacity="0.6"
+        fill="none"
+      />
 
       {/* 목적지 윤곽 (작게 멀리) */}
-      <g opacity="0.85" transform="translate(100 150)">
+      <g opacity="0.92" transform="translate(100 148)">
         {mission.background === "hospital" && (
           <>
-            <rect x="-18" y="-22" width="36" height="22" fill="#F4F4F4" />
-            <rect x="-3" y="-18" width="6" height="14" fill="#E55A30" />
-            <rect x="-9" y="-13" width="18" height="4" fill="#E55A30" />
+            <rect x="-18" y="-22" width="36" height="22" fill="#FFFCF7" />
+            <rect x="-3" y="-18" width="6" height="14" fill="#FF7043" />
+            <rect x="-9" y="-13" width="18" height="4" fill="#FF7043" />
           </>
         )}
         {mission.background === "market" && (
           <>
-            <path d="M -22 -16 L 22 -16 L 20 -8 L -20 -8 Z" fill="#E76F51" />
-            <rect x="-18" y="-8" width="36" height="8" fill="#A8755A" />
+            <path d="M -22 -16 L 22 -16 L 20 -8 L -20 -8 Z" fill="#FF8A5C" />
+            <rect x="-18" y="-8" width="36" height="8" fill="#B88C6E" />
           </>
         )}
         {mission.background === "cafe" && (
           <>
-            <rect x="-16" y="-20" width="32" height="20" fill="#EFE0CB" />
-            <path d="M -18 -20 L 18 -20 L 16 -16 L -16 -16 Z" fill="#A8755A" />
+            <rect x="-16" y="-20" width="32" height="20" fill="#F4DEC2" />
+            <path d="M -18 -20 L 18 -20 L 16 -16 L -16 -16 Z" fill="#B88C6E" />
           </>
         )}
         {mission.background === "transit" && (
           <>
-            <rect x="-12" y="-22" width="24" height="2" fill="#5A4630" />
-            <rect x="-11" y="-20" width="2" height="20" fill="#5A5D60" />
-            <rect x="9" y="-20" width="2" height="20" fill="#5A5D60" />
-            <rect x="-9" y="-17" width="18" height="12" fill="#FFFFFF" />
+            <rect x="-12" y="-22" width="24" height="2" fill="#6B4530" />
+            <rect x="-11" y="-20" width="2" height="20" fill="#7A7066" />
+            <rect x="9" y="-20" width="2" height="20" fill="#7A7066" />
+            <rect x="-9" y="-17" width="18" height="12" fill="#FFFCF7" />
           </>
         )}
         {mission.background === "office" && (
@@ -547,36 +813,40 @@ function ApproachScene({ mission }: { mission: Mission }) {
         {mission.background === "library" && (
           <>
             <rect x="-20" y="-22" width="40" height="22" fill="#F4E5C0" />
-            <rect x="-16" y="-18" width="32" height="3" fill="#7B5640" />
-            <rect x="-16" y="-13" width="32" height="3" fill="#7B5640" />
-            <rect x="-16" y="-8" width="32" height="3" fill="#7B5640" />
+            <rect x="-16" y="-18" width="32" height="3" fill="#8B5E42" />
+            <rect x="-16" y="-13" width="32" height="3" fill="#8B5E42" />
+            <rect x="-16" y="-8" width="32" height="3" fill="#8B5E42" />
           </>
         )}
         {mission.background === "neighbor" && (
           <>
-            <rect x="-16" y="-20" width="32" height="20" fill="#EEDDC0" />
-            <path d="M -20 -20 L 0 -32 L 20 -20 Z" fill="#7B5640" />
+            <rect x="-16" y="-20" width="32" height="20" fill="#F4DEC2" />
+            <path d="M -20 -20 L 0 -32 L 20 -20 Z" fill="#8B5E42" />
           </>
         )}
         {mission.background === "home" && (
           <>
             <rect x="-16" y="-20" width="32" height="20" fill="#FBE6C2" />
-            <path d="M -20 -20 L 0 -30 L 20 -20 Z" fill="#7B5640" />
+            <path d="M -20 -20 L 0 -30 L 20 -20 Z" fill="#8B5E42" />
           </>
         )}
       </g>
 
-      {/* 길가 나무 */}
-      <g transform="translate(38 210)">
-        <rect x="-1" y="0" width="2" height="12" fill="#7B5640" />
-        <circle r="10" fill="#7BA86F" />
-        <circle cx="-3" cy="-2" r="6" fill="#A0C690" />
-      </g>
-      <g transform="translate(162 215)">
-        <rect x="-1" y="0" width="2" height="12" fill="#7B5640" />
-        <circle r="10" fill="#7BA86F" />
-        <circle cx="3" cy="-2" r="6" fill="#A0C690" />
-      </g>
+      {/* 길가 나무 — 가까운 큰 것 / 멀리 작은 것 */}
+      <Tree x={30} y={220} scale={0.9} />
+      <Tree x={170} y={228} scale={1} variant="cone" />
+      <Tree x={186} y={258} scale={0.55} />
+      <Tree x={15} y={262} scale={0.55} variant="cone" />
+
+      {/* 길 옆 들꽃 */}
+      <FlowerCluster cx={58} cy={278} scale={0.9} />
+      <FlowerCluster cx={142} cy={285} scale={0.85} />
+      <FlowerCluster cx={48} cy={300} scale={1} />
+      <FlowerCluster cx={155} cy={306} scale={1} />
+
+      {/* 전경 풀 */}
+      <ellipse cx="35" cy="316" rx="20" ry="3" fill="#A8C695" opacity="0.6" />
+      <ellipse cx="170" cy="318" rx="22" ry="3" fill="#A8C695" opacity="0.6" />
     </g>
   );
 }
@@ -585,30 +855,50 @@ function ApproachScene({ mission }: { mission: Mission }) {
 function ArriveScene({ mission }: { mission: Mission }) {
   return (
     <g>
-      {/* 잔디 */}
-      <rect y="160" width="200" height="160" fill="#D8E8C8" />
-      {/* 진입로 */}
-      <path d="M 60 160 L 30 320 L 170 320 L 140 160 Z" fill="url(#snapRoad)" />
+      {/* 구름 (도착 분위기) */}
+      <Cloud cx={38} cy={32} scale={0.8} />
+      <Cloud cx={160} cy={48} scale={0.9} />
 
-      {/* 목적지 풀버전 */}
+      {/* 먼 산 2겹 (낮게 — 목적지 가려지지 않게) */}
+      <path
+        d="M -10 138 Q 50 110 110 122 Q 160 110 210 120 L 210 168 L -10 168 Z"
+        fill="url(#snapMtnFar)"
+        opacity="0.85"
+      />
+      <path
+        d="M -10 152 Q 60 132 130 144 Q 180 134 210 142 L 210 170 L -10 170 Z"
+        fill="url(#snapMtnNear)"
+        opacity="0.7"
+      />
+
+      {/* 잔디 */}
+      <rect y="160" width="200" height="160" fill="url(#snapGrass)" />
+      {/* 진입로 — 곡선 */}
+      <path
+        d="M 62 160 Q 50 220 28 320 L 172 320 Q 150 220 138 160 Z"
+        fill="url(#snapRoad)"
+      />
+
+      {/* 목적지 풀버전 — 파스텔 톤, 둥근 모서리 */}
       {mission.background === "hospital" && (
         <g transform="translate(100 130)">
-          <rect x="-50" y="-20" width="100" height="80" fill="#F4F4F4" />
-          <rect x="-52" y="-22" width="104" height="3" fill="#E0E0E0" />
-          <rect x="-12" y="-12" width="24" height="20" fill="#FFFFFF" />
-          <rect x="-3" y="-10" width="6" height="16" fill="#E55A30" />
-          <rect x="-9" y="-5" width="18" height="6" fill="#E55A30" />
-          <text x="0" y="20" fontSize="6" fill="#3E2C20" textAnchor="middle" fontWeight="bold">병원</text>
+          <rect x="-50" y="-20" width="100" height="80" rx="3" fill="#FFFCF7" />
+          <rect x="-52" y="-22" width="104" height="4" rx="1" fill="#FFE0CC" />
+          <rect x="-12" y="-12" width="24" height="22" rx="1.5" fill="#FFFFFF" />
+          <rect x="-3" y="-10" width="6" height="18" fill="#FF8A5C" rx="0.5" />
+          <rect x="-9" y="-3" width="18" height="6" fill="#FF8A5C" rx="0.5" />
+          <text x="0" y="22" fontSize="6" fill="#6B5446" textAnchor="middle" fontWeight="bold">병원</text>
           {[0, 1, 2].map((row) =>
             [0, 1, 2, 3].map((col) => (
               <rect
                 key={`${row}-${col}`}
                 x={-42 + col * 22}
-                y={26 + row * 9}
+                y={28 + row * 9}
                 width="16"
                 height="6"
-                fill="#A4C8DE"
-                opacity="0.7"
+                rx="1"
+                fill="#C9E1EF"
+                opacity="0.8"
               />
             ))
           )}
@@ -616,51 +906,54 @@ function ArriveScene({ mission }: { mission: Mission }) {
       )}
       {mission.background === "market" && (
         <g transform="translate(100 150)">
-          <path d="M -64 -18 L 64 -18 L 56 -2 L -56 -2 Z" fill="#E76F51" />
-          <path d="M -56 -2 L 56 -2" stroke="#FFFFFF" strokeWidth="1" strokeDasharray="3 4" />
-          <rect x="-50" y="-2" width="32" height="20" fill="#A8755A" />
-          <rect x="-15" y="-2" width="32" height="20" fill="#A8755A" />
-          <rect x="20" y="-2" width="32" height="20" fill="#A8755A" />
-          <circle cx="-34" cy="-8" r="3" fill="#7BB57F" />
-          <circle cx="-24" cy="-9" r="3.5" fill="#A8D5A8" />
-          <circle cx="0" cy="-8" r="3" fill="#FF7043" />
-          <circle cx="10" cy="-9" r="3.5" fill="#FFC53D" />
-          <circle cx="30" cy="-8" r="3" fill="#7BB57F" />
+          <path d="M -64 -18 Q -64 -20 -62 -20 L 62 -20 Q 64 -20 64 -18 L 56 -2 L -56 -2 Z" fill="#FF9F7A" />
+          <path d="M -56 -2 L 56 -2" stroke="#FFF8F0" strokeWidth="1" strokeDasharray="3 4" />
+          <rect x="-50" y="-2" width="32" height="20" rx="1.5" fill="#D9A98C" />
+          <rect x="-15" y="-2" width="32" height="20" rx="1.5" fill="#D9A98C" />
+          <rect x="20" y="-2" width="32" height="20" rx="1.5" fill="#D9A98C" />
+          <circle cx="-34" cy="-8" r="3" fill="#A8CFB5" />
+          <circle cx="-24" cy="-9" r="3.5" fill="#B1DCB5" />
+          <circle cx="0" cy="-8" r="3" fill="#FF8A5C" />
+          <circle cx="10" cy="-9" r="3.5" fill="#FFE0A8" />
+          <circle cx="30" cy="-8" r="3" fill="#A8CFB5" />
         </g>
       )}
       {mission.background === "cafe" && (
         <g transform="translate(100 130)">
-          <rect x="-40" y="-20" width="80" height="60" fill="#EFE0CB" />
-          <path d="M -42 -20 L 42 -20 L 38 -10 L -38 -10 Z" fill="#A8755A" />
-          <rect x="-22" y="-4" width="44" height="14" fill="#FFFFFF" />
-          <text x="0" y="6" fontSize="6" fill="#5A4630" textAnchor="middle" fontWeight="bold">주민 카페</text>
-          <rect x="-15" y="14" width="30" height="20" fill="#5A4630" />
+          <rect x="-40" y="-20" width="80" height="60" rx="3" fill="#F4DEC2" />
+          <path d="M -42 -20 Q -42 -22 -40 -22 L 40 -22 Q 42 -22 42 -20 L 38 -10 L -38 -10 Z" fill="#D9A98C" />
+          <rect x="-22" y="-4" width="44" height="14" rx="1.5" fill="#FFFCF7" />
+          <text x="0" y="6" fontSize="6" fill="#6B5446" textAnchor="middle" fontWeight="bold">주민 카페</text>
+          <rect x="-15" y="14" width="30" height="22" rx="1.5" fill="#8B5E42" />
+          {/* 화분 양옆 */}
+          <ellipse cx="-30" cy="38" rx="6" ry="3" fill="#A8CFB5" />
+          <ellipse cx="30" cy="38" rx="6" ry="3" fill="#A8CFB5" />
         </g>
       )}
       {mission.background === "transit" && (
         <g transform="translate(120 150)">
-          <rect x="-22" y="-18" width="44" height="3" fill="#5A4630" />
-          <rect x="-21" y="-15" width="2" height="40" fill="#5A5D60" />
-          <rect x="19" y="-15" width="2" height="40" fill="#5A5D60" />
-          <rect x="-17" y="-10" width="34" height="22" fill="#FFFFFF" />
-          <circle cx="0" cy="-26" r="7" fill="#7BB57F" />
+          <rect x="-22" y="-18" width="44" height="4" rx="1" fill="#8B5E42" />
+          <rect x="-21" y="-15" width="2" height="40" fill="#9A8C7A" rx="0.5" />
+          <rect x="19" y="-15" width="2" height="40" fill="#9A8C7A" rx="0.5" />
+          <rect x="-17" y="-10" width="34" height="22" rx="1.5" fill="#FFFCF7" />
+          <circle cx="0" cy="-26" r="7" fill="#A8CFB5" />
           <text x="0" y="-24" fontSize="6" fill="#FFFFFF" textAnchor="middle" fontWeight="bold">B</text>
-          <rect x="-19" y="14" width="38" height="3" fill="#7B5640" />
+          <rect x="-19" y="14" width="38" height="4" rx="1" fill="#C97D5C" />
         </g>
       )}
       {mission.background === "office" && (
         <g transform="translate(100 130)">
-          <rect x="-44" y="-20" width="88" height="60" fill="#E8F0F4" />
-          <rect x="-22" y="-12" width="20" height="14" fill="#A4C8DE" />
-          <rect x="2" y="-12" width="20" height="14" fill="#A4C8DE" />
-          <rect x="-22" y="6" width="20" height="14" fill="#A4C8DE" />
-          <rect x="2" y="6" width="20" height="14" fill="#A4C8DE" />
-          <rect x="-10" y="26" width="20" height="14" fill="#5A4630" />
+          <rect x="-44" y="-20" width="88" height="60" rx="3" fill="#E8F0F4" />
+          <rect x="-22" y="-12" width="20" height="14" rx="1" fill="#C9E1EF" />
+          <rect x="2" y="-12" width="20" height="14" rx="1" fill="#C9E1EF" />
+          <rect x="-22" y="6" width="20" height="14" rx="1" fill="#C9E1EF" />
+          <rect x="2" y="6" width="20" height="14" rx="1" fill="#C9E1EF" />
+          <rect x="-10" y="26" width="20" height="14" rx="1.5" fill="#8B5E42" />
         </g>
       )}
       {mission.background === "library" && (
         <g transform="translate(100 130)">
-          <rect x="-48" y="-20" width="96" height="60" fill="#F4E5C0" />
+          <rect x="-48" y="-20" width="96" height="60" rx="3" fill="#F4E5C0" />
           {[0, 1, 2, 3].map((row) =>
             [0, 1, 2, 3].map((col) => (
               <rect
@@ -669,12 +962,13 @@ function ArriveScene({ mission }: { mission: Mission }) {
                 y={-10 + row * 12}
                 width="18"
                 height="10"
+                rx="1"
                 fill={
                   (row + col) % 3 === 0
-                    ? "#E55A30"
+                    ? "#FF9F7A"
                     : (row + col) % 3 === 1
-                    ? "#7BB57F"
-                    : "#A4C8DE"
+                    ? "#A8CFB5"
+                    : "#C9E1EF"
                 }
               />
             ))
@@ -683,20 +977,26 @@ function ArriveScene({ mission }: { mission: Mission }) {
       )}
       {mission.background === "neighbor" && (
         <g transform="translate(100 130)">
-          <rect x="-40" y="-20" width="80" height="60" fill="#EFE0CB" />
-          <path d="M -44 -20 L 0 -40 L 44 -20 Z" fill="#7B5640" />
-          <rect x="-12" y="-8" width="24" height="20" fill="#A4C8DE" />
-          <rect x="-8" y="20" width="16" height="20" fill="#5A4630" />
+          <rect x="-40" y="-20" width="80" height="60" rx="3" fill="#F4DEC2" />
+          <path d="M -44 -20 L 0 -40 L 44 -20 Z" fill="#C97D5C" />
+          <rect x="-12" y="-8" width="24" height="20" rx="1.5" fill="#C9E1EF" />
+          <rect x="-8" y="20" width="16" height="20" rx="1.5" fill="#8B5E42" />
         </g>
       )}
       {mission.background === "home" && (
         <g transform="translate(100 130)">
-          <rect x="-40" y="-20" width="80" height="60" fill="#FBE6C2" />
-          <path d="M -44 -20 L 0 -36 L 44 -20 Z" fill="#7B5640" />
-          <rect x="-10" y="-6" width="20" height="14" fill="#A4C8DE" />
-          <rect x="-8" y="20" width="16" height="20" fill="#5A4630" />
+          <rect x="-40" y="-20" width="80" height="60" rx="3" fill="#FBE6C2" />
+          <path d="M -44 -20 L 0 -36 L 44 -20 Z" fill="#C97D5C" />
+          <rect x="-10" y="-6" width="20" height="14" rx="1.5" fill="#C9E1EF" />
+          <rect x="-8" y="20" width="16" height="20" rx="1.5" fill="#8B5E42" />
         </g>
       )}
+
+      {/* 입구 꽃다발 — 환영하는 느낌 */}
+      <FlowerCluster cx={45} cy={296} scale={1.1} />
+      <FlowerCluster cx={155} cy={300} scale={1.1} />
+      <FlowerCluster cx={32} cy={312} scale={0.9} />
+      <FlowerCluster cx={168} cy={314} scale={0.9} />
     </g>
   );
 }
@@ -705,11 +1005,55 @@ function ArriveScene({ mission }: { mission: Mission }) {
 // 텍스트/오버레이 컴포넌트
 // =====================================================================
 
+// 두 캐릭터(지음+바람)가 화면 앞쪽에 서서 통통 튀며 "걷는 듯" 보이게 하는 레이어.
+// 진짜로 위치가 바뀌는 게 아니라 SVG 배경이 슬라이드 트랙과 함께 뒤로 흐르는 식.
+function WalkingCharacters({ isArrival }: { isArrival: boolean }) {
+  return (
+    <div
+      aria-hidden
+      className="absolute inset-x-0 bottom-[150px] z-[5] pointer-events-none
+                 flex justify-center items-end gap-0"
+    >
+      <motion.img
+        src="/character1/clay-jieum-solo.png"
+        alt=""
+        className="w-[124px] h-auto -mr-7 drop-shadow-[0_8px_12px_rgba(62,44,32,0.22)] relative z-[2]"
+        animate={
+          isArrival
+            ? { y: [-1.5, 0, -1.5], rotate: 0 }
+            : { y: [-6, 0, -6], rotate: [-1.5, 1.5, -1.5] }
+        }
+        transition={{
+          duration: isArrival ? 1.8 : 0.7,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      />
+      <motion.img
+        src="/character1/clay-baram-solo.png"
+        alt=""
+        className="w-[104px] h-auto mb-1 drop-shadow-[0_8px_12px_rgba(62,44,32,0.22)] relative z-[1]"
+        animate={
+          isArrival
+            ? { y: [-1.5, 0, -1.5], rotate: 0 }
+            : { y: [-4, 0, -4], rotate: [1.5, -1.5, 1.5] }
+        }
+        transition={{
+          duration: isArrival ? 1.8 : 0.78,
+          repeat: Infinity,
+          ease: "easeInOut",
+          delay: 0.12,
+        }}
+      />
+    </div>
+  );
+}
+
 function SlideSubtitle({ text }: { text: string }) {
   return (
     <div className="absolute top-[68px] left-0 right-0 z-10 px-6 text-center">
-      <p className="inline-block px-3 py-1 rounded-full bg-black/40 backdrop-blur
-                    text-white text-[12px] font-semibold">
+      <p className="inline-block px-3.5 py-1.5 rounded-full bg-white/95 backdrop-blur
+                    text-ink text-[12px] font-bold shadow-soft border border-cream-200">
         {text}
       </p>
     </div>
@@ -723,31 +1067,30 @@ function StoryCard({ speaker, text }: { speaker: string; text: string }) {
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.4 }}
       className="absolute left-4 right-4 bottom-[110px] z-10
-                 bg-white/95 backdrop-blur rounded-2xl px-4 py-3 shadow-soft border border-white/60"
+                 bg-white rounded-2xl px-4 py-3 shadow-soft border border-cream-200"
     >
-      <p className="text-[10px] font-bold text-[#B8973F]">💬 {speaker}</p>
-      <p className="mt-1 text-[#3E2C20] text-[13px] leading-relaxed">"{text}"</p>
+      <p className="text-[10px] font-bold text-primary-600">💬 {speaker}</p>
+      <p className="mt-1 text-ink text-[13px] leading-relaxed">"{text}"</p>
     </motion.div>
   );
 }
 
 function ArrivalLabel({ destination }: { destination: string }) {
   return (
-    <div className="absolute inset-x-0 top-[35%] z-10 flex flex-col items-center pointer-events-none">
-      <motion.span
-        initial={{ scale: 0, opacity: 0, y: 12 }}
+    <div className="absolute inset-x-0 top-[18%] z-10 flex flex-col items-center pointer-events-none">
+      <motion.div
+        initial={{ scale: 0.7, opacity: 0, y: 12 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         transition={{ type: "spring", damping: 14, stiffness: 200 }}
-        className="text-white text-[44px] font-extrabold drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)]"
+        className="px-5 py-2 rounded-2xl bg-white shadow-soft border border-cream-200"
       >
-        도착!
-      </motion.span>
+        <span className="text-ink text-[32px] font-extrabold leading-none">도착!</span>
+      </motion.div>
       <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3, duration: 0.4 }}
-        className="mt-2 px-3 py-1 rounded-full bg-black/50 backdrop-blur
-                   text-white text-[13px] font-bold"
+        className="mt-2 px-3 py-1 rounded-full bg-primary text-white text-[12px] font-bold shadow-soft"
       >
         {destination}
       </motion.p>
