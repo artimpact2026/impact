@@ -20,7 +20,7 @@ type Props = {
 // 미션별 도착지 라벨
 function getDestinationLabel(mission: Mission): string {
   const m: Record<string, string> = {
-    market: "전통시장",
+    market: "동네 밥집",
     hospital: "동네 종합병원",
     cafe: "주민 카페",
     home: "레지던스",
