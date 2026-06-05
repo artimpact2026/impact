@@ -130,7 +130,11 @@ export default function MissionExecuteScreen({
   const glassPanel = heroImage
     ? "bg-transparent"
     : "bg-white shadow-[0_-12px_30px_-12px_rgba(80,70,40,0.18)]";
-  const glassCard = heroImage ? "bg-white/55 backdrop-blur-xl" : "bg-white";
+  // NPC 말풍선은 좀 더 또렷하게(읽기 우선), 답변 옵션은 더 투명하게 → 둘이 구분됨
+  const glassBubble = heroImage ? "bg-white/80 backdrop-blur-xl" : "bg-white";
+  const glassOption = heroImage
+    ? "bg-white/40 backdrop-blur-md border-white/50"
+    : "bg-white border-cream-200";
 
   return (
     <div className="relative min-h-[calc(100dvh-6rem)] flex flex-col overflow-hidden bg-cream">
@@ -261,12 +265,12 @@ export default function MissionExecuteScreen({
           {/* 말풍선 */}
           <div className="relative">
             <div
-              className={`absolute left-6 -top-2 w-4 h-4 ${glassCard}
+              className={`absolute left-6 -top-2 w-4 h-4 ${glassBubble}
                          border-l border-t border-cream-200 rotate-45`}
               aria-hidden
             />
             <div
-              className={`relative ${glassCard} rounded-3xl px-4 py-3.5
+              className={`relative ${glassBubble} rounded-3xl px-4 py-3.5
                          border border-cream-200 shadow-soft`}
             >
               <p className="text-ink text-[14px] leading-relaxed whitespace-pre-line">
@@ -284,7 +288,7 @@ export default function MissionExecuteScreen({
                   type="button"
                   onClick={() => handlePick(i)}
                   className={`w-full text-left px-4 py-3.5 rounded-3xl
-                             ${glassCard} border border-cream-200 shadow-soft
+                             ${glassOption} border shadow-soft
                              text-ink text-[13px] font-semibold
                              active:scale-[0.99] transition
                              flex items-center justify-between gap-3`}
