@@ -39,9 +39,7 @@ export default function BalanceScreen<T extends string>({
       step={step}
       total={total}
       onBack={onBack}
-      ctaDisabled={!initial}
-      ctaLabel="다음"
-      onCta={() => initial && onNext(initial)}
+      hideCta
     >
       <h1 className="text-ink text-[22px] font-extrabold leading-snug">
         {title}

@@ -47,10 +47,7 @@ export default function HomeScreen({ homeRegion, onDepart }: Props) {
 
       <footer className="relative px-6 pb-8 flex flex-col items-center gap-4">
         <LocationBadge region={homeRegion} />
-        <PrimaryButton
-          onClick={onDepart}
-          className="!bg-[#E89274] hover:!bg-[#D87B5C]"
-        >
+        <PrimaryButton onClick={onDepart}>
           떠나기 🎒
         </PrimaryButton>
       </footer>

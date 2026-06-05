@@ -7,7 +7,6 @@ import ArrivalScreen from "./screens/ArrivalScreen";
 import MissionListScreen from "./screens/MissionListScreen";
 import MissionTravelingScreen from "./screens/MissionTravelingScreen";
 import MissionExecuteScreen from "./screens/MissionExecuteScreen";
-import DailySummaryScreen from "./screens/DailySummaryScreen";
 import DayEndCeremonyScreen from "./screens/DayEndCeremonyScreen";
 import MigrationReportCinematic from "./screens/MigrationReportCinematic";
 import JourneyScreen from "./screens/JourneyScreen";
@@ -40,7 +39,6 @@ import { type Mission } from "./data/missions";
 import {
   advanceDay,
   bumpVisit,
-  calculateMatch,
   completeMissionFor,
   type RegionRecord,
 } from "./data/journey";
@@ -78,7 +76,6 @@ type Tab1Route =
   | "mission-list"
   | "mission-traveling"
   | "mission-execute"
-  | "daily-summary"
   | "traveling-back"
   | "day-end-ceremony";
 
@@ -232,9 +229,9 @@ export default function App() {
         setSelected(target);
         setActiveMission(null);
         setTab("home");
-        setTab1Route("daily-summary");
+        setTab1Route("day-end-ceremony");
         console.log(
-          `[cheongpung] ${target.region} 8/8 미션 완료 mock 적용 → 하루 요약 화면`
+          `[cheongpung] ${target.region} 8/8 미션 완료 mock 적용 → 하루 끝 의식`
         );
       },
       // 사용 가능한 지역 id 목록 출력
@@ -372,8 +369,8 @@ export default function App() {
     );
     const cur = currentRecord?.currentDay ?? 1;
     if (cur >= dayCount) {
-      // 마지막 날 닫기 — 여정 마무리(하루 요약)
-      setTab1Route("daily-summary");
+      // 마지막 날 닫기 — 곧장 이주 리포트 시네마틱으로 (DailySummary 제거)
+      void handleOpenCinematic(selected);
       return;
     }
     finishDayAnd(() => setTab1Route("arrival"));
@@ -482,14 +479,6 @@ export default function App() {
     setTab1Route("home");
     setTab("home");
     setTab2Route("journey");
-  };
-
-  // 하루 요약 → "이 지역 레지던스 보기" → tab2 residence-list
-  const handleSeeResidencesFromSummary = () => {
-    if (!selected) return;
-    setResidenceListRegion(selected.region);
-    setTab("journey");
-    setTab2Route("residence-list");
   };
 
   // 리스트에서 카드 탭 → 상세
@@ -670,34 +659,6 @@ export default function App() {
               setTab1Route("mission-list");
             }}
             onComplete={handleMissionComplete}
-          />
-        )}
-
-        {tab === "home" && tab1Route === "daily-summary" && selected && (
-          <DailySummaryScreen
-            region={selected.region}
-            completedIds={currentCompletedIds}
-            totalScore={currentScore}
-            todayScore={currentScore}
-            prevMatch={Math.max(
-              0,
-              calculateMatch(profile.lifestyle, selected, currentRecord) - 7
-            )}
-            newMatch={calculateMatch(
-              profile.lifestyle,
-              selected,
-              currentRecord
-            )}
-            allMissionsDone={missionsForResidence(selected.id).every((m) =>
-              currentCompletedIds.has(m.id)
-            )}
-            onSeeReport={() => handleOpenReport(selected)}
-            onSeeResidences={handleSeeResidencesFromSummary}
-            onSeeJourney={() => {
-              setTab("journey");
-              setTab2Route("journey");
-            }}
-            onClose={() => setTab1Route("mission-list")}
           />
         )}
 

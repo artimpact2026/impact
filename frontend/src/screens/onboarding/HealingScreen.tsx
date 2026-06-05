@@ -23,8 +23,7 @@ export default function HealingScreen({
       step={step}
       total={total}
       onBack={onBack}
-      ctaDisabled={!initial}
-      onCta={() => initial && onNext(initial)}
+      hideCta
     >
       <h1 className="text-ink text-[22px] font-extrabold leading-snug">
         나에게 힐링이란?

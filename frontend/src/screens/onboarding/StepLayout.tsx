@@ -14,6 +14,8 @@ type Props = {
   children: ReactNode;
   // 진행률 바를 숨기고 싶을 때 (예: 결과 화면)
   hideProgress?: boolean;
+  // 카드 선택 시 자동 진행되는 단계 — CTA 자체를 숨김
+  hideCta?: boolean;
 };
 
 export default function StepLayout({
@@ -25,6 +27,7 @@ export default function StepLayout({
   onCta,
   children,
   hideProgress = false,
+  hideCta = false,
 }: Props) {
   const percent = Math.round((step / total) * 100);
   return (
@@ -68,19 +71,21 @@ export default function StepLayout({
       {/* 본문 */}
       <main className="flex-1 px-6 pt-6 pb-4 flex flex-col">{children}</main>
 
-      {/* 하단 CTA */}
-      <footer className="px-6 pb-8 pt-2">
-        <button
-          type="button"
-          onClick={onCta}
-          disabled={ctaDisabled}
-          className="w-full py-4 rounded-2xl bg-primary text-white text-[16px] font-extrabold
-                     shadow-soft active:scale-[0.99] transition
-                     disabled:opacity-40 disabled:active:scale-100"
-        >
-          {ctaLabel}
-        </button>
-      </footer>
+      {/* 하단 CTA — hideCta면 통째로 생략 (카드 자동 진행 단계용) */}
+      {!hideCta && (
+        <footer className="px-6 pb-8 pt-2">
+          <button
+            type="button"
+            onClick={onCta}
+            disabled={ctaDisabled}
+            className="w-full py-4 rounded-2xl bg-primary text-white text-[16px] font-extrabold
+                       shadow-soft active:scale-[0.99] transition
+                       disabled:opacity-40 disabled:active:scale-100"
+          >
+            {ctaLabel}
+          </button>
+        </footer>
+      )}
     </div>
   );
 }

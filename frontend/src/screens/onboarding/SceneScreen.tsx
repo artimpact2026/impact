@@ -23,8 +23,7 @@ export default function SceneScreen({
       step={step}
       total={total}
       onBack={onBack}
-      ctaDisabled={!initial}
-      onCta={() => initial && onNext(initial)}
+      hideCta
     >
       <h1 className="text-ink text-[22px] font-extrabold leading-snug">
         어떤 풍경의 하루를
