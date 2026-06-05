@@ -118,11 +118,13 @@ export default function MissionExecuteScreen({
     setTurnIdx(turn.numeric.next);
   };
 
-  // 미션별 override가 있으면 우선, 없으면 variant 매핑
-  const sceneBg = MISSION_ID_BG[mission.id] ?? SCENE_BG[mission.background];
   const avatarSrc = pickNpcAvatar(mission.npc.name);
   // 캐릭터 영역에 띄울 이미지 — 턴별 이미지 우선, 없으면 미션 NPC 풀씬
   const heroImage = turn.image ?? mission.npcScene;
+  // 배경 — NPC 풀씬이 있으면 그 씬의 흐릿한 버전(톤 통일), 없으면 클레이 씬 매핑
+  const sceneBg = heroImage
+    ? heroImage.src
+    : MISSION_ID_BG[mission.id] ?? SCENE_BG[mission.background];
 
   return (
     <div className="relative min-h-[calc(100dvh-6rem)] flex flex-col overflow-hidden bg-cream">
