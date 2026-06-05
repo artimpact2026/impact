@@ -125,6 +125,9 @@ export default function MissionExecuteScreen({
   const sceneBg = heroImage
     ? heroImage.src
     : MISSION_ID_BG[mission.id] ?? SCENE_BG[mission.background];
+  // 풀스크린 모드에선 하단 대화 UI를 반투명 글래스로 → 뒤 이미지가 비침
+  const glassPanel = heroImage ? "bg-white/65 backdrop-blur-2xl" : "bg-white";
+  const glassCard = heroImage ? "bg-white/80 backdrop-blur-md" : "bg-white";
 
   return (
     <div className="relative min-h-[calc(100dvh-6rem)] flex flex-col overflow-hidden bg-cream">
@@ -220,9 +223,9 @@ export default function MissionExecuteScreen({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.28, ease: "easeOut" }}
-          className="relative z-20 bg-white rounded-t-3xl
+          className={`relative z-20 ${glassPanel} rounded-t-3xl
                      shadow-[0_-12px_30px_-12px_rgba(80,70,40,0.18)]
-                     px-5 pt-4 pb-[max(env(safe-area-inset-bottom),20px)]"
+                     px-5 pt-4 pb-[max(env(safe-area-inset-bottom),20px)]`}
         >
           {/* 진행 점 인디케이터 */}
           <div className="flex items-center justify-center gap-1.5 mb-3">
@@ -256,13 +259,13 @@ export default function MissionExecuteScreen({
           {/* 말풍선 */}
           <div className="relative">
             <div
-              className="absolute left-6 -top-2 w-4 h-4 bg-white
-                         border-l border-t border-cream-200 rotate-45"
+              className={`absolute left-6 -top-2 w-4 h-4 ${glassCard}
+                         border-l border-t border-cream-200 rotate-45`}
               aria-hidden
             />
             <div
-              className="relative bg-white rounded-3xl px-4 py-3.5
-                         border border-cream-200 shadow-soft"
+              className={`relative ${glassCard} rounded-3xl px-4 py-3.5
+                         border border-cream-200 shadow-soft`}
             >
               <p className="text-ink text-[14px] leading-relaxed whitespace-pre-line">
                 {npcText}
@@ -278,11 +281,11 @@ export default function MissionExecuteScreen({
                   key={`${turnIdx}-${i}`}
                   type="button"
                   onClick={() => handlePick(i)}
-                  className="w-full text-left px-4 py-3.5 rounded-3xl
-                             bg-white border border-cream-200 shadow-soft
+                  className={`w-full text-left px-4 py-3.5 rounded-3xl
+                             ${glassCard} border border-cream-200 shadow-soft
                              text-ink text-[13px] font-semibold
                              active:scale-[0.99] transition
-                             flex items-center justify-between gap-3"
+                             flex items-center justify-between gap-3`}
                 >
                   <span className="flex-1">{opt.label}</span>
                   <span
@@ -394,8 +397,8 @@ function FullSceneBackground({ src }: { src: string }) {
       />
       {/* 상단 — 헤더 버튼 가독성용 살짝 어둡게 */}
       <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/20 to-transparent" />
-      {/* 하단 — 대화 패널 위쪽 자연스럽게 연결 */}
-      <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black/25 to-transparent" />
+      {/* 하단 — 살짝만 (대화 패널이 글래스로 가독성 처리하므로 과하지 않게) */}
+      <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/12 to-transparent" />
     </div>
   );
 }
