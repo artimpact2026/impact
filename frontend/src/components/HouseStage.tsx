@@ -7,6 +7,8 @@ import { motion, AnimatePresence } from "framer-motion";
 type Props = {
   stage: 0 | 1 | 2 | 3;
   className?: string;
+  // scenic=true 면 자체 하늘/땅 레이어를 그리지 않음 — 바깥 풍경(MyVillageScene) 위에 얹을 때 사용
+  scenic?: boolean;
 };
 
 // 부드러운 등장 — 살짝 위에서 자라남
@@ -17,7 +19,7 @@ const grow = {
   transition: { duration: 0.55, ease: "easeOut" as const },
 };
 
-export default function HouseStage({ stage, className }: Props) {
+export default function HouseStage({ stage, className, scenic = false }: Props) {
   return (
     <svg
       viewBox="0 0 240 200"
@@ -36,15 +38,20 @@ export default function HouseStage({ stage, className }: Props) {
         </linearGradient>
       </defs>
 
-      <rect x="0" y="0" width="240" height="200" fill="url(#sky)" />
+      {/* scenic 모드면 바깥 풍경(MyVillageScene)의 하늘·땅 위에 얹히므로 자체 배경 생략 */}
+      {!scenic && (
+        <>
+          <rect x="0" y="0" width="240" height="200" fill="url(#sky)" />
+          {/* 땅(빈터) — scenic이 아닐 때만 자체 ground */}
+          <ellipse cx="120" cy="178" rx="92" ry="10" fill="#D9B68A" opacity="0.45" />
+          <rect x="36" y="170" width="168" height="6" rx="3" fill="#C99A6E" />
+        </>
+      )}
 
-      {/* 땅(빈터) — 항상 표시 */}
-      <ellipse cx="120" cy="178" rx="92" ry="10" fill="#D9B68A" opacity="0.45" />
-      <rect x="36" y="170" width="168" height="6" rx="3" fill="#C99A6E" />
-
-      {/* 점선 빈터 윤곽 — stage 0에서만 강조 */}
+      {/* 점선 빈터 윤곽 — stage 0에서만 강조. scenic 모드(MyVillageScene)에선
+          바깥 풍경의 ground·텃밭·울타리가 이미 자리를 보여주므로 중복이라 생략 */}
       <AnimatePresence>
-        {stage === 0 && (
+        {stage === 0 && !scenic && (
           <motion.g
             key="plot"
             initial={{ opacity: 0 }}

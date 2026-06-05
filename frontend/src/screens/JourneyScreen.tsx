@@ -50,6 +50,8 @@ export default function JourneyScreen({
 }: Props) {
   const [view, setView] = useState<ViewMode>("score");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // 상단 "나의 공간"으로 보고 있는 지역 — 사용자가 스위처로 바꿀 수 있음
+  const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(null);
 
   const selected = selectedId
     ? residences.find((r) => r.id === selectedId) ?? null
@@ -64,61 +66,66 @@ export default function JourneyScreen({
       residences.filter((r) => regionProgress[r.id]?.migrationReport),
     [regionProgress]
   );
+  // 방문한 지역 — visitCount desc → score desc → residences 원래 순서
+  const visitedSorted = useMemo(() => {
+    const order = new Map(residences.map((r, i) => [r.id, i]));
+    return residences
+      .filter((r) => (regionProgress[r.id]?.visitCount ?? 0) > 0)
+      .sort((a, b) => {
+        const ra = regionProgress[a.id]!;
+        const rb = regionProgress[b.id]!;
+        if (rb.visitCount !== ra.visitCount) return rb.visitCount - ra.visitCount;
+        if (rb.score !== ra.score) return rb.score - ra.score;
+        return (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0);
+      });
+  }, [regionProgress]);
+  // 상단 공간 카드에 띄울 지역 — 사용자 선택이 유효하면 그것, 아니면 1위
+  const activeSpaceResidence = useMemo(() => {
+    if (visitedSorted.length === 0) return null;
+    if (selectedSpaceId) {
+      const found = visitedSorted.find((r) => r.id === selectedSpaceId);
+      if (found) return found;
+    }
+    return visitedSorted[0];
+  }, [visitedSorted, selectedSpaceId]);
 
   return (
-    <div className="relative min-h-[calc(100dvh-6rem)] flex flex-col">
-      {/* 배경 */}
-      <div
-        className="absolute inset-0 -z-10
-                   bg-gradient-to-b from-cream via-cream to-nature-50"
-        aria-hidden
-      />
-
-      {/* 헤더 — Community/Booking 탭과 동일한 톤·크기·정렬 */}
-      <header className="px-6 pt-7 pb-4 relative">
+    <div className="relative h-[calc(100dvh-6rem)] flex flex-col
+                    bg-gradient-to-b from-cream via-cream to-nature-50">
+      {/* 스크롤 영역 — 바텀시트가 root에 absolute로 붙도록 스크롤은 내부 div에만 */}
+      <div className="flex-1 min-h-0 overflow-y-auto pb-8">
+      {/* 페이지 제목 — 작게. 프로필과 시각적으로 구분 */}
+      <header className="px-5 pt-5 pb-1">
         <p className="text-[10px] font-bold text-ink-mute tracking-[0.18em] uppercase">
-          Travel
-        </p>
-        <h1 className="mt-1 text-[28px] font-extrabold text-ink leading-tight">
-          쌓인 시간
-        </h1>
-        <p className="mt-1 text-[12px] text-ink-soft">
-          다녀온 지역의 흔적이 쌓여요
+          Travel · 쌓인 시간
         </p>
       </header>
 
-      {/* 프로필 카드 — 옵션 A (탭2 상단에 프로필 흡수) */}
-      <section className="px-4 mt-3">
-        <ProfileCard
-          nickname={nickname}
-          lifestyle={lifestyle}
-          profile={profile}
-          homeRegion={homeRegion}
-          onOpenSettings={onOpenSettings}
+      {/* ① 프로필 — 인스타 헤더 톤. 하단 hairline으로 본문과 구분 */}
+      <ProfileCard
+        nickname={nickname}
+        lifestyle={lifestyle}
+        profile={profile}
+        homeRegion={homeRegion}
+        onOpenSettings={onOpenSettings}
+      />
+
+      {/* ② 나의 공간 — full-bleed 풍경 */}
+      <section className="mt-3">
+        <MyVillageScene
+          residence={activeSpaceResidence}
+          record={
+            activeSpaceResidence
+              ? regionProgress[activeSpaceResidence.id]
+              : undefined
+          }
+          visitedSorted={visitedSorted}
+          onSelect={setSelectedSpaceId}
         />
       </section>
 
-      {/* 이주 리포트 카드 — 리포트 생성된 지역만 노출, 여러 곳이면 쌓아서 표시.
-          아직 어디도 다녀오지 않았으면 EmptyState, 다녀왔지만 리포트 미생성이면 잠금 카드. */}
-      <section className="px-4 mt-3 space-y-2">
-        {!hasAnyVisit ? (
-          <EmptyState />
-        ) : reportResidences.length === 0 ? (
-          <LockedReportCard />
-        ) : (
-          reportResidences.map((r) => (
-            <TopRegionCard
-              key={r.id}
-              residence={r}
-              record={regionProgress[r.id]}
-              lifestyle={lifestyle}
-            />
-          ))
-        )}
-      </section>
-
-      {/* 토글 — 점수/적합도 보기 */}
-      <div className="px-4 mt-3 flex items-center justify-between">
+      {/* 토글 — 점수/적합도 보기 (지도와 한 묶음) */}
+      <div className="px-4 mt-5 flex items-center justify-between">
         <span className="text-[11px] text-ink-soft">마커는 보기 모드에 따라 크기가 달라져요</span>
         <div className="flex bg-white border border-cream-200 rounded-full p-0.5 shadow-soft">
           <ToggleBtn
@@ -134,8 +141,8 @@ export default function JourneyScreen({
         </div>
       </div>
 
-      {/* 한반도 아트지도 */}
-      <section className="flex-1 px-3 mt-3 flex items-start justify-center">
+      {/* ③ 한반도 아트지도 */}
+      <section className="px-3 mt-3 flex items-start justify-center">
         <div className="w-full max-w-[320px]">
           <KoreaMap>
             {residences.map((r) => (
@@ -153,7 +160,27 @@ export default function JourneyScreen({
         </div>
       </section>
 
-      {/* 바텀시트 */}
+      {/* ④ 이주 리포트 카드 — 리포트 생성된 지역만 노출, 여러 곳이면 쌓아서 표시.
+          아직 어디도 다녀오지 않았으면 EmptyState, 다녀왔지만 리포트 미생성이면 잠금 카드. */}
+      <section className="px-4 mt-4 space-y-2">
+        {!hasAnyVisit ? (
+          <EmptyState />
+        ) : reportResidences.length === 0 ? (
+          <LockedReportCard />
+        ) : (
+          reportResidences.map((r) => (
+            <TopRegionCard
+              key={r.id}
+              residence={r}
+              record={regionProgress[r.id]}
+              lifestyle={lifestyle}
+            />
+          ))
+        )}
+      </section>
+      </div>
+
+      {/* 바텀시트 — 스크롤 영역 바깥. root 기준 absolute라 viewport 하단 고정 */}
       <AnimatePresence>
         {selected && (
           <RegionBottomSheet
@@ -235,6 +262,257 @@ function Stat({
     <div className="bg-white/80 rounded-xl py-2 px-1">
       <p className="text-[9px] text-ink-mute font-bold uppercase">{label}</p>
       <p className={`text-[14px] font-extrabold ${toneClass}`}>{value}</p>
+    </div>
+  );
+}
+
+// =====================================================================
+// 나의 공간 — 다육이 톤 풍경 (full-bleed). 카드 테두리 없음.
+// 풍경 SVG 위에 HouseStage(scenic) + clay 캐릭터 2명을 absolute로 얹음.
+// 캐릭터는 통통 모션, baram은 추가 회전(망치질 느낌). 단계 변화 시 집 fade-up.
+// =====================================================================
+
+function MyVillageScene({
+  residence,
+  record,
+  visitedSorted,
+  onSelect,
+}: {
+  residence: Residence | null;
+  record: RegionRecord | undefined;
+  visitedSorted: Residence[];
+  onSelect: (id: string) => void;
+}) {
+  const isEmpty = !residence || !record;
+
+  // 단계 계산 — 빈 상태면 stage 0 (빈 터)
+  const plan = !isEmpty
+    ? buildDayPlan(residence, missionsForResidence(residence.id))
+    : { dayCount: 4 };
+  const currentDay = !isEmpty ? record.currentDay ?? 1 : 1;
+  const completedDays = !isEmpty ? Math.max(0, currentDay - 1) : 0;
+  const spaceStage = !isEmpty
+    ? houseStageFromProgress(completedDays, plan.dayCount)
+    : 0;
+
+  return (
+    <div className="w-full">
+      {/* 상단 텍스트 — 지역명 · 단계명 */}
+      <div className="px-5">
+        <p className="text-[10px] font-bold text-ink-mute uppercase tracking-widest">
+          만들고 있는 나의 공간
+        </p>
+        {!isEmpty ? (
+          <h2 className="mt-1 text-ink text-[17px] font-extrabold leading-tight">
+            <span aria-hidden>{residence.themeEmoji}</span> {residence.region}
+            <span className="text-ink-mute"> · </span>
+            <span className="text-primary">{SPACE_STAGE_NAMES[spaceStage]}</span>
+          </h2>
+        ) : (
+          <h2 className="mt-1 text-ink-soft text-[16px] font-extrabold leading-tight">
+            아직 만들고 있는 공간이 없어요
+          </h2>
+        )}
+      </div>
+
+      {/* 풍경 영역 — full-bleed (좌우 0) */}
+      <div className="relative mt-2 h-[240px] w-full overflow-hidden">
+        {/* 배경 SVG — 하늘·산·나무·울타리·텃밭·땅 */}
+        <svg
+          viewBox="0 0 375 240"
+          preserveAspectRatio="xMidYMax slice"
+          className="absolute inset-0 w-full h-full"
+          aria-hidden
+        >
+          <defs>
+            <linearGradient id="vsSky" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#FFF8F0" />
+              <stop offset="100%" stopColor="#F0F8F1" />
+            </linearGradient>
+            <linearGradient id="vsGround" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#E8C49A" />
+              <stop offset="100%" stopColor="#C99A6E" />
+            </linearGradient>
+            <linearGradient id="vsFade" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#F0F8F1" stopOpacity="0" />
+              <stop offset="100%" stopColor="#F0F8F1" stopOpacity="1" />
+            </linearGradient>
+          </defs>
+
+          {/* 하늘 */}
+          <rect x="0" y="0" width="375" height="240" fill="url(#vsSky)" />
+
+          {/* 먼 산 — 부드러운 두 겹 */}
+          <path
+            d="M 0 158 Q 60 128 130 142 Q 200 156 270 134 Q 330 122 375 142 L 375 220 L 0 220 Z"
+            fill="#D8EEDA"
+            opacity="0.85"
+          />
+          <path
+            d="M 0 174 Q 80 156 160 166 Q 250 178 320 160 L 375 168 L 375 225 L 0 225 Z"
+            fill="#B1DCB5"
+            opacity="0.75"
+          />
+
+          {/* 땅 */}
+          <rect x="0" y="195" width="375" height="50" fill="url(#vsGround)" />
+          <ellipse cx="187" cy="200" rx="180" ry="5" fill="#C99A6E" opacity="0.4" />
+
+          {/* 좌측 나무 (큰 것 + 작은 것) */}
+          <g>
+            <rect x="28" y="156" width="6" height="40" fill="#8C5A3B" rx="1" />
+            <circle cx="31" cy="148" r="18" fill="#8BCB90" />
+            <circle cx="22" cy="155" r="12" fill="#66BB6A" />
+            <circle cx="40" cy="155" r="12" fill="#66BB6A" />
+          </g>
+          <g>
+            <rect x="62" y="170" width="4" height="26" fill="#8C5A3B" rx="1" />
+            <circle cx="64" cy="166" r="10" fill="#8BCB90" />
+          </g>
+
+          {/* 우측 나무 */}
+          <g>
+            <rect x="340" y="158" width="6" height="38" fill="#8C5A3B" rx="1" />
+            <circle cx="343" cy="150" r="16" fill="#8BCB90" />
+            <circle cx="334" cy="157" r="10" fill="#66BB6A" />
+            <circle cx="352" cy="157" r="10" fill="#66BB6A" />
+          </g>
+          <g>
+            <rect x="312" y="172" width="4" height="24" fill="#8C5A3B" rx="1" />
+            <circle cx="314" cy="168" r="9" fill="#8BCB90" />
+          </g>
+
+          {/* 좌측 울타리 — 집 영역(중앙) 피해서 */}
+          <g fill="#B98456">
+            <rect x="78" y="186" width="3" height="14" rx="1.5" />
+            <rect x="88" y="186" width="3" height="14" rx="1.5" />
+            <rect x="98" y="186" width="3" height="14" rx="1.5" />
+            <rect x="108" y="186" width="3" height="14" rx="1.5" />
+            <rect x="76" y="192" width="36" height="2" rx="1" />
+          </g>
+
+          {/* 우측 울타리 */}
+          <g fill="#B98456">
+            <rect x="268" y="186" width="3" height="14" rx="1.5" />
+            <rect x="278" y="186" width="3" height="14" rx="1.5" />
+            <rect x="288" y="186" width="3" height="14" rx="1.5" />
+            <rect x="298" y="186" width="3" height="14" rx="1.5" />
+            <rect x="266" y="192" width="36" height="2" rx="1" />
+          </g>
+
+          {/* 텃밭 식물 — 집 양옆 풀밭 위 점점이 */}
+          <g fill="#66BB6A">
+            <ellipse cx="118" cy="206" rx="4" ry="3" />
+            <ellipse cx="127" cy="208" rx="3" ry="2" />
+            <ellipse cx="248" cy="206" rx="4" ry="3" />
+            <ellipse cx="257" cy="208" rx="3" ry="2" />
+          </g>
+          <g fill="#3F8E45">
+            <ellipse cx="134" cy="212" rx="2.5" ry="1.5" />
+            <ellipse cx="242" cy="212" rx="2.5" ry="1.5" />
+          </g>
+
+          {/* 하단 페이드 — 페이지 bg(nature-50)와 자연 전환 */}
+          <rect x="0" y="200" width="375" height="40" fill="url(#vsFade)" />
+        </svg>
+
+        {/* 집 — scenic 모드. 단계 키 변경 시 fade-up 전환 */}
+        <AnimatePresence mode="popLayout">
+          <motion.div
+            key={spaceStage}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.45, ease: "easeOut" }}
+            className="absolute left-1/2 -translate-x-1/2 bottom-[28px] w-[148px] pointer-events-none"
+          >
+            <HouseStage stage={spaceStage} className="w-full h-auto" scenic />
+          </motion.div>
+        </AnimatePresence>
+
+        {/* baram — 좌측. 통통 + 살짝 회전(망치질 느낌). 빈 상태일 땐 회전 X */}
+        <motion.img
+          src="/character1/clay-baram-solo.png"
+          alt=""
+          aria-hidden
+          className="absolute left-[10%] bottom-[8px] w-[58px] h-auto pointer-events-none
+                     drop-shadow-[0_6px_10px_rgba(62,44,32,0.22)]"
+          style={{ transformOrigin: "60% 90%" }}
+          animate={
+            isEmpty
+              ? { y: [0, -3, 0] }
+              : { y: [0, -3, 0], rotate: [0, -7, 0, 4, 0] }
+          }
+          transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+        />
+
+        {/* jieum — 우측. 통통만 (phase 다르게) */}
+        <motion.img
+          src="/character1/clay-jieum-solo.png"
+          alt=""
+          aria-hidden
+          className="absolute right-[10%] bottom-[8px] w-[58px] h-auto pointer-events-none
+                     drop-shadow-[0_6px_10px_rgba(62,44,32,0.22)]"
+          animate={{ y: [0, -4, 0] }}
+          transition={{
+            duration: 1.4,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 0.3,
+          }}
+        />
+      </div>
+
+      {/* 진행바 + Day 카운트 — 다육이 톤 segmented bar */}
+      <div className="px-5 mt-2">
+        {!isEmpty ? (
+          <>
+            <div className="flex gap-1.5" aria-label={`단계 ${spaceStage + 1}/4`}>
+              {Array.from({ length: 4 }).map((_, i) => (
+                <span
+                  key={i}
+                  className={`flex-1 h-1.5 rounded-full transition
+                    ${i <= spaceStage ? "bg-primary" : "bg-cream-200"}`}
+                />
+              ))}
+            </div>
+            <p className="mt-1.5 text-ink-soft text-[11px] text-center tabular-nums">
+              Day {currentDay} / 총 {plan.dayCount}
+              <span className="mx-1.5 text-ink-mute">·</span>
+              {completedDays}일 마침
+            </p>
+          </>
+        ) : (
+          <p className="text-ink-soft text-[12px] text-center">
+            첫 여정을 시작하면 여기에서 자라요
+          </p>
+        )}
+      </div>
+
+      {/* 가로 스위처 — 방문 지역 ≥ 2개일 때만, 진행바 밑 */}
+      {visitedSorted.length >= 2 && residence && (
+        <div className="mt-3 px-4 pb-1 flex gap-1.5 overflow-x-auto">
+          {visitedSorted.map((r) => {
+            const active = r.id === residence.id;
+            return (
+              <button
+                key={r.id}
+                type="button"
+                onClick={() => onSelect(r.id)}
+                className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-extrabold whitespace-nowrap transition
+                  ${
+                    active
+                      ? "bg-primary text-white shadow-soft"
+                      : "bg-white text-ink-soft border border-cream-200"
+                  }`}
+                aria-pressed={active}
+              >
+                <span aria-hidden>{r.themeEmoji}</span> {r.region}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -425,15 +703,6 @@ function RegionBottomSheet({
   const completedCount = completedIds.size;
   const allDone = isAllMissionsDone(record);
 
-  // 만들어가는 나의 공간 — 완료한 일차(currentDay - 1) 기반
-  const { dayCount } = buildDayPlan(
-    residence,
-    missionsForResidence(residence.id)
-  );
-  const currentDay = record?.currentDay ?? 1;
-  const completedDays = visited ? Math.max(0, currentDay - 1) : 0;
-  const spaceStage = houseStageFromProgress(completedDays, dayCount);
-
   return (
     <>
       {/* 백드롭 */}
@@ -474,27 +743,6 @@ function RegionBottomSheet({
         <p className="mt-0.5 text-ink-soft text-[12px]">
           {residence.name} · {residence.duration}
         </p>
-
-        {/* 만들고 있는 나의 공간 */}
-        {visited && (
-          <div className="mt-3 bg-cream-50 border border-cream-200 rounded-2xl p-2.5
-                          flex items-center gap-3">
-            <div className="w-20 shrink-0">
-              <HouseStage stage={spaceStage} className="w-full h-auto" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-bold text-ink-mute uppercase tracking-widest">
-                만들고 있는 나의 공간
-              </p>
-              <p className="mt-0.5 text-ink text-[14px] font-extrabold">
-                {SPACE_STAGE_NAMES[spaceStage]}
-              </p>
-              <p className="mt-0.5 text-ink-soft text-[11px]">
-                Day {currentDay} / {dayCount} · {completedDays}일 마침
-              </p>
-            </div>
-          </div>
-        )}
 
         {/* 점수 바 — 축적 점수 / 적합도(브레이크다운 포함) */}
         <div className="mt-3 space-y-2.5">
