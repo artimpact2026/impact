@@ -4,14 +4,15 @@
 // 데이터 구조(dialogues: DialogueTurn[], options.next, numeric, fitDelta)는 그대로.
 // 시각만 새 스펙(풀스크린 캐릭터 + 이름 뱃지 + 타이핑 말풍선 + 좌측 썸네일 선택지)으로 교체.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   fitDeltaForOptionV2,
+  isOptionAligned,
   type BackgroundVariant,
   type Mission,
 } from "../data/missions";
-import type { Stance } from "../data/lifestyle";
+import type { EnvType, Stance } from "../data/lifestyle";
 
 // variant → 클레이 씬 이미지. 매칭 없는 variant는 베이지 그라데이션만.
 const SCENE_BG: Partial<Record<BackgroundVariant, string>> = {
@@ -64,15 +65,21 @@ type Props = {
   mission: Mission;
   residenceStance: Stance;
   residenceStanceAlt?: Stance[];
+  // v2 — 옵션 정렬도 판정에 사용
+  residenceEnv: EnvType;
   onClose: () => void;
-  // 누적 적합도 변화량을 함께 전달
-  onComplete: (fitDelta: number) => void;
+  // 누적 적합도 변화량 + 답한 옵션의 (총수/정렬수) 통계를 함께 전달
+  onComplete: (
+    fitDelta: number,
+    pickStats: { totalPicks: number; alignedPicks: number }
+  ) => void;
 };
 
 export default function MissionExecuteScreen({
   mission,
   residenceStance,
   residenceStanceAlt,
+  residenceEnv,
   onClose,
   onComplete,
 }: Props) {
@@ -94,6 +101,8 @@ export default function MissionExecuteScreen({
   const [phase, setPhase] = useState<"npc-typing" | "npc-done" | "player-turn">(
     "npc-typing"
   );
+  // v2 — 미션 진행 중 답한 옵션의 (총수/정렬수) 누적. ref라 동기적으로 finish에 반영됨.
+  const pickStatsRef = useRef({ totalPicks: 0, alignedPicks: 0 });
 
   const turn = mission.dialogues[turnIdx];
 
@@ -145,7 +154,8 @@ export default function MissionExecuteScreen({
     const total = fitDelta + extraDelta;
     setFitDelta(total);
     setShowReward(true);
-    window.setTimeout(() => onComplete(total), 1800);
+    const stats = { ...pickStatsRef.current };
+    window.setTimeout(() => onComplete(total, stats), 1800);
   };
 
   const handlePick = (optionIdx: number) => {
@@ -154,6 +164,16 @@ export default function MissionExecuteScreen({
     if (!opt) return;
     setPickedIdx(optionIdx);
     const delta = fitDeltaForOptionV2(opt, residenceStance, residenceStanceAlt);
+    // v2 — 정렬도 통계 동기 누적 (finish 시점에 그대로 반영)
+    const aligned = isOptionAligned(opt, {
+      stance: residenceStance,
+      stanceAlt: residenceStanceAlt,
+      envType: residenceEnv,
+    });
+    pickStatsRef.current = {
+      totalPicks: pickStatsRef.current.totalPicks + 1,
+      alignedPicks: pickStatsRef.current.alignedPicks + (aligned ? 1 : 0),
+    };
     // 200ms 강조 후 진행
     window.setTimeout(() => {
       if (opt.next === undefined) {

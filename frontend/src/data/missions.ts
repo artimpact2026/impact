@@ -7,6 +7,7 @@
 // 옵션이 해당 지역의 matchType과 일치하면 +2, 보조적으로 일치하면 +1, 어긋나면 -1.
 
 import type { LifeStyleType } from "./residences";
+import type { EnvType, Stance } from "./lifestyle";
 
 // ── 미션 카테고리 ────────────────────────────────
 export type MissionCategory = "생활현실형" | "관계형성형" | "감정/분위기형";
@@ -41,8 +42,13 @@ export type BackgroundVariant =
 export type DialogueOption = {
   label: string;
   next?: number; // 다음 turn 인덱스 — undefined면 미션 종료
-  // 이 답변이 반영하는 라이프스타일 — 적합도 계산에 사용
+  // 이 답변이 반영하는 라이프스타일 — 적합도 계산에 사용 (옛 시스템 호환)
   traits?: LifeStyleType[];
+  // v2 — 명시적 정렬 힌트. 없으면 traits에서 자동 derive.
+  // envAlign: 이 답이 어울리는 환경 (mountain/sea/field/village)
+  // stanceAlign: 이 답이 어울리는 자세 (alone_rest 등)
+  envAlign?: EnvType[];
+  stanceAlign?: Stance[];
 };
 
 export type NumericInputSpec = {
@@ -547,7 +553,7 @@ export function fitDeltaForOption(
 // v2 — 옵션 traits를 새 Stance로 매핑 후 거주지 stance와 비교
 // 옛 LifeStyleType 트레이트를 그대로 두고 시스템만 stance 기반으로 진화
 // 같은 stance 그룹 매칭: 첫 번째 +2, 그 외 +1, 보조(stanceAlt) +1, 어긋남 0
-import { oldToStance, type Stance } from "./lifestyle";
+import { oldToStance } from "./lifestyle";
 
 export function fitDeltaForOptionV2(
   option: DialogueOption | undefined,
@@ -562,6 +568,32 @@ export function fitDeltaForOptionV2(
     return 1;
   }
   return 0;
+}
+
+// 적합도 v2 — 이 옵션이 지역과 "정렬"되는지 boolean 판정 (정렬도 % 계산용).
+// 1) 명시 stanceAlign 우선 → 메인/보조 매칭
+// 2) 명시 envAlign 매칭
+// 3) 없으면 traits → oldToStance derive 후 fallback 판정
+export function isOptionAligned(
+  option: DialogueOption | undefined,
+  region: { stance: Stance; stanceAlt?: Stance[]; envType: EnvType }
+): boolean {
+  if (!option) return false;
+
+  if (option.stanceAlign?.includes(region.stance)) return true;
+  if (region.stanceAlt && option.stanceAlign?.some((s) => region.stanceAlt!.includes(s))) {
+    return true;
+  }
+
+  if (option.envAlign?.includes(region.envType)) return true;
+
+  if (option.traits?.length) {
+    const ss: Stance[] = option.traits.map((t) => oldToStance[t]);
+    if (ss.includes(region.stance)) return true;
+    if (region.stanceAlt && ss.some((s) => region.stanceAlt!.includes(s))) return true;
+  }
+
+  return false;
 }
 
 // 기존 호환용 alias (다른 화면에서 baseMissions 임포트하는 경우 대비)

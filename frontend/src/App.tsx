@@ -322,13 +322,17 @@ export default function App() {
     setTab1Route("home");
   };
 
-  const handleMissionComplete = (fitDelta = 0) => {
+  const handleMissionComplete = (
+    fitDelta = 0,
+    pickStats?: { totalPicks: number; alignedPicks: number }
+  ) => {
     if (!activeMission || !selected) return;
     const newProgress = completeMissionFor(
       regionProgress,
       selected.id,
       activeMission,
-      fitDelta
+      fitDelta,
+      pickStats
     );
     setRegionProgress(newProgress);
     setActiveMission(null);
@@ -660,6 +664,7 @@ export default function App() {
             mission={activeMission}
             residenceStance={selected.stance}
             residenceStanceAlt={selected.stanceAlt}
+            residenceEnv={selected.envType}
             onClose={() => {
               setActiveMission(null);
               setTab1Route("mission-list");
