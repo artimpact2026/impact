@@ -55,8 +55,8 @@ export default function DayEndCeremonyScreen({
         type="button"
         onClick={onClose}
         aria-label="닫기"
-        className="absolute top-10 left-4 z-10 w-9 h-9 rounded-full
-                   bg-white/85 backdrop-blur shadow-soft border border-white/70
+        className="absolute top-10 left-4 z-20 w-9 h-9 rounded-full
+                   bg-white shadow-soft border border-cream-200
                    flex items-center justify-center text-ink"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -69,21 +69,60 @@ export default function DayEndCeremonyScreen({
         </svg>
       </button>
 
-      {/* 상단 안내 */}
-      <header className="pt-12 px-6 text-center">
+      {/* ① Hero — full-bleed. 집을 카드 밖으로 빼서 화면 위쪽에 큼직하게 */}
+      <section className="relative w-full h-[280px] overflow-hidden">
+        {/* sky 그라데이션 — 위는 따뜻한 크림, 아래는 nature-50 톤 (페이지 본문과 자연 연결) */}
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-gradient-to-b from-[#FFF8EC] via-cream to-[#F0F8F1]"
+        />
+        {/* 옅은 ground hint + 하단 페이드 */}
+        <svg
+          viewBox="0 0 375 280"
+          preserveAspectRatio="xMidYMax slice"
+          className="absolute inset-0 w-full h-full"
+          aria-hidden
+        >
+          <defs>
+            <linearGradient id="dayEndFade" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#F0F8F1" stopOpacity="0" />
+              <stop offset="100%" stopColor="#F0F8F1" stopOpacity="1" />
+            </linearGradient>
+          </defs>
+          {/* 집이 공중에 떠 보이지 않게 옅은 ground ellipse */}
+          <ellipse cx="187" cy="238" rx="160" ry="6" fill="#D9B68A" opacity="0.35" />
+          {/* 하단 페이드 — 페이지 본문 배경과 자연 전환 */}
+          <rect x="0" y="220" width="375" height="60" fill="url(#dayEndFade)" />
+        </svg>
+
+        {/* 상단 좌측 라벨 — DAY 카운트 (X 버튼 오른쪽 정도 높이) */}
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
-          className="text-[11px] font-extrabold tracking-widest uppercase text-primary"
+          className="absolute top-12 left-5 z-10 text-[11px] font-extrabold tracking-[0.16em] uppercase text-primary"
         >
           {region} · DAY {finishedDay} / {totalDays}
         </motion.p>
+
+        {/* HouseStage scenic — 가운데 하단 큼직하게 */}
+        <motion.div
+          initial={{ scale: 0.92, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+          className="absolute left-1/2 -translate-x-1/2 bottom-4 w-[220px]"
+        >
+          <HouseStage stage={stage} className="w-full h-auto" scenic />
+        </motion.div>
+      </section>
+
+      {/* ② 타이틀 — Hero 아래 가운데 정렬, 시원하게 */}
+      <header className="px-6 mt-6 text-center">
         <motion.h1
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.5 }}
-          className="mt-2 text-ink text-[24px] font-extrabold leading-tight"
+          className="text-ink text-[28px] font-extrabold leading-tight"
         >
           {isFinalDay ? "잠시섬 마지막 날" : "오늘 하루, 끝났어요"}
         </motion.h1>
@@ -91,7 +130,7 @@ export default function DayEndCeremonyScreen({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3, duration: 0.5 }}
-          className="mt-2 text-ink-soft text-[13px] leading-relaxed"
+          className="mt-2 text-ink-soft text-[14px] leading-relaxed"
         >
           {isFinalDay
             ? "이 동네에서의 시간을 천천히 마무리해요"
@@ -101,83 +140,99 @@ export default function DayEndCeremonyScreen({
         </motion.p>
       </header>
 
-      {/* 집 레벨업 */}
-      <section className="flex flex-col items-center px-5 mt-5">
-        <motion.div
-          initial={{ scale: 0.92, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
-          className="w-full max-w-[300px] bg-white rounded-3xl shadow-soft border border-cream-200 p-3"
+      {/* ③ 단계 표시 — 가운데 정렬 (카드 밖) */}
+      <section className="mt-7 flex flex-col items-center gap-2">
+        <p className="text-[10.5px] font-bold text-ink-mute tracking-[0.16em] uppercase">
+          나의 공간
+        </p>
+        <motion.span
+          key={stage}
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="px-3 py-1 rounded-full bg-primary-50 text-primary text-[13px] font-extrabold"
         >
-          <HouseStage stage={stage} className="w-full h-auto" />
-          <div className="mt-1 flex items-center justify-between text-[11px]">
-            <span className="text-ink-mute">나의 공간</span>
-            <motion.span
-              key={stage}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-              className="text-primary font-extrabold"
-            >
-              {SPACE_STAGE_NAMES[stage]}
-            </motion.span>
-          </div>
-        </motion.div>
-
-        {/* 단계 진행 도트 */}
-        <div className="mt-4 flex items-center gap-2">
+          {SPACE_STAGE_NAMES[stage]}
+        </motion.span>
+        <div
+          className="mt-1 flex items-center gap-1.5"
+          aria-label={`단계 ${stage + 1}/4`}
+        >
           {[0, 1, 2, 3].map((s) => (
             <span
               key={s}
-              className={`w-2 h-2 rounded-full transition
-                ${s <= stage ? "bg-primary" : "bg-cream-200"}`}
+              className={`h-1.5 rounded-full transition-all
+                ${s === stage
+                  ? "w-6 bg-primary"
+                  : s < stage
+                  ? "w-2 bg-primary/50"
+                  : "w-2 bg-cream-200"}`}
               aria-hidden
             />
           ))}
         </div>
       </section>
 
-      {/* 다음 행동 제안 */}
-      <section className="mt-7 px-5 pb-8">
-        <p className="text-ink text-[13px] font-extrabold mb-2.5">
+      {/* ④ 다음 행동 제안 — 여백 넉넉히 */}
+      <section className="mt-10 px-5 pb-8">
+        <p className="text-[10.5px] font-bold text-ink-mute tracking-[0.18em] uppercase">
+          Next
+        </p>
+        <p className="mt-0.5 text-ink text-[16px] font-extrabold">
           이런 건 어때요?
         </p>
-        <ul className="space-y-2">
-          {suggestions.map((s, i) => (
-            <motion.li
-              key={s.title}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 + i * 0.08, duration: 0.4 }}
-            >
-              <button
-                type="button"
-                onClick={s.onClick}
-                className="w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl
-                           bg-white border border-cream-200 shadow-soft
-                           text-left active:scale-[0.99] transition"
+        <ul className="mt-3 space-y-2.5">
+          {suggestions.map((s, i) => {
+            const iconBg = i % 2 === 0 ? "bg-nature-50" : "bg-primary-50";
+            return (
+              <motion.li
+                key={s.title}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 + i * 0.08, duration: 0.4 }}
               >
-                <div
-                  className="w-11 h-11 rounded-2xl bg-nature-50
-                             flex items-center justify-center text-xl shrink-0"
-                  aria-hidden
+                <button
+                  type="button"
+                  onClick={s.onClick}
+                  className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl
+                             bg-white border border-cream-200 shadow-soft
+                             text-left active:scale-[0.99] transition hover:bg-cream-50/60"
                 >
-                  {s.icon}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-ink text-[14px] font-bold leading-tight">
-                    {s.title}
-                  </p>
-                  <p className="mt-0.5 text-ink-soft text-[12px] truncate">
-                    {s.subtitle}
-                  </p>
-                </div>
-                <span className="text-ink-mute text-[14px]" aria-hidden>
-                  →
-                </span>
-              </button>
-            </motion.li>
-          ))}
+                  <div
+                    className={`w-12 h-12 rounded-2xl ${iconBg}
+                               flex items-center justify-center text-xl shrink-0`}
+                    aria-hidden
+                  >
+                    {s.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-ink text-[14.5px] font-extrabold leading-tight">
+                      {s.title}
+                    </p>
+                    <p className="mt-0.5 text-ink-soft text-[12px] leading-snug truncate">
+                      {s.subtitle}
+                    </p>
+                  </div>
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    className="text-ink-mute shrink-0"
+                    aria-hidden
+                  >
+                    <path
+                      d="M9 6l6 6-6 6"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+              </motion.li>
+            );
+          })}
         </ul>
       </section>
     </div>

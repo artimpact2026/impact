@@ -42,15 +42,16 @@ export default function MigrationReportCinematic({
   }, [idx, isFirstView]);
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#0E1117] text-white overflow-hidden">
+    <div className="fixed inset-y-0 left-1/2 -translate-x-1/2 w-full max-w-[420px] z-50
+                    bg-cream text-ink overflow-hidden">
       {/* 좌상단 닫기 */}
       <button
         type="button"
         onClick={onClose}
         aria-label="닫기"
         className="absolute top-6 right-5 z-20 w-9 h-9 rounded-full
-                   bg-white/15 backdrop-blur border border-white/20
-                   flex items-center justify-center text-white"
+                   bg-white shadow-soft border border-cream-200
+                   flex items-center justify-center text-ink"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
           <path
@@ -63,7 +64,7 @@ export default function MigrationReportCinematic({
       </button>
 
       {/* 상단 라벨 */}
-      <p className="absolute top-7 left-5 z-10 text-[11px] tracking-widest uppercase font-extrabold text-white/70">
+      <p className="absolute top-7 left-5 z-10 text-[11px] tracking-widest uppercase font-extrabold text-ink-mute">
         {residence.region} · 이주 리포트
       </p>
 
@@ -122,7 +123,7 @@ export default function MigrationReportCinematic({
             onClick={() => setIdx(i)}
             aria-label={`슬라이드 ${i + 1}`}
             className={`h-1 rounded-full transition-all
-              ${i === idx ? "w-8 bg-white" : "w-2 bg-white/30"}`}
+              ${i === idx ? "w-8 bg-primary" : "w-2 bg-cream-300"}`}
           />
         ))}
       </div>
@@ -148,15 +149,15 @@ function SlideOne({
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <p className="text-white/60 text-[12px] font-bold">
+        <p className="text-ink-mute text-[11px] font-extrabold tracking-[0.16em] uppercase">
           나의 이주 기록 요약
         </p>
-        <h1 className="mt-2 text-white text-[28px] font-extrabold leading-tight">
+        <h1 className="mt-2 text-ink text-[28px] font-extrabold leading-tight">
           {residence.region}에서의<br />흔적
         </h1>
       </motion.div>
 
-      <div className="flex-1 flex flex-col justify-center gap-3.5">
+      <div className="flex-1 flex flex-col justify-center gap-3">
         <ScoreCard
           icon="🎯"
           label="정보"
@@ -217,10 +218,11 @@ function ScoreCard({
     return () => clearTimeout(t0);
   }, [value, delay]);
 
-  const colors = {
-    orange: "from-[#FF7043]/30 to-[#FF7043]/10 border-[#FF7043]/40",
-    amber: "from-[#FFB400]/30 to-[#FFB400]/10 border-[#FFB400]/40",
-    green: "from-[#7BB57F]/30 to-[#7BB57F]/10 border-[#7BB57F]/40",
+  // 톤별 이모지 셀 배경 + 큰 숫자 색
+  const tones = {
+    orange: { iconBg: "bg-primary-50", numText: "text-primary" },
+    amber: { iconBg: "bg-[#FFF4D6]", numText: "text-[#E5A800]" },
+    green: { iconBg: "bg-nature-50", numText: "text-nature-600" },
   }[tone];
 
   return (
@@ -228,18 +230,21 @@ function ScoreCard({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.5 }}
-      className={`bg-gradient-to-br ${colors} border rounded-2xl p-4 flex items-center gap-4`}
+      className="bg-white rounded-2xl shadow-soft border border-cream-200/80 p-4 flex items-center gap-4"
     >
-      <span className="text-3xl" aria-hidden>
+      <span
+        className={`w-12 h-12 rounded-2xl ${tones.iconBg} flex items-center justify-center text-2xl shrink-0`}
+        aria-hidden
+      >
         {icon}
       </span>
-      <div className="flex-1">
-        <p className="text-white/70 text-[12px] font-bold uppercase tracking-widest">
+      <div className="flex-1 min-w-0">
+        <p className="text-ink-mute text-[10.5px] font-extrabold uppercase tracking-[0.16em]">
           {label}
         </p>
-        <p className="mt-1 text-white text-[28px] font-extrabold tabular-nums">
+        <p className={`mt-1 text-[28px] font-extrabold tabular-nums leading-none ${tones.numText}`}>
           {n.toLocaleString()}
-          <span className="ml-1 text-[14px] text-white/70">{suffix}</span>
+          <span className="ml-1 text-[12.5px] text-ink-mute">{suffix}</span>
         </p>
       </div>
     </motion.div>
@@ -271,20 +276,20 @@ function SlideTwo({ report }: { report: MigrationReport }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.4 }}
-        className="text-white/60 text-[12px] font-bold"
+        className="text-ink-mute text-[11px] font-extrabold tracking-[0.16em] uppercase"
       >
         나의 시간, 한 줄로
       </motion.p>
 
       <div className="flex-1 flex items-center">
-        <p className="text-white text-[20px] font-bold leading-relaxed whitespace-pre-line">
+        <p className="text-ink text-[20px] font-bold leading-relaxed whitespace-pre-line">
           {typed}
-          <span className="inline-block w-[2px] h-[20px] align-middle bg-white/70 ml-0.5 animate-pulse" />
+          <span className="inline-block w-[2px] h-[20px] align-middle bg-ink/60 ml-0.5 animate-pulse" />
         </p>
       </div>
 
       {report.aiSummarySource === "claude" && (
-        <p className="text-white/40 text-[10px] tracking-widest">
+        <p className="text-ink-mute text-[10px] tracking-widest">
           ✨ Claude가 정리한 요약
         </p>
       )}
@@ -311,8 +316,10 @@ function SlideThree({ report }: { report: MigrationReport }) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
-        <p className="text-white/60 text-[12px] font-bold">함께한 시간의 이야기</p>
-        <h2 className="mt-2 text-white text-[22px] font-extrabold leading-tight">
+        <p className="text-ink-mute text-[11px] font-extrabold tracking-[0.16em] uppercase">
+          함께한 시간의 이야기
+        </p>
+        <h2 className="mt-2 text-ink text-[22px] font-extrabold leading-tight">
           당신이 보낸 시간
         </h2>
       </motion.div>
@@ -324,7 +331,7 @@ function SlideThree({ report }: { report: MigrationReport }) {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.35 + i * 0.18, duration: 0.5 }}
-            className="text-white/85 text-[14.5px] leading-[1.75] whitespace-pre-line"
+            className="text-ink text-[14.5px] leading-[1.75] whitespace-pre-line"
           >
             {p}
           </motion.p>
@@ -335,7 +342,7 @@ function SlideThree({ report }: { report: MigrationReport }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.35 + paragraphs.length * 0.18 + 0.2 }}
-            className="text-white/35 text-[10px] tracking-wider"
+            className="text-ink-mute text-[10px] tracking-wider"
           >
             ✦ Claude가 미션 기록을 읽고 엮은 글이에요
           </motion.p>
@@ -361,53 +368,135 @@ function SlideFour({
   onApplyResidence?: () => void;
 }) {
   return (
-    <div className="flex-1 relative flex flex-col items-center px-6 pt-24 pb-10">
+    <div className="flex-1 relative flex flex-col items-center px-6 pt-20 pb-10 text-ink">
+      {/* warm 배경 — 슬라이드 4 한정. 부모 dark bg 위로 fade-in */}
+      <motion.div
+        aria-hidden
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.45, ease: "easeOut" }}
+        className="absolute inset-0 -z-10 bg-gradient-to-br
+                   from-cream via-[#FFE9C5] to-primary-50"
+      />
+      {/* 중앙 라디얼 후광 — 카드 등장과 동시에 부풀어오름 */}
+      <motion.div
+        aria-hidden
+        initial={{ opacity: 0, scale: 0.4 }}
+        animate={{ opacity: [0, 0.6, 0.3], scale: [0.4, 1.25, 1.1] }}
+        transition={{ delay: 0.5, duration: 1.2, ease: "easeOut" }}
+        className="absolute inset-0 -z-10 pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(circle at 50% 42%, rgba(255,196,123,0.55) 0%, rgba(255,196,123,0.18) 35%, transparent 65%)",
+        }}
+      />
+
       <Confetti />
 
       <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3, duration: 0.5 }}
-        className="text-white/60 text-[12px] font-bold tracking-widest uppercase"
+        className="text-ink-mute text-[11px] font-extrabold tracking-[0.22em] uppercase"
       >
         여정 완주
       </motion.p>
 
+      {/* 트로피 카드 — 뽑기 등장 모션 (scale + rotate + spring) + shimmer 한 번 */}
       <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 0.5, type: "spring", stiffness: 200, damping: 18 }}
-        className="mt-8 w-full max-w-[320px] bg-gradient-to-br
-                   from-[#FFE074] via-[#FFB400] to-[#FF7043]
-                   rounded-3xl shadow-[0_30px_60px_-20px_rgba(255,180,0,0.6)]
+        initial={{ scale: 0.55, opacity: 0, y: 40, rotate: -14 }}
+        animate={{ scale: 1, opacity: 1, y: 0, rotate: 0 }}
+        transition={{
+          delay: 0.45,
+          type: "spring",
+          stiffness: 180,
+          damping: 16,
+        }}
+        className="mt-6 relative w-full max-w-[320px] rounded-[28px] overflow-hidden
+                   bg-gradient-to-br from-[#FFF6E6] via-[#FFE5C0] to-[#FFCDA8]
+                   ring-1 ring-white/70
+                   shadow-[0_24px_56px_-18px_rgba(196,128,68,0.45)]
                    p-7 text-center text-[#3F2515]"
       >
-        <div className="text-[72px] leading-none" aria-hidden>
+        {/* 카드 표면 빛 스윕 — 등장 후 한 번만, 좌→우 */}
+        <motion.div
+          aria-hidden
+          initial={{ x: "-120%" }}
+          animate={{ x: "120%" }}
+          transition={{ delay: 1.1, duration: 1.3, ease: "easeOut" }}
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              "linear-gradient(110deg, transparent 35%, rgba(255,255,255,0.55) 50%, transparent 65%)",
+            mixBlendMode: "overlay",
+          }}
+        />
+
+        <p className="text-[10px] font-extrabold tracking-[0.22em] uppercase opacity-70">
+          이주 준비 완료
+        </p>
+        <div
+          className="mt-3 text-[64px] leading-none"
+          aria-hidden
+          style={{ filter: "drop-shadow(0 6px 10px rgba(120,70,30,0.25))" }}
+        >
           🏆
         </div>
-        <h2 className="mt-2 text-[22px] font-extrabold">이주 준비 완료!</h2>
-        <p className="mt-2 text-[12px] font-bold opacity-80">
-          {residence.region}에서의 시뮬레이션을 마쳤어요.
+        <h2 className="mt-3 text-[20px] font-extrabold">
+          {residence.region}에서의 시간
+        </h2>
+        <p className="mt-1.5 text-[12px] font-bold opacity-75">
+          시뮬레이션 여정을 마쳤어요
         </p>
-        <div className="mt-4 grid grid-cols-3 gap-2 text-[10px] font-bold">
+
+        {/* Stat 3-cell — 셀 사이 hairline */}
+        <div
+          className="mt-5 grid grid-cols-3 rounded-2xl overflow-hidden
+                     bg-white/55 backdrop-blur-sm divide-x divide-[#E9D2B4]"
+        >
           <Stat label="미션" value={`${report.infoScore}`} />
           <Stat label="점수" value={`${report.accumulationScore}`} />
           <Stat label="관계도" value={`${report.relationshipScore}%`} />
         </div>
       </motion.div>
 
+      {/* 카드 좌하단·우하단 캐릭터 — 통통 + 등장 시 한 번 축하 점프 */}
+      <motion.img
+        src="/character1/clay-baram-solo.png"
+        alt=""
+        aria-hidden
+        initial={{ opacity: 0, y: 30, rotate: -10 }}
+        animate={{ opacity: 1, y: 0, rotate: 0 }}
+        transition={{ delay: 1.2, duration: 0.5, ease: "easeOut" }}
+        className="absolute left-6 top-[44%] w-14 h-auto pointer-events-none
+                   drop-shadow-[0_6px_10px_rgba(120,70,30,0.28)]"
+        style={{ transformOrigin: "50% 100%" }}
+      />
+      <motion.img
+        src="/character1/clay-jieum-solo.png"
+        alt=""
+        aria-hidden
+        initial={{ opacity: 0, y: 30, rotate: 10 }}
+        animate={{ opacity: 1, y: 0, rotate: 0 }}
+        transition={{ delay: 1.35, duration: 0.5, ease: "easeOut" }}
+        className="absolute right-6 top-[44%] w-14 h-auto pointer-events-none
+                   drop-shadow-[0_6px_10px_rgba(120,70,30,0.28)]"
+        style={{ transformOrigin: "50% 100%" }}
+      />
+
+      {/* 버튼 — primary CTA + 보조 닫기 */}
       <motion.div
-        initial={{ opacity: 0, y: 12 }}
+        initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1, duration: 0.4 }}
+        transition={{ delay: 1.5, duration: 0.4 }}
         className="mt-auto w-full max-w-[320px] space-y-2"
       >
         {onApplyResidence && (
           <button
             type="button"
             onClick={onApplyResidence}
-            className="w-full bg-white text-[#3F2515] text-[15px] font-extrabold
-                       py-4 rounded-2xl shadow-soft active:scale-[0.99]"
+            className="w-full bg-primary text-white text-[15px] font-extrabold
+                       py-4 rounded-2xl shadow-soft active:scale-[0.99] transition"
           >
             여기로 입주하기 →
           </button>
@@ -415,8 +504,9 @@ function SlideFour({
         <button
           type="button"
           onClick={onClose}
-          className="w-full bg-white/10 border border-white/20 text-white text-[14px]
-                     font-bold py-3 rounded-2xl active:scale-[0.99]"
+          className="w-full bg-white text-ink-soft text-[14px] font-bold
+                     py-3 rounded-2xl border border-cream-200 shadow-soft
+                     active:scale-[0.99] transition"
         >
           닫기
         </button>
@@ -427,9 +517,11 @@ function SlideFour({
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-white/30 rounded-xl py-2">
-      <p className="opacity-70 uppercase tracking-wider">{label}</p>
-      <p className="mt-0.5 text-[14px] font-extrabold">{value}</p>
+    <div className="py-3">
+      <p className="text-[9px] font-extrabold tracking-[0.16em] uppercase opacity-60">
+        {label}
+      </p>
+      <p className="mt-1 text-[18px] font-extrabold tabular-nums">{value}</p>
     </div>
   );
 }
@@ -439,17 +531,17 @@ function Stat({ label, value }: { label: string; value: string }) {
 // =====================================================================
 
 function Confetti() {
-  // 24개 파티클, 다양한 색·각도·딜레이로 랜덤 낙하
+  // 14개 파티클 (24→14로 절제), 우리 톤 4색 (크림·연오렌지·연초록·노랑)
   const PIECES = useMemo(
     () =>
-      Array.from({ length: 24 }).map((_, i) => ({
+      Array.from({ length: 14 }).map((_, i) => ({
         id: i,
         x: Math.random() * 100, // %
         delay: Math.random() * 0.4,
-        duration: 1.6 + Math.random() * 0.8,
-        rotate: -120 + Math.random() * 240,
-        color: ["#FFD66B", "#FF8A65", "#7BB57F", "#5BA8E5", "#E58FB0"][i % 5],
-        size: 6 + Math.floor(Math.random() * 6),
+        duration: 1.8 + Math.random() * 0.7,
+        rotate: -90 + Math.random() * 180,
+        color: ["#FFC79B", "#FFB089", "#C7DFAE", "#FFE074"][i % 4],
+        size: 6 + Math.floor(Math.random() * 5),
       })),
     []
   );
