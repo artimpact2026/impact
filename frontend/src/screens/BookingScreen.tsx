@@ -256,6 +256,14 @@ function HeroCard({
             <span className="opacity-80"> / 월 · {residence.duration}</span>
           </p>
         </div>
+        {/* 캐릭터 포인트 — 우하단 모서리, 사진 안 덮게 작게 */}
+        <img
+          src="/character1/clay-baram-solo.png"
+          alt=""
+          aria-hidden
+          className="absolute right-3 bottom-3 w-10 h-auto pointer-events-none
+                     drop-shadow-[0_4px_8px_rgba(62,44,32,0.28)]"
+        />
       </div>
     </button>
   );

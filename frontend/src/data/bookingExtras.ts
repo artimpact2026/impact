@@ -11,13 +11,22 @@ export type ResidenceReview = {
 };
 
 // 추천 8곳 평점 (mock)
+// 새 8개 ID는 residenceContent의 후기 평균값. 옛 ID는 호환용으로 보존.
 export const ratings: Record<string, number> = {
-  ganghwa: 4.8,
+  // 현재 사용 중인 8개 ID — residenceContent 후기 평균
+  ganghwa: 4.75,
+  yeongdeok: 4.25,
+  yeongwol: 4.75,
+  muju: 4.25,
+  sejong: 4.25,
+  uiseong: 4.75,
+  hongseong: 4.75,
+  daejeon: 4.25,
+  // 옛 ID — 호환용 보존 (현재 residences 데이터엔 없음)
   gwangyang: 4.6,
   geoje: 4.7,
   jindo: 4.5,
   taean: 4.7,
-  yeongwol: 4.4,
   jeongseon: 4.6,
   yangyang: 4.9,
 };
@@ -142,8 +151,21 @@ export const reviewsByResidence: Record<string, ResidenceReview[]> = {
   ],
 };
 
-// 본문(blurb) + provides + region 키워드 → 클레이 씬 이미지 자동 매칭
-const IMAGE_RULES: Array<{ keywords: string[]; image: string }> = [
+// 레지던스 id → 실사 사진 경로 (public/residences/<id>.<ext>)
+// 8곳 모두 직접 매핑. 확장자는 실제 파일에 맞춤 (yeongwol만 AVIF, ganghwa만 JPEG, 나머지 JPG)
+const RESIDENCE_PHOTO: Record<string, string> = {
+  ganghwa: "/residences/ganghwa.jpeg",
+  yeongdeok: "/residences/yeongdeok.jpg",
+  yeongwol: "/residences/yeongwol.avif",
+  muju: "/residences/muju.jpg",
+  sejong: "/residences/sejong.jpg",
+  uiseong: "/residences/uiseong.jpg",
+  hongseong: "/residences/hongseong.jpg",
+  daejeon: "/residences/daejeon.jpg",
+};
+
+// 폴백 — 알 수 없는 id일 때만 사용. 본문(blurb)/provides/region 키워드 → 클레이 씬 일러스트
+const FALLBACK_IMAGE_RULES: Array<{ keywords: string[]; image: string }> = [
   {
     keywords: ["한옥", "차밭", "운림산방", "다도"],
     image: "/character1/clay-hanok-nap.png",
@@ -175,8 +197,12 @@ const IMAGE_RULES: Array<{ keywords: string[]; image: string }> = [
 ];
 
 export function pickResidenceImage(residence: Residence): string {
+  // 등록된 id면 항상 사진 우선
+  const photo = RESIDENCE_PHOTO[residence.id];
+  if (photo) return photo;
+  // 모르는 id는 키워드 기반 클레이 일러스트 폴백
   const haystack = `${residence.blurb ?? ""} ${(residence.provides ?? []).join(" ")} ${residence.region}`;
-  for (const rule of IMAGE_RULES) {
+  for (const rule of FALLBACK_IMAGE_RULES) {
     if (rule.keywords.some((k) => haystack.includes(k))) return rule.image;
   }
   return "/character1/clay-village-map.png";
