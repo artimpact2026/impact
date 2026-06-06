@@ -15,6 +15,9 @@ type Props = {
   onComplete: () => void;
   // 뒤로가기 — 이동 화면을 닫고 미션 리스트로 돌아감
   onBack?: () => void;
+  // 미션에 좌표가 없을 때 쓸 fallback (보통 현재 머무는 마을 중심부 좌표).
+  // → 모든 로드뷰 미션이 데이터 누락 없이 실제 로드뷰로 뜨도록 보장.
+  fallbackPosition?: { lat: number; lng: number };
 };
 
 // 미션별 도착지 라벨
@@ -103,18 +106,26 @@ function getArrivalCtaLabel(mission: Mission): string {
   }
 }
 
-export default function MissionTravelingScreen({ mission, onComplete, onBack }: Props) {
+export default function MissionTravelingScreen({
+  mission,
+  onComplete,
+  onBack,
+  fallbackPosition,
+}: Props) {
   const [idx, setIdx] = useState(0);
   const [showRoadview, setShowRoadview] = useState(false);
   const destination = getDestinationLabel(mission);
   const ctaLabel = getArrivalCtaLabel(mission);
 
+  // 좌표 우선순위: 미션 명시 좌표 → 마을 중심 fallback → 없음(사진/일러스트)
+  const position = mission.kakaoPosition ?? fallbackPosition;
+
   // 카카오 좌표가 있으면 임베드 우선 — panoId 못 잡으면 RoadviewWithFallback 내부에서
   // 자동으로 미니 로드뷰(사진)로 폴백
-  if (mission.kakaoPosition) {
+  if (position) {
     return (
       <RoadviewWithFallback
-        position={mission.kakaoPosition}
+        position={position}
         fallbackSteps={mission.roadviewSteps}
         mission={mission}
         destination={destination}
@@ -164,7 +175,10 @@ export default function MissionTravelingScreen({ mission, onComplete, onBack }: 
   };
 
   return (
-    <div className="relative h-[calc(100dvh-6rem)] flex flex-col overflow-hidden bg-[#F3ECE2]">
+    <div
+      className="relative flex flex-col overflow-hidden bg-[#F3ECE2]"
+      style={{ height: "calc(100dvh - var(--content-bottom))" }}
+    >
       {/* 상단 — 진행 + 미션 정보 */}
       <header className="absolute top-0 left-0 right-0 z-30 px-4 pt-4 pb-3 flex items-center gap-2 bg-gradient-to-b from-cream/95 via-cream/55 to-transparent">
         <button

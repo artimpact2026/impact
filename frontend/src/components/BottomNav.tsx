@@ -1,8 +1,19 @@
-// 하단 고정 네비게이션 — 5탭 구조 + 중앙 솟은 시뮬레이션 버튼
+// 하단 고정 네비게이션 — 4탭 균등 + 분리된 floating 시뮬레이션 버튼
 //
-// 슬롯: [발견] [여정] (◉ 시뮬레이션) [편지] [내정보]
-// 중앙 버튼은 64px 주황 원형이 탭 바 상단으로 솟아 떠 있는 느낌(그림자).
-// "booking" 등 hidden 탭이 active일 땐 시각적으로 "발견"을 강조해줌.
+// 레이아웃 원칙:
+//   1) <nav> 는 viewport 기준 fixed, 고정 높이(--nav-h), 4개 탭만 flex-1 균등 배분.
+//   2) 중앙 시뮬레이션 버튼은 <nav> 트리 바깥의 형제로 별도 fixed 위치
+//      → nav 의 height/정렬에 영향 X.
+//   3) nav 안쪽 5번째 슬롯은 'notch spacer' — 시각적 빈 영역을 시뮬레이션 버튼이 덮음.
+//      덕분에 4개 탭 라벨이 버튼에 가려지지 않음 (각 탭은 420/5 = 84px 슬롯 확보).
+//   4) 콘텐츠가 nav/버튼에 가려지지 않도록, 모든 페이지는 PageShell or TabLayout 사용
+//      → `padding-bottom: var(--content-bottom)` 자동 적용.
+//
+// 슬롯 시각화:
+//   |  발견  |  여정  | (notch) |  편지  | 내정보 |   ← <nav>
+//                    ◉ 시뮬                       ← 분리된 floating button
+//
+// "booking" 등 hidden 탭이 active일 땐 시각적으로 "발견" 강조.
 
 export type TabKey =
   | "discover"     // 발견 — 커뮤니티 + 청년마을(예약). 첫 단계는 community만, 후속에서 통합
@@ -28,64 +39,86 @@ function visibleActive(active: TabKey): TabKey {
 export default function BottomNav({ active, onChange, letterUnread = 0 }: Props) {
   const vActive = visibleActive(active);
   return (
-    <nav
-      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[420px]
-                 bg-white/95 backdrop-blur border-t border-cream-200
-                 px-2 pt-2 pb-[max(env(safe-area-inset-bottom),12px)]
-                 flex justify-around items-end"
-      aria-label="하단 탭"
-    >
-      <TabButton
-        label="발견"
-        isActive={vActive === "discover"}
-        onClick={() => onChange("discover")}
-        icon={<DiscoverIcon active={vActive === "discover"} />}
-      />
-      <TabButton
-        label="여정"
-        isActive={vActive === "journey"}
-        onClick={() => onChange("journey")}
-        icon={<MapIcon active={vActive === "journey"} />}
-      />
+    // Fragment — nav 와 floating 버튼은 형제 관계. 트리·레이아웃·z-index 모두 독립.
+    <>
+      {/* ===== 하단 탭바 ===== */}
+      <nav
+        // · viewport 기준 fixed (좌우 max-w-[420px] 중앙 정렬)
+        // · z-40: 콘텐츠 위, 모달(z-50)/시뮬 버튼(z-50) 아래
+        // · 고정 높이 = --nav-h + safe-area
+        // · overflow-visible 불필요 — floating 버튼이 형제로 분리됐기 때문
+        className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[420px] z-40
+                   bg-white/95 backdrop-blur border-t border-cream-200
+                   pb-[var(--safe-b)]"
+        aria-label="하단 탭"
+      >
+        {/* 안쪽: 고정 높이 --nav-h.
+            children 모두 flex-1 → 5칸 균등(420/5 = 84px). 4개 탭 + 1 notch. */}
+        <div className="h-[var(--nav-h)] flex items-stretch">
+          <TabButton
+            label="발견"
+            isActive={vActive === "discover"}
+            onClick={() => onChange("discover")}
+            icon={<DiscoverIcon active={vActive === "discover"} />}
+          />
+          <TabButton
+            label="여정"
+            isActive={vActive === "journey"}
+            onClick={() => onChange("journey")}
+            icon={<MapIcon active={vActive === "journey"} />}
+          />
 
-      {/* 중앙 — 솟은 원형 시뮬레이션 버튼 */}
-      <CenterSimulationButton
-        active={vActive === "simulation"}
-        onClick={() => onChange("simulation")}
-      />
+          {/* notch — 시뮬레이션 버튼이 시각적으로 차지할 자리.
+              flex-1 로 84px 슬롯 예약. 실제 버튼은 이 nav 바깥의 sibling. */}
+          <div className="flex-1" aria-hidden />
 
-      <TabButton
-        label="편지"
-        isActive={vActive === "letter"}
-        onClick={() => onChange("letter")}
-        icon={
-          <span className="relative inline-block">
-            <LetterIcon active={vActive === "letter"} />
-            {letterUnread > 0 && (
-              <span
-                aria-label={`안 읽은 편지 ${letterUnread}통`}
-                className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full
-                           bg-primary text-white text-[9.5px] font-extrabold
-                           flex items-center justify-center
-                           border-[1.5px] border-white shadow-soft"
-              >
-                {letterUnread > 9 ? "9+" : letterUnread}
+          <TabButton
+            label="편지"
+            isActive={vActive === "letter"}
+            onClick={() => onChange("letter")}
+            icon={
+              <span className="relative inline-block">
+                <LetterIcon active={vActive === "letter"} />
+                {letterUnread > 0 && (
+                  <span
+                    aria-label={`안 읽은 편지 ${letterUnread}통`}
+                    className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full
+                               bg-primary text-white text-[9.5px] font-extrabold
+                               flex items-center justify-center
+                               border-[1.5px] border-white shadow-soft"
+                  >
+                    {letterUnread > 9 ? "9+" : letterUnread}
+                  </span>
+                )}
               </span>
-            )}
-          </span>
-        }
-      />
-      <TabButton
-        label="내 정보"
-        isActive={vActive === "profile"}
-        onClick={() => onChange("profile")}
-        icon={<ProfileIcon active={vActive === "profile"} />}
-      />
-    </nav>
+            }
+          />
+          <TabButton
+            label="내 정보"
+            isActive={vActive === "profile"}
+            onClick={() => onChange("profile")}
+            icon={<ProfileIcon active={vActive === "profile"} />}
+          />
+        </div>
+      </nav>
+
+      {/* ===== 분리된 floating 시뮬레이션 버튼 ===== */}
+      {/* 래퍼: 420px 프레임을 viewport 하단에 복제. pointer-events-none 이라 콘텐츠 클릭 방해 X.
+          버튼은 이 래퍼 기준 absolute → 데스크톱 미리보기에서도 앱 프레임 중앙 정렬 보장. */}
+      <div
+        aria-hidden
+        className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[420px] z-50 pointer-events-none"
+      >
+        <CenterSimulationButton
+          active={vActive === "simulation"}
+          onClick={() => onChange("simulation")}
+        />
+      </div>
+    </>
   );
 }
 
-// 일반 탭 버튼 — 아이콘 + 메인 라벨
+// 일반 탭 버튼 — flex-1 로 균등 너비. 컨테이너 안에서 수직 중앙 정렬.
 function TabButton({
   label,
   isActive,
@@ -101,13 +134,13 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`flex flex-col items-center gap-1.5 px-2 py-1.5 rounded-2xl transition
+      className={`flex-1 flex flex-col items-center justify-center gap-1 transition
         ${isActive ? "text-primary" : "text-ink-mute"}`}
       aria-pressed={isActive}
     >
       {icon}
       <span
-        className={`text-[11.5px] font-semibold leading-none ${
+        className={`text-[11px] font-semibold leading-none ${
           isActive ? "text-primary" : "text-ink-soft"
         }`}
       >
@@ -117,7 +150,8 @@ function TabButton({
   );
 }
 
-// 중앙 시뮬레이션 — 64px 원형, 위로 솟음 + 그림자 (떠 있는 느낌)
+// 중앙 시뮬레이션 — 부모(420px 래퍼) 기준 absolute. pointer-events-auto 로 클릭 복원.
+// 위치/크기 모두 CSS var 단일 출처: nav 높이·돌출·safe-area·버튼 크기 변경 시 자동 재계산.
 function CenterSimulationButton({
   active,
   onClick,
@@ -131,27 +165,30 @@ function CenterSimulationButton({
       onClick={onClick}
       aria-pressed={active}
       aria-label="시뮬레이션"
-      // 다른 탭과 baseline 맞추기 위해 의도적으로 키 작게.
-      // -mt 값으로 원이 탭바 위로 솟아오르는 정도 조절. 64px 원이 더 떠보이게.
-      className="flex flex-col items-center px-2 -mt-16 pb-0.5"
+      // · absolute — 부모(viewport bottom 의 420px 래퍼) 기준 위치 계산
+      // · left-1/2 -translate-x-1/2 — 앱 프레임 가로 중앙
+      // · bottom = --center-btn-bottom — viewport bottom 으로부터 정확한 높이
+      // · pointer-events-auto — 래퍼는 none, 버튼만 활성화
+      style={{
+        bottom: "var(--center-btn-bottom)",
+        width: "var(--center-btn-size)",
+        height: "var(--center-btn-size)",
+      }}
+      className={`absolute left-1/2 -translate-x-1/2 pointer-events-auto
+                  rounded-full flex items-center justify-center
+                  text-white text-[11.5px] font-extrabold leading-tight tracking-tight
+                  text-center transition active:scale-95
+                  border-[3px] border-white
+                  shadow-[0_10px_22px_-6px_rgba(255,112,67,0.65),0_2px_4px_rgba(0,0,0,0.08)]
+                  ${
+                    active
+                      ? "bg-primary ring-4 ring-primary/15"
+                      : "bg-primary"
+                  }`}
     >
-      <span
-        className={`w-16 h-16 rounded-full flex items-center justify-center
-                    text-white text-[11.5px] font-extrabold leading-tight tracking-tight
-                    text-center transition active:scale-95
-                    ${
-                      active
-                        ? "bg-primary ring-4 ring-primary/15"
-                        : "bg-primary"
-                    }
-                    shadow-[0_10px_22px_-6px_rgba(255,112,67,0.65),0_2px_4px_rgba(0,0,0,0.08)]
-                    border-[3px] border-white`}
-      >
-        {/* 두 줄로 두면 64px 안에 깔끔히 들어감. 아래 중복 라벨은 의도적으로 생략 */}
-        시뮬
-        <br />
-        레이션
-      </span>
+      시뮬
+      <br />
+      레이션
     </button>
   );
 }

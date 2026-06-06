@@ -8,6 +8,9 @@ import ArrivalScreen from "./screens/ArrivalScreen";
 import MissionListScreen from "./screens/MissionListScreen";
 import MissionTravelingScreen from "./screens/MissionTravelingScreen";
 import MissionExecuteScreen from "./screens/MissionExecuteScreen";
+import MissionCompleteScreen, {
+  type MissionKeyInfo,
+} from "./screens/MissionCompleteScreen";
 import DayEndCeremonyScreen from "./screens/DayEndCeremonyScreen";
 import MigrationReportCinematic from "./screens/MigrationReportCinematic";
 import JourneyScreen from "./screens/JourneyScreen";
@@ -55,9 +58,11 @@ import { type Mission } from "./data/missions";
 import {
   advanceDay,
   bumpVisit,
+  calculateMatchV2,
   completeMissionFor,
   type RegionRecord,
 } from "./data/journey";
+import { keyInfosFor } from "./data/missionKeyInfos";
 import {
   generateMigrationReport,
   markReportViewed,
@@ -93,6 +98,7 @@ type Tab1Route =
   | "mission-list"
   | "mission-traveling"
   | "mission-execute"
+  | "mission-complete"
   | "traveling-back"
   | "day-end-ceremony";
 
@@ -193,6 +199,17 @@ export default function App() {
   const [tab4Route, setTab4Route] = useState<Tab4Route>("booking");
   const [selected, setSelected] = useState<Residence | null>(null);
   const [activeMission, setActiveMission] = useState<Mission | null>(null);
+  // 미션 완료 결과 카드 데이터 — 완료 직후 채워서 mission-complete 화면에 노출
+  const [completionData, setCompletionData] = useState<{
+    mission: Mission;
+    reward: number;
+    totalScore: number;
+    fitScore: number;
+    fitScoreDelta: number;
+    keyInfos: MissionKeyInfo[];
+    pickedLabels: string[];
+    isLastMissionToday: boolean;
+  } | null>(null);
   const [regionProgress, setRegionProgress] = useState<
     Record<string, RegionRecord>
   >(() => loadProgress());
@@ -442,13 +459,33 @@ export default function App() {
     : null;
   const currentDay = currentRecord?.currentDay ?? 1;
 
+  // 시뮬레이션 탭 안에서 "레지던스 진입 후 흐름"으로 인정할 화면들.
+  // 다른 탭에 다녀와도 이 화면 중 하나에 있었다면 그대로 보존 (사용자 멘탈 모델:
+  // "들어가기 = 첫 애니메이션, 그 뒤로는 본가로 돌아가기 전까지 마을 안에 머무름").
+  const IN_RESIDENCE_FLOW: Tab1Route[] = [
+    "residence-home",
+    "mission-list",
+    "mission-traveling",
+    "mission-execute",
+    "mission-complete",
+    "day-end-ceremony",
+  ];
+
   const handleTabChange = (next: TabKey) => {
-    // 이동 애니메이션 중에는 무시
+    // 이동 애니메이션 중에는 tab1Route 손대지 않음
     const inTransit = tab1Route === "traveling" || tab1Route === "traveling-back";
     if (next === "simulation" && !inTransit) {
-      // 강화도 등 마을에 체류 중이면 '홈'은 마을 홈(ArrivalScreen)
-      if (selected) setTab1Route("arrival");
-      else setTab1Route("home");
+      if (selected) {
+        // 레지던스 체류 중 — 이미 residence 흐름 안이면 그대로 보존.
+        // arrival(들어가기 애니메이션) 만 있는 경우는 한 번 본 것으로 간주, 마을 홈으로 점프.
+        if (!IN_RESIDENCE_FLOW.includes(tab1Route)) {
+          setTab1Route("residence-home");
+        }
+        // IN_RESIDENCE_FLOW 안에 있으면 setTab1Route 호출 X → 화면 상태 그대로 유지
+      } else {
+        // 본가 흐름 — 본가 홈으로
+        setTab1Route("home");
+      }
     }
     if (next === "journey") setTab2Route("journey");
     if (next === "discover") setTab3Route("discover");
@@ -474,6 +511,14 @@ export default function App() {
     pickedLabels?: string[]
   ) => {
     if (!activeMission || !selected) return;
+
+    // 적합도 변화량 계산을 위해 완료 전 점수 먼저 측정
+    const beforeMatch = calculateMatchV2(
+      profile.profileV2,
+      selected,
+      regionProgress[selected.id]
+    ).total;
+
     const newProgress = completeMissionFor(
       regionProgress,
       selected.id,
@@ -482,19 +527,39 @@ export default function App() {
       pickStats,
       pickedLabels
     );
-    setRegionProgress(newProgress);
-    setActiveMission(null);
 
-    // 현재 일차의 모든 미션이 끝났는지 확인 → 하루 끝 의식으로
-    const updatedRecord = newProgress[selected.id];
-    const completedSet = new Set(updatedRecord?.completedMissionIds ?? []);
+    const updatedRecord = newProgress[selected.id]!;
+    const afterMatch = calculateMatchV2(
+      profile.profileV2,
+      selected,
+      updatedRecord
+    ).total;
+
+    // 현재 일차의 모든 미션이 끝났는지 확인
+    const completedSet = new Set(updatedRecord.completedMissionIds);
     const { missionsByDay } = buildDayPlan(
       selected,
       missionsForResidence(selected.id)
     );
-    const day = updatedRecord?.currentDay ?? 1;
+    const day = updatedRecord.currentDay ?? 1;
     const dayDone = isDayComplete(missionsByDay, day, completedSet);
-    setTab1Route(dayDone ? "day-end-ceremony" : "mission-list");
+
+    // 미션 완료 결과 카드용 데이터 저장
+    setCompletionData({
+      mission: activeMission,
+      reward: activeMission.reward,
+      totalScore: updatedRecord.score,
+      fitScore: afterMatch,
+      fitScoreDelta: afterMatch - beforeMatch,
+      keyInfos: keyInfosFor(activeMission.id),
+      pickedLabels:
+        updatedRecord.pickedLabels?.[activeMission.id] ?? pickedLabels ?? [],
+      isLastMissionToday: dayDone,
+    });
+
+    setRegionProgress(newProgress);
+    setActiveMission(null);
+    setTab1Route("mission-complete");
   };
 
   // 하루 끝 의식에서 어디론가 떠날 때 — 일차 +1 후 목적지로
@@ -671,8 +736,12 @@ export default function App() {
     : null;
 
   return (
-    <div className="relative w-full max-w-[420px] min-h-screen bg-cream shadow-soft overflow-hidden">
-      <main className="min-h-screen">
+    // outer wrapper:
+    //   · overflow-x-hidden 만 — 세로 콘텐츠 자라남은 허용 (옛 overflow-hidden 은 잘림 위험)
+    //   · min-h-[100dvh] — 모바일 주소창 변화 대응
+    //   · BottomNav 는 fixed 라 wrapper 흐름 영향 X
+    <div className="relative w-full max-w-[420px] min-h-[100dvh] bg-cream shadow-soft overflow-x-hidden">
+      <main className="min-h-[100dvh]">
         {/* ===== 탭1 ===== */}
         {tab === "simulation" && tab1Route === "home" && (
           <HomeScreen
@@ -823,6 +892,9 @@ export default function App() {
         {tab === "simulation" && tab1Route === "mission-traveling" && activeMission && (
           <MissionTravelingScreen
             mission={activeMission}
+            // 미션에 좌표 없으면 현재 머무는 마을 중심 좌표로 fallback
+            // → 모든 로드뷰 미션이 실제 카카오 로드뷰로 보임
+            fallbackPosition={selected?.kakaoPosition}
             onBack={() => {
               // 이동 화면 닫고 미션 리스트로 복귀
               setActiveMission(null);
@@ -852,6 +924,27 @@ export default function App() {
             onComplete={handleMissionComplete}
           />
         )}
+
+        {/* === 미션 완료 결과 카드 === */}
+        {tab === "simulation" &&
+          tab1Route === "mission-complete" &&
+          completionData && (
+            <MissionCompleteScreen
+              mission={completionData.mission}
+              reward={completionData.reward}
+              totalScore={completionData.totalScore}
+              fitScore={completionData.fitScore}
+              fitScoreDelta={completionData.fitScoreDelta}
+              keyInfos={completionData.keyInfos}
+              pickedLabels={completionData.pickedLabels}
+              isLastMissionToday={completionData.isLastMissionToday}
+              onNext={() => {
+                const dayDone = completionData.isLastMissionToday;
+                setCompletionData(null);
+                setTab1Route(dayDone ? "day-end-ceremony" : "mission-list");
+              }}
+            />
+          )}
 
         {/* ===== 탭2 ===== */}
         {tab === "journey" && tab2Route === "journey" && (

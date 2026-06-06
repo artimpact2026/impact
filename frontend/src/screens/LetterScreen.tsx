@@ -14,6 +14,7 @@ import {
   type Letter,
   type LetterCategory,
 } from "../data/letters";
+import TabLayout from "../components/TabLayout";
 
 type Props = {
   letters: Letter[];
@@ -88,40 +89,28 @@ export default function LetterScreen({
   const openLetter = letters.find((l) => l.id === openId) ?? null;
 
   return (
-    <div className="relative min-h-[calc(100dvh-6rem)] bg-cream">
-      {/* === 헤더 === */}
-      <header className="px-5 pt-5 pb-2">
-        <p className="text-[10px] font-bold text-ink-mute tracking-[0.18em] uppercase">
-          Inbox · 편지함
-        </p>
-        <div className="flex items-baseline gap-3 mt-1">
-          <h1 className="text-[24px] font-extrabold text-ink leading-tight">
-            받은 편지
-          </h1>
-          {unread > 0 && (
-            <button
-              type="button"
-              onClick={onMarkAllRead}
-              className="ml-auto text-[11px] font-bold text-ink-mute underline underline-offset-2"
-            >
-              모두 읽음
-            </button>
-          )}
-        </div>
-        <p className="mt-1 text-[12px] text-ink-soft">
-          {unread > 0 ? (
-            <>
-              새 편지{" "}
-              <span className="text-primary font-bold">{unread}통</span>
-            </>
-          ) : (
-            "모두 확인했어요"
-          )}
-        </p>
-      </header>
-
-      {/* === 필터 칩 === */}
-      <div className="px-5 pt-2 pb-3 flex gap-1.5 overflow-x-auto no-scrollbar">
+    <TabLayout
+      preLabel="Inbox"
+      title="받은 편지"
+      subtitle={
+        unread > 0
+          ? `새 편지 ${unread}통`
+          : "모두 확인했어요"
+      }
+      rightActions={
+        unread > 0 ? (
+          <button
+            type="button"
+            onClick={onMarkAllRead}
+            className="text-[11px] font-bold text-ink-mute underline underline-offset-2"
+          >
+            모두 읽음
+          </button>
+        ) : null
+      }
+    >
+      {/* === 필터 칩 — 활성 상태 강조 (ring + scale + shadow) === */}
+      <div className="px-5 pt-2 pb-4 flex gap-2 overflow-x-auto no-scrollbar">
         {FILTERS.map((f) => {
           const active = filter === f.key;
           const count =
@@ -133,21 +122,34 @@ export default function LetterScreen({
               key={f.key}
               type="button"
               onClick={() => setFilter(f.key)}
-              className={`shrink-0 px-3 py-1.5 rounded-full text-[12px] font-extrabold transition
+              aria-pressed={active}
+              className={`shrink-0 px-4 py-2 rounded-full text-[12.5px] transition-all duration-200
+                inline-flex items-center gap-1.5
                 ${
                   active
-                    ? "bg-primary text-white shadow-soft"
-                    : "bg-white border border-cream-200 text-ink-soft"
+                    ? "bg-primary text-white font-extrabold shadow-[0_4px_12px_-2px_rgba(255,112,67,0.45)] scale-[1.03]"
+                    : "bg-white border border-cream-200 text-ink-soft font-bold hover:bg-cream-50"
                 }`}
             >
-              {f.label} {count > 0 && <span className="opacity-70">{count}</span>}
+              <span>{f.label}</span>
+              {count > 0 && (
+                <span
+                  className={`text-[11px] font-extrabold ${
+                    active
+                      ? "text-white/80"
+                      : "text-ink-mute"
+                  }`}
+                >
+                  {count}
+                </span>
+              )}
             </button>
           );
         })}
       </div>
 
-      {/* === 카드 리스트 === */}
-      <div className="px-4 pb-10 space-y-2">
+      {/* === 카드 리스트 — pb-28: floating 시뮬 원 + 안전 영역 확보 === */}
+      <div className="px-4 pb-28 space-y-2.5">
         {filtered.length === 0 ? (
           <EmptyState filter={filter} />
         ) : (
@@ -169,7 +171,7 @@ export default function LetterScreen({
         letter={openLetter}
         onClose={() => setOpenId(null)}
       />
-    </div>
+    </TabLayout>
   );
 }
 
@@ -196,47 +198,65 @@ function LetterCard({
       className={`w-full text-left rounded-2xl shadow-soft border border-cream-200
                   ${meta.cardBg} flex overflow-hidden`}
     >
-      {/* 좌측 굵은 컬러 줄 — 카테고리 시각 표시 */}
-      <span aria-hidden className={`w-1 shrink-0 ${meta.accent}`} />
+      {/* 좌측 컬러 줄 — 1.5px 로 약간 두껍게 */}
+      <span aria-hidden className={`w-[5px] shrink-0 ${meta.accent}`} />
 
-      <div className="flex-1 min-w-0 flex items-start gap-3 px-3.5 py-3">
-        {/* 아바타 */}
+      {/* === 아이콘 영역 === */}
+      <div className="shrink-0 pt-4 pb-4 pl-4 pr-3">
         <div
-          className={`w-11 h-11 rounded-full shrink-0 flex items-center justify-center
-                      text-[20px] ${meta.avatarBg} ${meta.avatarText}`}
+          className={`w-12 h-12 rounded-2xl flex items-center justify-center
+                      text-[22px] ${meta.avatarBg} ${meta.avatarText}`}
           aria-hidden
         >
           {letter.sender.emoji ?? "✉"}
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="text-ink text-[13.5px] font-extrabold truncate">
-              {letter.sender.name}
-            </p>
+      </div>
+
+      {/* === 텍스트 영역 === */}
+      <div className="flex-1 min-w-0 py-4 pr-4">
+        {/* 상단 — sender + unread dot */}
+        <div className="flex items-center gap-1.5">
+          <p className="text-ink-soft text-[11.5px] font-bold leading-none truncate">
+            {letter.sender.name}
             {letter.sender.role && (
-              <span className="text-ink-mute text-[10.5px] font-bold truncate">
-                · {letter.sender.role}
+              <span className="text-ink-mute font-bold">
+                {" · "}
+                {letter.sender.role}
               </span>
             )}
-            {!letter.read && (
-              <span
-                aria-label="안 읽음"
-                className="ml-auto w-2 h-2 rounded-full bg-primary shrink-0"
-              />
-            )}
-          </div>
-          <p
-            className={`mt-0.5 text-[13.5px] leading-tight truncate
-              ${letter.read ? "text-ink-soft font-bold" : "text-ink font-extrabold"}`}
+          </p>
+          {!letter.read && (
+            <span
+              aria-label="안 읽음"
+              className="ml-auto w-2 h-2 rounded-full bg-primary shrink-0"
+            />
+          )}
+        </div>
+
+        {/* 제목 — sender 와 줄 간격 mt-2 (8px) 확보 */}
+        <p
+          className={`mt-2 text-[14.5px] leading-snug truncate
+            ${letter.read ? "text-ink-soft font-bold" : "text-ink font-extrabold"}`}
+        >
+          {letter.title}
+        </p>
+
+        {/* 본문 미리보기 — 한 줄 truncate */}
+        <p className="mt-1 text-ink-mute text-[12px] leading-relaxed truncate">
+          {letter.preview}
+        </p>
+
+        {/* 시간 — 카테고리 칩 옆 작게 */}
+        <div className="mt-2 flex items-center gap-2">
+          <span
+            className={`px-1.5 py-0.5 rounded-md text-[9.5px] font-extrabold tracking-wide
+              ${meta.avatarBg} ${meta.avatarText}`}
           >
-            {letter.title}
-          </p>
-          <p className="mt-0.5 text-ink-mute text-[11.5px] truncate">
-            {letter.preview}
-          </p>
-          <p className="mt-1 text-ink-mute text-[10.5px]">
+            {meta.chip}
+          </span>
+          <span className="text-ink-mute text-[10.5px]">
             {relativeTime(letter.createdAt)}
-          </p>
+          </span>
         </div>
       </div>
     </motion.button>

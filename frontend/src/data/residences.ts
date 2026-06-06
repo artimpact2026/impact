@@ -38,6 +38,10 @@ export type Residence = {
   capacity?: number;        // 정원 (명)
   contactUrl?: string;      // 신청 외부 링크 (mock)
   provides?: string[];      // 제공 사항
+  // 카카오 로드뷰 fallback 좌표 — 마을 중심부.
+  // 미션 개별 kakaoPosition 이 없을 때 이 좌표를 써서 로드뷰를 띄움.
+  // (모든 map-* 미션이 좌표 없어도 실제 로드뷰가 뜨도록 보장)
+  kakaoPosition?: { lat: number; lng: number };
 };
 
 const FALLBACK_URL = "https://www.youthvillage.kr";
@@ -65,6 +69,7 @@ export const residences: Residence[] = [
     capacity: 6,
     contactUrl: FALLBACK_URL,
     provides: ["조식", "자전거", "주민 모임", "와이파이"],
+    kakaoPosition: { lat: 37.7468, lng: 126.4845 }, // 강화 읍내
   },
   {
     id: "yeongdeok",
@@ -87,6 +92,7 @@ export const residences: Residence[] = [
     capacity: 6,
     contactUrl: FALLBACK_URL,
     provides: ["조식", "트레킹 가이드", "공용공간", "와이파이"],
+    kakaoPosition: { lat: 36.4146, lng: 129.3650 }, // 영덕읍
   },
 
   // ─── 🏔 산 2 ────────────────────────────────
@@ -111,6 +117,7 @@ export const residences: Residence[] = [
     capacity: 8,
     contactUrl: FALLBACK_URL,
     provides: ["조식", "텃밭 체험", "공용공간", "주민 모임"],
+    kakaoPosition: { lat: 37.1836, lng: 128.4612 }, // 영월읍
   },
   {
     id: "muju",
@@ -133,6 +140,7 @@ export const residences: Residence[] = [
     capacity: 8,
     contactUrl: FALLBACK_URL,
     provides: ["조식", "프로그램 운영", "공용 작업실", "공동체 모임"],
+    kakaoPosition: { lat: 36.0066, lng: 127.6611 }, // 무주읍
   },
 
   // ─── 🌾 들 2 ────────────────────────────────
@@ -157,6 +165,7 @@ export const residences: Residence[] = [
     capacity: 6,
     contactUrl: FALLBACK_URL,
     provides: ["조식", "공용공간", "주민 모임", "와이파이"],
+    kakaoPosition: { lat: 36.5878, lng: 127.2400 }, // 세종 연서면
   },
   {
     id: "uiseong",
@@ -179,6 +188,7 @@ export const residences: Residence[] = [
     capacity: 4,
     contactUrl: FALLBACK_URL,
     provides: ["전용 작업실", "조식", "프린터", "와이파이"],
+    kakaoPosition: { lat: 36.3527, lng: 128.6973 }, // 의성읍
   },
 
   // ─── 🏘 도시 2 ──────────────────────────────
@@ -203,6 +213,7 @@ export const residences: Residence[] = [
     capacity: 8,
     contactUrl: FALLBACK_URL,
     provides: ["코워킹", "공용공간", "주민 모임", "와이파이"],
+    kakaoPosition: { lat: 36.6018, lng: 126.6604 }, // 홍성읍
   },
   {
     id: "daejeon",
@@ -225,6 +236,7 @@ export const residences: Residence[] = [
     capacity: 5,
     contactUrl: FALLBACK_URL,
     provides: ["전용 작업실", "공용공간", "프린터", "와이파이"],
+    kakaoPosition: { lat: 36.3258, lng: 127.4216 }, // 대전 중구 (중촌동)
   },
 ];
 

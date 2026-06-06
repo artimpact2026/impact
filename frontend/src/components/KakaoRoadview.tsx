@@ -86,7 +86,10 @@ export default function KakaoRoadview({
   }, [position.lat, position.lng, onUnavailable]);
 
   return (
-    <div className="relative h-[calc(100dvh-6rem)] flex flex-col overflow-hidden bg-black select-none">
+    <div
+      className="relative flex flex-col overflow-hidden bg-black select-none"
+      style={{ height: "calc(100dvh - var(--content-bottom))" }}
+    >
       {/* 카카오 로드뷰 캔버스 — SDK가 이 div 안에 자체 DOM을 그림 */}
       <div ref={containerRef} className="absolute inset-0" />
 

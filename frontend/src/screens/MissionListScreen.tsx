@@ -2,7 +2,6 @@
 // 헤더(Day N/Total) + 진행률(오늘) + 카테고리 4섹션(오늘 미션만)
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
 import CategoryTabs from "../components/CategoryTabs";
 import MissionCarousel from "../components/MissionCarousel";
 import MissionImageCard from "../components/MissionImageCard";
@@ -124,16 +123,18 @@ export default function MissionListScreen({
   return (
     <div
       ref={scrollRef}
-      className="relative h-[calc(100dvh-6rem)] bg-cream overflow-y-auto"
+      className="relative bg-cream overflow-y-auto"
+      style={{ height: "calc(100dvh - var(--content-bottom))" }}
     >
-      {/* 헤더 */}
-      <header className="pt-12 px-5 flex items-center gap-3">
+      {/* 헤더 — Day 정보 제거. 사용자에게 말 거는 톤 */}
+      <header className="pt-12 px-5 flex items-start gap-3">
         <button
           type="button"
           onClick={onBack}
           aria-label="마을로"
-          className="w-9 h-9 rounded-full bg-white shadow-soft
-                     flex items-center justify-center text-ink"
+          className="w-9 h-9 mt-1 rounded-full bg-white shadow-soft
+                     flex items-center justify-center text-ink shrink-0
+                     transition active:scale-95"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
             <path
@@ -146,79 +147,28 @@ export default function MissionListScreen({
           </svg>
         </button>
         <div className="flex-1 min-w-0">
-          <p className="text-ink-soft text-[11px] font-bold tracking-widest uppercase">
-            {region} · DAY {currentDay} / {dayCount}
-          </p>
-          <h1 className="text-ink text-[20px] font-extrabold leading-tight">
-            오늘 하루, 어떤 걸 해볼까요?
+          <h1 className="text-ink text-[24px] font-extrabold leading-[1.25]">
+            오늘 뭐가
+            <br />
+            제일 궁금해요?
           </h1>
+          <p className="mt-1.5 text-ink-soft text-[12.5px] leading-relaxed">
+            끌리는 카드 한 장, 톡 골라봐요
+          </p>
         </div>
       </header>
 
-      {/* 일차 진행 도트 */}
-      <div className="px-5 mt-3 flex items-center gap-1.5">
-        {Array.from({ length: dayCount }).map((_, i) => {
-          const day = i + 1;
-          const isPast = day < currentDay;
-          const isCurrent = day === currentDay;
-          return (
-            <div
-              key={day}
-              className={`h-1.5 rounded-full transition-all
-                ${
-                  isPast
-                    ? "flex-1 bg-primary"
-                    : isCurrent
-                    ? "flex-[2] bg-primary"
-                    : "flex-1 bg-cream-200"
-                }`}
-              aria-hidden
-            />
-          );
-        })}
-      </div>
-
-      {/* 오늘 진행률 + 축적 점수 + 적합도 */}
-      <section className="px-5 mt-4">
-        <div className="bg-white rounded-2xl p-3.5 shadow-soft border border-cream-200">
-          <div className="flex items-baseline justify-between">
-            <p className="text-ink text-[12px] font-bold">오늘의 진행률</p>
-            <p className="text-[12px] text-ink-mute">
-              <span className="text-primary font-extrabold">{todayDone}</span>{" "}
-              / {todayTotal} 완료
-            </p>
-          </div>
-          <div className="mt-2 h-2 rounded-full bg-cream-200 overflow-hidden">
-            <motion.div
-              className="h-full bg-gradient-to-r from-nature-300 to-primary"
-              initial={{ width: 0 }}
-              animate={{ width: `${todayPercent}%` }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
-            />
-          </div>
-          <div className="mt-2.5 flex items-center justify-between text-[11px]">
-            <span className="text-ink-mute">축적 점수</span>
-            <span className="text-primary font-extrabold tabular-nums">
-              {totalScore} 점
-            </span>
-          </div>
-          {fitScore !== 0 && (
-            <div className="mt-1 flex items-center justify-between text-[11px]">
-              <span className="text-ink-mute">적합도 누적</span>
-              <span
-                className={`font-extrabold tabular-nums ${
-                  fitScore > 0 ? "text-nature-600" : "text-[#E55A30]"
-                }`}
-              >
-                {fitScore > 0 ? "+" : ""}
-                {fitScore}
-              </span>
-            </div>
-          )}
+      {/* 작은 진행 게이지만 — Day/N/M 텍스트 등 모두 제거 */}
+      <section className="px-5 mt-5">
+        <div className="h-1.5 rounded-full bg-cream-200 overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-nature-300 to-primary"
+            style={{ width: `${todayPercent}%` }}
+          />
         </div>
       </section>
 
-      <div className="h-4" />
+      <div className="h-3" />
 
       {/* sticky 카테고리 탭 */}
       <CategoryTabs
@@ -252,17 +202,22 @@ export default function MissionListScreen({
             style={{ scrollMarginTop: 56 }}
             className="pt-6 pb-2"
           >
-            <div className="px-5 flex items-baseline justify-between">
-              <div>
-                <h2 className="text-ink text-[16px] font-extrabold">
+            <div className="px-5 flex items-end justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-extrabold text-ink-mute uppercase tracking-[0.18em]">
+                  Chapter
+                </p>
+                <h2 className="mt-0.5 text-ink text-[17px] font-extrabold leading-tight">
                   {meta.title}
                 </h2>
-                <p className="text-ink-soft text-[12px] mt-0.5">
+                <p className="text-ink-soft text-[12px] mt-1 leading-relaxed">
                   {meta.subtitle}
                 </p>
               </div>
-              <span className="text-ink-mute text-[12px] font-bold tabular-nums">
-                {items.length}개
+              <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full
+                               bg-white border border-cream-200 text-ink-soft text-[11px] font-extrabold tabular-nums shadow-soft">
+                <span aria-hidden>🃏</span>
+                {items.length}장
               </span>
             </div>
             <MissionCarousel

@@ -1,10 +1,16 @@
-// 레지던스 진입 직후 "찐 홈" — 사용자가 영월/강화도 등에 입장한 상태의 일상 홈.
-// 야매 홈(서울 본가)은 그대로 두고, 이 화면은 "지금 여기 살고 있다" 톤.
+// 레지던스 진입 직후 "찐 홈" — 시뮬레이션의 중심지.
 //
-// 톤 디자인:
-//   - 풀스크린 풍경 + 시간대(아침/오후/저녁/밤) 라벨로 "지금"이 있게.
-//   - 큰 떠나기 CTA·추상 카피 없음. 대신 "오늘 할 일" 카드 한 장.
-//   - 작은 보조 액션: 본가로 돌아가기.
+// 디자인 톤 (v2 — 감성 여행 몰입):
+//   · 풀블리드 풍경 + 상하 그라데이션 마스크 → "지금 여기" 분위기 우선
+//   · 작은 메타("DAY 4 / 6") 제거 → 일차는 상단 도트 인디케이터로만 표현
+//   · 메인 타이틀은 중앙 상단의 큰 감성 헤드라인: "영월에서의 / 4일째 밤"
+//   · 환영문구 한 문장 — "{닉}님, 지금 {지역}의 {시간대}을 여행 중이에요"
+//   · 하단은 단 하나의 글래스 카드 — '오늘의 주요 일정' (진행률 텍스트 노출 X)
+//   · 본가로 돌아가기는 헤더 좌측 back 버튼으로 흡수 → 본문 정보 다이어트
+//
+// 레이아웃:
+//   · min-h-[100dvh] + paddingBottom: var(--content-bottom)
+//     → 하단 floating 시뮬레이션 버튼/탭바와 절대 겹치지 않음
 
 import { motion } from "framer-motion";
 import type { Residence } from "../data/residences";
@@ -15,7 +21,6 @@ type Props = {
   homeRegion: string;
   currentDay: number;
   dayCount: number;
-  // 오늘 일차의 미션 총 개수 + 완료 개수
   todayMissionCount: number;
   todayMissionDoneCount: number;
   onGoMissionList: () => void;
@@ -28,7 +33,6 @@ const HOME_BG_IMAGE: Record<string, string> = {
   yeongwol: "/home_yeongwol.png",
 };
 
-// 시간대 — 카피·라벨용
 type TimeOfDay = "아침" | "오후" | "저녁" | "밤";
 function pickTimeOfDay(): TimeOfDay {
   const h = new Date().getHours();
@@ -38,17 +42,12 @@ function pickTimeOfDay(): TimeOfDay {
   return "밤";
 }
 
-function greeting(region: string, tod: TimeOfDay): string {
-  switch (tod) {
-    case "아침":
-      return `${region}의 아침이에요`;
-    case "오후":
-      return `${region}의 오후, 한가운데에 있어요`;
-    case "저녁":
-      return `${region}의 저녁이 내려와요`;
-    case "밤":
-      return `${region}의 밤, 잠시 쉬어가요`;
-  }
+// "을/를" 자동 — 마지막 음절 받침 유무로 결정
+function objParticle(word: string): "을" | "를" {
+  const last = word.charCodeAt(word.length - 1);
+  if (last < 0xac00 || last > 0xd7a3) return "를";
+  const jong = (last - 0xac00) % 28;
+  return jong === 0 ? "를" : "을";
 }
 
 export default function ResidenceHomeScreen({
@@ -65,14 +64,16 @@ export default function ResidenceHomeScreen({
   const bgImage = HOME_BG_IMAGE[residence.id];
   const tod = pickTimeOfDay();
   const remaining = Math.max(0, todayMissionCount - todayMissionDoneCount);
+  const allDone = todayMissionCount > 0 && remaining === 0;
+  const todPart = objParticle(tod);
 
   return (
-    <div className="relative min-h-[calc(100dvh-6rem)] flex flex-col overflow-hidden">
-      {/* 배경 — 풍경 사진 또는 그라데이션 폴백 */}
+    <div className="relative min-h-[100dvh] overflow-hidden">
+      {/* ===== 풀블리드 배경 — 100dvh 전체 (floating 버튼 뒤까지 이어짐) ===== */}
       <div
-        className="absolute inset-0
-                   bg-[linear-gradient(to_bottom,#BDE7FF_0%,#FFF6E8_45%,#F6EAD8_100%)]"
         aria-hidden
+        className="absolute inset-0
+                   bg-[linear-gradient(to_bottom,#1B2545_0%,#3B4566_45%,#574438_100%)]"
       />
       {bgImage && (
         <img
@@ -82,86 +83,141 @@ export default function ResidenceHomeScreen({
           className="absolute inset-0 w-full h-full object-cover"
         />
       )}
-      {/* 하단 가독성 마스크 — 카드 영역 위에 살짝 어둡게 */}
+      {/* 상하 가독성 마스크 — 텍스트 영역 안정적으로 어둡게 */}
       <div
-        className="absolute inset-x-0 bottom-0 h-[55%]
-                   bg-gradient-to-t from-[#3E2C20]/45 via-[#3E2C20]/12 to-transparent
-                   pointer-events-none"
         aria-hidden
+        className="absolute inset-0 pointer-events-none
+                   bg-gradient-to-b from-black/40 via-black/10 to-black/50"
       />
 
-      {/* 상단 작은 라벨 — Day · 시간대 · 지역 */}
-      <header className="relative pt-12 px-6">
-        <p className="text-white/95 text-[11px] font-extrabold tracking-[0.18em] uppercase
-                      drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]">
-          {tod} · Day {currentDay} / {dayCount}
-        </p>
-        <h1 className="mt-1.5 text-white text-[22px] font-extrabold leading-snug
-                       drop-shadow-[0_2px_6px_rgba(0,0,0,0.35)]">
-          {nickname}님, {greeting(residence.region, tod)}
-        </h1>
-      </header>
-
-      {/* 본문 — 배경이 보이도록 비움 */}
-      <div className="flex-1" />
-
-      {/* 하단 — 오늘 할 일 카드 + 본가로 돌아가기 작은 액션 */}
-      <div className="relative z-10 px-4 pb-6 space-y-2.5">
-        <motion.button
-          type="button"
-          onClick={onGoMissionList}
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
-          whileTap={{ scale: 0.99 }}
-          className="w-full rounded-3xl bg-white/95 backdrop-blur
-                     border border-cream-200 shadow-soft
-                     p-4 flex items-center gap-3 text-left transition"
-        >
-          <span
-            aria-hidden
-            className="w-12 h-12 rounded-2xl bg-primary-50
-                       flex items-center justify-center text-2xl shrink-0"
-          >
-            🗺
-          </span>
-          <div className="flex-1 min-w-0">
-            <p className="text-[10.5px] font-bold text-primary uppercase tracking-widest">
-              오늘 할 일
-            </p>
-            <p className="mt-0.5 text-ink text-[15px] font-extrabold">
-              {todayMissionCount === 0
-                ? "오늘 일정은 비어있어요"
-                : remaining === 0
-                ? `오늘 할 일 ${todayMissionCount}개 다 마쳤어요`
-                : `오늘 ${remaining}개 더 둘러볼 수 있어요`}
-            </p>
-            <p className="mt-0.5 text-ink-mute text-[11.5px]">
-              {todayMissionDoneCount}/{todayMissionCount} 완료
-            </p>
-          </div>
-          <span aria-hidden className="text-ink-mute text-[16px] shrink-0">
-            ›
-          </span>
-        </motion.button>
-
-        {/* 본가로 돌아가기 — 가운데 작은 텍스트 버튼 */}
-        <div className="flex justify-center pt-1">
+      {/* ===== 콘텐츠 — paddingBottom 으로 nav/floating 버튼 클리어런스 보장 ===== */}
+      <div
+        className="relative z-10 flex flex-col min-h-[100dvh] px-7"
+        style={{ paddingBottom: "var(--content-bottom)" }}
+      >
+        {/* ── 헤더 — 작은 인디케이터 두 개 (왼: 본가 / 오: 일차 도트) ────── */}
+        <header className="pt-12 flex items-center justify-between">
           <motion.button
             type="button"
             onClick={onReturnHome}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            whileTap={{ scale: 0.97 }}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full
-                       bg-white/80 backdrop-blur border border-white/70
-                       text-[#7A6254] text-[12px] font-bold shadow-soft"
+            aria-label={`${homeRegion}로 돌아가기`}
+            initial={{ opacity: 0, x: -4 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2, duration: 0.4 }}
+            whileTap={{ scale: 0.94 }}
+            className="w-10 h-10 rounded-full
+                       bg-white/15 backdrop-blur-md border border-white/25
+                       flex items-center justify-center
+                       text-white text-[16px] font-bold
+                       shadow-[0_4px_12px_-2px_rgba(0,0,0,0.25)]"
           >
-            <span aria-hidden>←</span>
-            {homeRegion}로 돌아가기
+            ←
           </motion.button>
-        </div>
+
+          {/* 일차 도트 — 활성 일차만 길쭉. dayCount 만큼만 표시 */}
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25, duration: 0.4 }}
+            className="flex items-center gap-1.5"
+            role="status"
+            aria-label={`총 ${dayCount}일 중 ${currentDay}일째`}
+          >
+            {Array.from({ length: dayCount }).map((_, i) => {
+              const day = i + 1;
+              const past = day < currentDay;
+              const now = day === currentDay;
+              return (
+                <span
+                  key={day}
+                  aria-hidden
+                  className={`h-1 rounded-full transition-all duration-300
+                    ${
+                      now
+                        ? "w-6 bg-white"
+                        : past
+                        ? "w-1.5 bg-white/70"
+                        : "w-1.5 bg-white/25"
+                    }`}
+                />
+              );
+            })}
+          </motion.div>
+        </header>
+
+        {/* ── 메인 — 중앙 상단 감성 헤드라인 ───────────────────────── */}
+        <motion.section
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: "easeOut", delay: 0.1 }}
+          className="mt-16 text-center"
+        >
+          <h1
+            className="text-white font-extrabold leading-[1.05] tracking-[-0.02em]
+                       drop-shadow-[0_4px_14px_rgba(0,0,0,0.4)]"
+          >
+            <span className="block text-[22px] font-bold opacity-80">
+              {residence.region}에서의
+            </span>
+            <span className="block mt-2.5 text-[54px]">
+              {currentDay}일째 {tod}
+            </span>
+          </h1>
+
+          {/* 환영 문구 — 두 줄 부제 */}
+          <p
+            className="mt-8 text-white/90 text-[14.5px] leading-[1.75]
+                       drop-shadow-[0_2px_6px_rgba(0,0,0,0.35)]"
+          >
+            <span className="font-extrabold">{nickname}</span>님, 지금
+            <br />
+            {residence.region}의 {tod}
+            {todPart} 여행 중이에요
+          </p>
+        </motion.section>
+
+        {/* 본문은 비워둠 — 풍경이 호흡하는 공간 */}
+        <div className="flex-1" />
+
+        {/* ── 오늘의 주요 일정 — 글래스모피즘 카드 한 장 ──────────────── */}
+        <motion.button
+          type="button"
+          onClick={onGoMissionList}
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, delay: 0.35 }}
+          whileTap={{ scale: 0.98 }}
+          className="w-full rounded-[28px] text-left
+                     bg-white/[0.14] backdrop-blur-2xl
+                     border border-white/25
+                     px-5 py-4 flex items-center gap-4
+                     shadow-[0_12px_30px_-8px_rgba(0,0,0,0.35)]
+                     transition active:bg-white/20"
+        >
+          <div className="flex-1 min-w-0">
+            <p className="text-white/70 text-[10px] font-extrabold tracking-[0.24em] uppercase">
+              Today's plan
+            </p>
+            <p className="mt-1.5 text-white text-[16px] font-extrabold leading-tight">
+              오늘의 주요 일정
+            </p>
+            <p className="mt-1 text-white/75 text-[11.5px] leading-relaxed">
+              {todayMissionCount === 0
+                ? "오늘은 비워둔 하루예요"
+                : allDone
+                ? "오늘의 일정 모두 마쳤어요 ✓"
+                : `${todayMissionCount}개의 만남이 기다려요`}
+            </p>
+          </div>
+          <span
+            aria-hidden
+            className="w-10 h-10 rounded-full bg-white/20 backdrop-blur
+                       border border-white/30
+                       flex items-center justify-center text-white text-[16px]"
+          >
+            →
+          </span>
+        </motion.button>
       </div>
     </div>
   );

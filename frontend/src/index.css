@@ -12,12 +12,39 @@ body,
 }
 
 body {
-  /* Tailwind `cream` 토큰(#FFF8F0)과 일치 — 화면 wrapper와 동일하게 보이도록 */
-  background: #fff8f0;
+  /* 거의 흰빛 아이보리 — 한 단계 더 밝게 */
+  background: #fffcf7;
   color: #3e2c20;
   font-family: Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/* =====================================================================
+   하단 탭 레이아웃 변수 — BottomNav 와 모든 페이지에서 단일 출처로 참조
+   ---------------------------------------------------------------------
+   --nav-h         : nav 안쪽 콘텐츠 높이 (BottomNav h-[68px] 와 일치)
+   --nav-overhang  : 중앙 '시뮬레이션' 버튼이 nav 위로 돌출되는 길이 (-top-7 = 28px)
+   --safe-b        : iOS 노치/홈바 safe-area
+   --nav-safe-b    : nav 가 차지하는 실제 세로 공간 (nav + safe-area)
+   --content-bottom: 페이지 콘텐츠가 비워둬야 할 하단 여백 (nav + 돌출 + safe-area)
+                     → 스크롤 끝이 돌출 버튼 위까지 올라와도 마지막 항목이 가려지지 않음
+   ===================================================================== */
+:root {
+  --nav-h: 68px;
+  --nav-overhang: 28px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --nav-safe-b: calc(var(--nav-h) + var(--safe-b));
+  --content-bottom: calc(var(--nav-h) + var(--nav-overhang) + var(--safe-b));
+
+  /* 중앙 시뮬레이션 버튼 — nav 와 논리적으로 분리, viewport 기준 fixed 로 띄움.
+     크기(64px) + nav 위로 돌출 길이(28px) 로 nav 안쪽까지 자연스럽게 박혀 보이게.
+     수식: bottom = safe-b + nav-h + overhang - btn-size
+           = safe-b + 68 + 28 - 64 = safe-b + 32 */
+  --center-btn-size: 64px;
+  --center-btn-bottom: calc(
+    var(--safe-b) + var(--nav-h) + var(--nav-overhang) - var(--center-btn-size)
+  );
 }
 
 /* 데스크톱 브라우저에서도 모바일 프레임으로 미리보기 */

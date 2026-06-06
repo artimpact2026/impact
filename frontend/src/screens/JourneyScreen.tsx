@@ -21,6 +21,7 @@ import {
 } from "../data/dayPlan";
 import { type LifestyleProfile } from "../data/lifestyle";
 import HouseStage from "../components/HouseStage";
+import { TabHeader } from "../components/TabLayout";
 
 type ViewMode = "score" | "match";
 
@@ -82,106 +83,162 @@ export default function JourneyScreen({
   }, [visitedSorted, selectedSpaceId]);
 
   return (
-    <div className="relative h-[calc(100dvh-6rem)] flex flex-col
-                    bg-cream">
-      {/* 스크롤 영역 — 바텀시트가 root에 absolute로 붙도록 스크롤은 내부 div에만 */}
-      <div className="flex-1 min-h-0 overflow-y-auto pb-8">
-      {/* 페이지 제목 — 작게. 프로필과 시각적으로 구분 */}
-      <header className="px-5 pt-5 pb-1">
-        <p className="text-[10px] font-bold text-ink-mute tracking-[0.18em] uppercase">
-          Travel · 쌓인 시간
-        </p>
-      </header>
+    // 외곽: TabLayout 가 못 쓰는 구조(바텀시트 absolute) → height 직접 계산
+    <div
+      className="relative flex flex-col bg-cream"
+      style={{ height: "calc(100dvh - var(--content-bottom))" }}
+    >
+      {/* 스크롤 영역 — pb 는 안쪽 마지막 섹션의 호흡 공간만 (nav clearance 는 height 에서 처리) */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        {/* 페이지 헤더 — TabLayout 과 동일 톤 (px-5 pt-6 pb-3 + 10px label + 24px title) */}
+        <TabHeader preLabel="Travel" title="쌓인 시간" />
 
-      {/* ① 나의 공간 — full-bleed 풍경 */}
-      <section className="mt-3">
-        <MyVillageScene
-          residence={activeSpaceResidence}
-          record={
-            activeSpaceResidence
-              ? regionProgress[activeSpaceResidence.id]
-              : undefined
-          }
-          visitedSorted={visitedSorted}
-          onSelect={setSelectedSpaceId}
-        />
-      </section>
-
-      {/* 토글 — 점수/적합도 보기 (지도와 한 묶음) */}
-      <div className="px-4 mt-5 flex items-center justify-between">
-        <span className="text-[11px] text-ink-soft">마커는 보기 모드에 따라 크기가 달라져요</span>
-        <div className="flex bg-white border border-cream-200 rounded-full p-0.5 shadow-soft">
-          <ToggleBtn
-            label="축적 점수"
-            active={view === "score"}
-            onClick={() => setView("score")}
-          />
-          <ToggleBtn
-            label="적합도"
-            active={view === "match"}
-            onClick={() => setView("match")}
-          />
-        </div>
-      </div>
-
-      {/* ③ 한반도 아트지도 — 다녀온 지역만 마커. 누적될수록 흔적이 풍성해짐. */}
-      <section className="px-3 mt-3 flex items-start justify-center">
-        <div className="w-full max-w-[320px]">
-          <KoreaMap>
-            {/* 다녀온 지역 사이의 점선 동선 — 2곳 이상일 때 */}
-            {visitedSorted.length >= 2 && (
-              <JourneyPath residences={visitedSorted} />
-            )}
-            {/* 다녀온 지역마다 흩뿌려진 작은 흔적(꽃잎·점). visitCount + score 비례. */}
-            {visitedSorted.map((r) => (
-              <ArtTraces
-                key={`traces-${r.id}`}
-                residence={r}
-                record={regionProgress[r.id]}
-              />
-            ))}
-            {/* 마커 — 다녀온 곳만 */}
-            {visitedSorted.map((r) => (
-              <JourneyMarker
-                key={r.id}
-                residence={r}
-                record={regionProgress[r.id]}
-                view={view}
-                lifestyle={lifestyle}
-                isActive={selectedId === r.id}
-                onClick={() => setSelectedId(r.id)}
-              />
-            ))}
-            {/* 빈 지도일 때 안내 — 가운데에 부드럽게 */}
-            {visitedSorted.length === 0 && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <p className="text-ink-mute text-[12px] font-bold bg-white/80 backdrop-blur px-3 py-1.5 rounded-full shadow-soft">
-                  떠난 곳이 여기에 한 점씩 자리잡아요
-                </p>
-              </div>
-            )}
-          </KoreaMap>
-        </div>
-      </section>
-
-      {/* ④ 이주 리포트 카드 — 리포트 생성된 지역만 노출, 여러 곳이면 쌓아서 표시.
-          아직 어디도 다녀오지 않았으면 EmptyState, 다녀왔지만 리포트 미생성이면 잠금 카드. */}
-      <section className="px-4 mt-4 space-y-2">
-        {!hasAnyVisit ? (
-          <EmptyState />
-        ) : reportResidences.length === 0 ? (
-          <LockedReportCard />
-        ) : (
-          reportResidences.map((r) => (
-            <TopRegionCard
-              key={r.id}
-              residence={r}
-              record={regionProgress[r.id]}
-              lifestyle={lifestyle}
+        {/* === Section rhythm — 모든 메이저 섹션 24px 간격 (mt-6) === */}
+        <div className="pb-8">
+          {/* ① 나의 공간 — full-bleed 풍경 */}
+          <section className="mt-2">
+            <MyVillageScene
+              residence={activeSpaceResidence}
+              record={
+                activeSpaceResidence
+                  ? regionProgress[activeSpaceResidence.id]
+                  : undefined
+              }
+              visitedSorted={visitedSorted}
+              onSelect={setSelectedSpaceId}
             />
-          ))
-        )}
-      </section>
+          </section>
+
+          {/* ② 지도 카드 — 토글 + 한반도 + 범례를 한 카드로 묶어 일체감 ↑ */}
+          <section className="mt-6 px-4">
+            {/* 섹션 헤더 — flex L/R 정렬 */}
+            <header className="flex items-end justify-between px-1 mb-2">
+              <div>
+                <p className="text-[10px] font-extrabold text-ink-mute uppercase tracking-[0.18em]">
+                  Map
+                </p>
+                <h3 className="mt-0.5 text-ink text-[15px] font-extrabold">
+                  다녀온 지도
+                </h3>
+              </div>
+              <p className="text-[10.5px] text-ink-mute leading-tight max-w-[140px] text-right">
+                보기 모드에 따라
+                <br />
+                마커 크기·색이 달라져요
+              </p>
+            </header>
+
+            {/* 카드 컨테이너 */}
+            <div className="bg-white border border-cream-200 rounded-3xl shadow-soft overflow-hidden">
+              {/* === 토글 — segmented control, 카드 상단 풀너비 grid === */}
+              <div
+                role="tablist"
+                aria-label="지도 보기 모드"
+                className="p-1.5 grid grid-cols-2 gap-1 bg-cream-50 border-b border-cream-100"
+              >
+                <ToggleBtn
+                  label="축적 점수"
+                  sub={view === "score" ? "주황" : undefined}
+                  active={view === "score"}
+                  onClick={() => setView("score")}
+                />
+                <ToggleBtn
+                  label="적합도"
+                  sub={view === "match" ? "초록" : undefined}
+                  active={view === "match"}
+                  onClick={() => setView("match")}
+                />
+              </div>
+
+              {/* 지도 본체 */}
+              <div className="flex items-start justify-center px-3 pt-3 pb-2">
+                <div className="w-full max-w-[320px]">
+                  <KoreaMap>
+                    {visitedSorted.length >= 2 && (
+                      <JourneyPath residences={visitedSorted} />
+                    )}
+                    {visitedSorted.map((r) => (
+                      <ArtTraces
+                        key={`traces-${r.id}`}
+                        residence={r}
+                        record={regionProgress[r.id]}
+                      />
+                    ))}
+                    {visitedSorted.map((r) => (
+                      <JourneyMarker
+                        key={r.id}
+                        residence={r}
+                        record={regionProgress[r.id]}
+                        view={view}
+                        lifestyle={lifestyle}
+                        isActive={selectedId === r.id}
+                        onClick={() => setSelectedId(r.id)}
+                      />
+                    ))}
+                    {visitedSorted.length === 0 && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <p className="text-ink-mute text-[12px] font-bold bg-white/80 backdrop-blur px-3 py-1.5 rounded-full shadow-soft">
+                          떠난 곳이 여기에 한 점씩 자리잡아요
+                        </p>
+                      </div>
+                    )}
+                  </KoreaMap>
+                </div>
+              </div>
+
+              {/* 범례 — flex L / gradient / R */}
+              <div className="px-4 pb-3 pt-1 flex items-center gap-2 text-[10px] font-bold">
+                <span className="text-ink-mute">낮음</span>
+                <span
+                  aria-hidden
+                  className="flex-1 h-1.5 rounded-full"
+                  style={{
+                    background:
+                      view === "score"
+                        ? "linear-gradient(to right, #FFE4D5, #FF7043)"
+                        : "linear-gradient(to right, #DDEFDD, #66BB6A)",
+                  }}
+                />
+                <span className="text-ink-mute">높음</span>
+              </div>
+            </div>
+          </section>
+
+          {/* ③ 이주 리포트 카드 */}
+          <section className="mt-6 px-4">
+            <header className="flex items-baseline justify-between px-1 mb-2">
+              <div>
+                <p className="text-[10px] font-extrabold text-ink-mute uppercase tracking-[0.18em]">
+                  Report
+                </p>
+                <h3 className="mt-0.5 text-ink text-[15px] font-extrabold">
+                  이주 리포트
+                </h3>
+              </div>
+              {reportResidences.length > 0 && (
+                <span className="text-[11px] text-primary font-extrabold">
+                  {reportResidences.length}개
+                </span>
+              )}
+            </header>
+            <div className="space-y-2">
+              {!hasAnyVisit ? (
+                <EmptyState />
+              ) : reportResidences.length === 0 ? (
+                <LockedReportCard />
+              ) : (
+                reportResidences.map((r) => (
+                  <TopRegionCard
+                    key={r.id}
+                    residence={r}
+                    record={regionProgress[r.id]}
+                    lifestyle={lifestyle}
+                  />
+                ))
+              )}
+            </div>
+          </section>
+        </div>
       </div>
 
       {/* 바텀시트 — 스크롤 영역 바깥. root 기준 absolute라 viewport 하단 고정 */}
@@ -561,10 +618,13 @@ function LockedReportCard() {
 
 function ToggleBtn({
   label,
+  sub,
   active,
   onClick,
 }: {
   label: string;
+  // 선택 상태일 때 라벨 뒤에 작게 붙는 보조 텍스트 (옵션)
+  sub?: string;
   active: boolean;
   onClick: () => void;
 }) {
@@ -572,11 +632,24 @@ function ToggleBtn({
     <button
       type="button"
       onClick={onClick}
-      className={`px-3 py-1.5 rounded-full text-[11px] font-extrabold transition
-        ${active ? "bg-primary text-white shadow-soft" : "text-ink-soft"}`}
-      aria-pressed={active}
+      role="tab"
+      aria-selected={active}
+      // segmented control — 비활성은 투명(컨테이너 회색 노출),
+      // 활성은 흰 알약 + 색 텍스트 + ring + shadow 로 강한 대조
+      className={`relative py-2.5 rounded-full text-[13px] font-extrabold transition-all duration-200
+        inline-flex items-center justify-center gap-1
+        ${
+          active
+            ? "bg-white text-primary shadow-[0_2px_8px_-2px_rgba(255,112,67,0.35)] ring-1 ring-primary/25"
+            : "bg-transparent text-ink-mute hover:text-ink-soft"
+        }`}
     >
-      {label}
+      <span>{label}</span>
+      {sub && active && (
+        <span aria-hidden className="text-[10px] font-bold opacity-60">
+          · {sub}
+        </span>
+      )}
     </button>
   );
 }

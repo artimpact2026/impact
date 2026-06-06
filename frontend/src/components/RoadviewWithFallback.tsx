@@ -52,7 +52,10 @@ export default function RoadviewWithFallback({
   // ── 폴백 분기 2: 사진도 없을 때 안내 화면 ──────
   if (fellBack) {
     return (
-      <div className="relative h-[calc(100dvh-6rem)] flex flex-col items-center justify-center bg-black px-8 text-center">
+      <div
+        className="relative flex flex-col items-center justify-center bg-black px-8 text-center"
+        style={{ height: "calc(100dvh - var(--content-bottom))" }}
+      >
         <p className="text-white text-[14px] font-bold">
           이 지점의 로드뷰가 아직 준비되지 않았어요
         </p>

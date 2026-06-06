@@ -41,7 +41,10 @@ export default function MiniRoadview({
   };
 
   return (
-    <div className="relative h-[calc(100dvh-6rem)] flex flex-col overflow-hidden bg-black select-none">
+    <div
+      className="relative flex flex-col overflow-hidden bg-black select-none"
+      style={{ height: "calc(100dvh - var(--content-bottom))" }}
+    >
       {/* 사진 — 페이드 + 줌인으로 걷는 느낌 */}
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
