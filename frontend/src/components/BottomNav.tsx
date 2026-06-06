@@ -15,6 +15,8 @@ export type TabKey =
 type Props = {
   active: TabKey;
   onChange: (tab: TabKey) => void;
+  // 편지 탭 unread 배지 — 0이면 미노출
+  letterUnread?: number;
 };
 
 // "booking" 같은 hidden 탭이 active일 때 시각적으로 어느 탭을 강조할지
@@ -23,7 +25,7 @@ function visibleActive(active: TabKey): TabKey {
   return active;
 }
 
-export default function BottomNav({ active, onChange }: Props) {
+export default function BottomNav({ active, onChange, letterUnread = 0 }: Props) {
   const vActive = visibleActive(active);
   return (
     <nav
@@ -56,7 +58,22 @@ export default function BottomNav({ active, onChange }: Props) {
         label="편지"
         isActive={vActive === "letter"}
         onClick={() => onChange("letter")}
-        icon={<LetterIcon active={vActive === "letter"} />}
+        icon={
+          <span className="relative inline-block">
+            <LetterIcon active={vActive === "letter"} />
+            {letterUnread > 0 && (
+              <span
+                aria-label={`안 읽은 편지 ${letterUnread}통`}
+                className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full
+                           bg-primary text-white text-[9.5px] font-extrabold
+                           flex items-center justify-center
+                           border-[1.5px] border-white shadow-soft"
+              >
+                {letterUnread > 9 ? "9+" : letterUnread}
+              </span>
+            )}
+          </span>
+        }
       />
       <TabButton
         label="내 정보"

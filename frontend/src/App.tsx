@@ -18,6 +18,19 @@ import ResidenceDetailScreen from "./screens/ResidenceDetailScreen";
 import SettingsScreen from "./screens/SettingsScreen";
 import DiscoverScreen, { type DiscoverSubTab } from "./screens/DiscoverScreen";
 import ProfileScreen from "./screens/ProfileScreen";
+import LetterScreen from "./screens/LetterScreen";
+import {
+  getInitialLetters,
+  loadLetters,
+  makeArrivalLetter,
+  makeBookingConfirmedLetter,
+  makeDayCompleteLetter,
+  makeNextDayLetter,
+  makeReportLetter,
+  saveLetters,
+  unreadCount,
+  type Letter,
+} from "./data/letters";
 import BookingScreen from "./screens/BookingScreen";
 import BookingDetailScreen from "./screens/BookingDetailScreen";
 import BookingFormScreen from "./screens/BookingFormScreen";
@@ -101,6 +114,7 @@ type Tab4Route = "booking" | "booking-detail" | "booking-form" | "booking-done";
 const PROFILE_KEY = "cheongpung.onboarding.v1";
 const PROGRESS_KEY = "cheongpung.progress.v1";
 const LIKED_KEY = "cheongpung.bookingLiked.v1";
+const LETTERS_KEY = "cheongpung.letters.v1"; // letters.ts와 동일 키 — reset에서 함께 제거
 
 type SavedProfile = {
   homeRegionName: string;
@@ -170,6 +184,11 @@ export default function App() {
   const [tab3Route, setTab3Route] = useState<Tab3Route>("discover");
   // 발견 탭 내부 서브 토글 — 이야기 / 청년마을
   const [discoverSubTab, setDiscoverSubTab] = useState<DiscoverSubTab>("stories");
+  // 편지함 — localStorage 영속. 첫 진입자는 환영 편지 시드.
+  const [letters, setLetters] = useState<Letter[]>(() => {
+    const saved = loadLetters();
+    return saved.length > 0 ? saved : getInitialLetters();
+  });
   const [tab4Route, setTab4Route] = useState<Tab4Route>("booking");
   const [selected, setSelected] = useState<Residence | null>(null);
   const [activeMission, setActiveMission] = useState<Mission | null>(null);
@@ -203,6 +222,16 @@ export default function App() {
     saveLiked(bookingLiked);
   }, [bookingLiked]);
 
+  // 편지함 localStorage 영속
+  useEffect(() => {
+    saveLetters(letters);
+  }, [letters]);
+
+  // 편지 추가 헬퍼 — 중복 트리거(같은 trigger + residence) 가벼운 방지
+  const addLetter = (letter: Letter) => {
+    setLetters((prev) => [letter, ...prev]);
+  };
+
   // 진행 상태 localStorage 영속
   useEffect(() => {
     saveProgress(regionProgress);
@@ -216,6 +245,8 @@ export default function App() {
         localStorage.removeItem(PROFILE_KEY);
         localStorage.removeItem(PROGRESS_KEY);
         localStorage.removeItem(LIKED_KEY);
+        localStorage.removeItem(LETTERS_KEY);
+        setLetters(getInitialLetters());
         setProfile(null);
         setSelected(null);
         setTab1Route("home");
@@ -475,6 +506,11 @@ export default function App() {
     );
     const cur = currentRecord?.currentDay ?? 1;
     if (cur < dayCount) {
+      // 일차 완료 편지 (방금 마친 cur일) + 다음 일차 안부 편지 (cur+1) 두 통.
+      const doneCount =
+        (currentRecord?.completedMissionIds.length ?? 0);
+      addLetter(makeDayCompleteLetter(selected, cur, doneCount));
+      addLetter(makeNextDayLetter(selected, cur + 1));
       setRegionProgress((p) => advanceDay(p, selected.id, dayCount));
     }
     then();
@@ -523,6 +559,8 @@ export default function App() {
           profile?.lifestyle ?? null
         );
         setRegionProgress((p) => saveReport(p, residence.id, report!));
+        // 이주 리포트 처음 생성될 때 — "먼저 온 이주자" 회고 편지 도착
+        addLetter(makeReportLetter(residence));
       }
       setCinematicResidenceId(residence.id);
     } finally {
@@ -693,7 +731,15 @@ export default function App() {
             residence={selected}
             homeRegion={homeRegion}
             onReturnHome={() => setTab1Route("traveling-back")}
-            onStartMissions={() => setTab1Route("residence-home")}
+            onStartMissions={() => {
+              // 레지던스 진입 시 — 그 지역의 환영 편지가 도착 (한 번만)
+              const already = letters.some(
+                (l) =>
+                  l.trigger === "arrival" && l.residenceId === selected.id
+              );
+              if (!already) addLetter(makeArrivalLetter(selected));
+              setTab1Route("residence-home");
+            }}
           />
         )}
 
@@ -894,15 +940,19 @@ export default function App() {
           />
         )}
 
-        {/* === 편지 탭 (placeholder) === */}
+        {/* === 편지 탭 === */}
         {tab === "letter" && (
-          <div className="min-h-[calc(100dvh-6rem)] flex flex-col items-center justify-center px-6 text-center">
-            <p className="text-5xl" aria-hidden>📮</p>
-            <h2 className="mt-4 text-ink text-[18px] font-extrabold">편지함</h2>
-            <p className="mt-1 text-ink-soft text-[13px] leading-relaxed">
-              마을 주민들의 편지가 모이는 곳이에요.<br />곧 만나요.
-            </p>
-          </div>
+          <LetterScreen
+            letters={letters}
+            onMarkRead={(id) =>
+              setLetters((prev) =>
+                prev.map((l) => (l.id === id ? { ...l, read: true } : l))
+              )
+            }
+            onMarkAllRead={() =>
+              setLetters((prev) => prev.map((l) => ({ ...l, read: true })))
+            }
+          />
         )}
 
         {/* === 내 정보 탭 — 정체성 + 좋아요 청년마을 + 설정 === */}
@@ -989,6 +1039,14 @@ export default function App() {
                 onSubmit={(draft) => {
                   setBookingDraft(draft);
                   setTab4Route("booking-done");
+                  // 예약 확정 알림 편지 도착
+                  addLetter(
+                    makeBookingConfirmedLetter(
+                      r,
+                      draft.startDate,
+                      draft.durationMonths
+                    )
+                  );
                 }}
               />
             );
@@ -1026,7 +1084,11 @@ export default function App() {
           })()}
       </main>
 
-      <BottomNav active={tab} onChange={handleTabChange} />
+      <BottomNav
+        active={tab}
+        onChange={handleTabChange}
+        letterUnread={unreadCount(letters)}
+      />
 
       {/* 우편함 미션 모달 — 미션 리스트에서 우편함 카드 누른 경우 */}
       <MailboxModal
