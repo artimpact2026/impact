@@ -84,7 +84,7 @@ export default function DepartureScreen({
   // 결과는 최대 3곳만 (환경 일치하는 곳을 메인으로)
   const recommended = useMemo(() => {
     const base = residences.filter((r) => r.recommended);
-    if (!profile) return base.slice(0, 3);
+    if (!profile) return base.slice(0, 2);
 
     const score = (r: Residence) =>
       matchResidenceScore(profile, {
@@ -109,7 +109,7 @@ export default function DepartureScreen({
       .sort((a, b) => score(b) - score(a));
 
     // 환경 일치를 우선으로 채우고, 모자라면 자세 fallback. 최대 3개.
-    return [...envMatched, ...stanceFallback].slice(0, 3);
+    return [...envMatched, ...stanceFallback].slice(0, 2);
   }, [profile]);
 
   // 가장 추천 — 정렬 결과 첫 번째 (점수 >= 30일 때만)

@@ -124,11 +124,24 @@ export default function JourneyScreen({
         </div>
       </div>
 
-      {/* ③ 한반도 아트지도 */}
+      {/* ③ 한반도 아트지도 — 다녀온 지역만 마커. 누적될수록 흔적이 풍성해짐. */}
       <section className="px-3 mt-3 flex items-start justify-center">
         <div className="w-full max-w-[320px]">
           <KoreaMap>
-            {residences.map((r) => (
+            {/* 다녀온 지역 사이의 점선 동선 — 2곳 이상일 때 */}
+            {visitedSorted.length >= 2 && (
+              <JourneyPath residences={visitedSorted} />
+            )}
+            {/* 다녀온 지역마다 흩뿌려진 작은 흔적(꽃잎·점). visitCount + score 비례. */}
+            {visitedSorted.map((r) => (
+              <ArtTraces
+                key={`traces-${r.id}`}
+                residence={r}
+                record={regionProgress[r.id]}
+              />
+            ))}
+            {/* 마커 — 다녀온 곳만 */}
+            {visitedSorted.map((r) => (
               <JourneyMarker
                 key={r.id}
                 residence={r}
@@ -139,6 +152,14 @@ export default function JourneyScreen({
                 onClick={() => setSelectedId(r.id)}
               />
             ))}
+            {/* 빈 지도일 때 안내 — 가운데에 부드럽게 */}
+            {visitedSorted.length === 0 && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <p className="text-ink-mute text-[12px] font-bold bg-white/80 backdrop-blur px-3 py-1.5 rounded-full shadow-soft">
+                  떠난 곳이 여기에 한 점씩 자리잡아요
+                </p>
+              </div>
+            )}
           </KoreaMap>
         </div>
       </section>
@@ -557,6 +578,137 @@ function ToggleBtn({
     >
       {label}
     </button>
+  );
+}
+
+// =====================================================================
+// 아트맵 흔적 — 다녀온 지역마다 작은 꽃잎/점을 흩뿌림
+// visitCount + score 비례로 양/색 결정. 위치는 region.id 기반 결정적(re-render 안정).
+// =====================================================================
+
+function ArtTraces({
+  residence,
+  record,
+}: {
+  residence: Residence;
+  record: RegionRecord | undefined;
+}) {
+  const visitCount = record?.visitCount ?? 0;
+  const score = record?.score ?? 0;
+  if (visitCount === 0) return null;
+
+  // 시드 기반 의사난수 — region.id로 안정적인 배치
+  const seed = (residence.id + visitCount).split("").reduce((s, c) => s + c.charCodeAt(0), 0);
+  const rand = (i: number) => {
+    const x = Math.sin(seed * 9301 + i * 49297) * 233280;
+    return x - Math.floor(x);
+  };
+
+  // 흔적 개수 — visitCount 비례, 점수 보너스. 최소 3개, 최대 10개.
+  const dotCount = Math.min(10, 3 + visitCount + Math.floor(score / 60));
+
+  return (
+    <>
+      {Array.from({ length: dotCount }).map((_, i) => {
+        // 마커 주위 6~14% 반경에 배치
+        const angle = rand(i) * Math.PI * 2;
+        const radius = 5 + rand(i + 100) * 7;
+        const x = residence.xPct + Math.cos(angle) * radius;
+        const y = residence.yPct + Math.sin(angle) * radius;
+        // 점수 높을수록 더 진한 톤
+        const intensity = Math.min(1, 0.4 + score / 250);
+        // 꽃잎(70%) / 별점(30%) 분기
+        const isPetal = rand(i + 200) > 0.3;
+        // 5~11px — 작은 한반도 안에서도 또렷이 보이는 크기
+        const size = 5 + rand(i + 300) * 6;
+
+        // 외곽 div가 위치+회전 — framer-motion이 transform 덮어쓰지 못하도록 분리
+        const rotateDeg = rand(i + 600) * 360;
+        return (
+          <div
+            key={`${residence.id}-trace-${i}`}
+            className="absolute pointer-events-none"
+            style={{
+              left: `${x}%`,
+              top: `${y}%`,
+              transform: `translate(-50%, -50%) rotate(${rotateDeg}deg)`,
+              zIndex: 5,
+            }}
+            aria-hidden
+          >
+            <motion.span
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{
+                opacity: intensity,
+                scale: 1,
+                y: [0, -2, 0],
+              }}
+              transition={{
+                opacity: { delay: 0.1 + i * 0.05, duration: 0.6 },
+                scale: { delay: 0.1 + i * 0.05, duration: 0.6, ease: "easeOut" },
+                y: {
+                  duration: 3 + rand(i + 400) * 2,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: rand(i + 500) * 2,
+                },
+              }}
+              className="block"
+              style={{
+                width: size,
+                height: size,
+                borderRadius: isPetal ? "50% 50% 50% 0" : "9999px",
+                background: isPetal
+                  ? `rgba(255, 112, 67, ${intensity})` // 살구 꽃잎 (더 진하게)
+                  : `rgba(102, 187, 106, ${intensity})`, // 초록 점
+                boxShadow: isPetal
+                  ? "0 2px 4px rgba(255, 112, 67, 0.28)"
+                  : "0 0 6px rgba(102, 187, 106, 0.4)",
+              }}
+            />
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+// =====================================================================
+// 여정 동선 — 다녀온 지역 사이의 점선 곡선 (visit 순서대로 연결)
+// =====================================================================
+
+function JourneyPath({ residences }: { residences: Residence[] }) {
+  if (residences.length < 2) return null;
+  return (
+    <svg
+      viewBox="0 0 100 100"
+      preserveAspectRatio="none"
+      className="absolute inset-0 w-full h-full pointer-events-none"
+      aria-hidden
+    >
+      {residences.slice(0, -1).map((from, i) => {
+        const to = residences[i + 1];
+        // 중간점을 살짝 위로 띄워 부드러운 곡선
+        const midX = (from.xPct + to.xPct) / 2;
+        const midY = (from.yPct + to.yPct) / 2 - 4;
+        return (
+          <motion.path
+            key={`${from.id}-${to.id}`}
+            d={`M ${from.xPct} ${from.yPct} Q ${midX} ${midY} ${to.xPct} ${to.yPct}`}
+            fill="none"
+            stroke="#FF7043"
+            strokeWidth="0.35"
+            strokeDasharray="1.2 1.6"
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
+            opacity="0.55"
+            initial={{ pathLength: 0, opacity: 0 }}
+            animate={{ pathLength: 1, opacity: 0.55 }}
+            transition={{ duration: 1.2, delay: 0.15 + i * 0.15, ease: "easeOut" }}
+          />
+        );
+      })}
+    </svg>
   );
 }
 

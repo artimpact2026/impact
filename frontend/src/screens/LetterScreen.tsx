@@ -291,13 +291,15 @@ function LetterSheet({
             className="fixed inset-0 z-40 bg-black/35"
           />
           <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
+            // Tailwind `-translate-x-1/2` 대신 framer-motion x 로 직접 컨트롤
+            // (y 애니메이션과 transform 충돌 방지 — 중앙 정렬 깨짐 버그 해결)
+            initial={{ x: "-50%", y: "100%" }}
+            animate={{ x: "-50%", y: "0%" }}
+            exit={{ x: "-50%", y: "100%" }}
             transition={{ type: "spring", damping: 28, stiffness: 280 }}
             role="dialog"
             aria-label={letter.title}
-            className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[420px] z-50
+            className="fixed bottom-0 left-1/2 w-full max-w-[420px] z-50
                        bg-white rounded-t-3xl shadow-[0_-12px_30px_-12px_rgba(80,70,40,0.18)]
                        px-5 pt-3 pb-[max(env(safe-area-inset-bottom),20px)]"
           >

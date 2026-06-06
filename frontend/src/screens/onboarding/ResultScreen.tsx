@@ -33,7 +33,7 @@ export default function ResultScreen({ profile, onStart }: Props) {
   const stanceM = stanceMeta[profile.stance];
   const envM = envMeta[profile.env];
 
-  // 매칭 점수 계산 → 상위 2~3개 (점수 너무 낮은 곳은 제외)
+  // 매칭 점수 계산 → 상위 2곳만 추천 (선택 부담 줄임)
   const ranked = residences
     .map((r) => ({
       residence: r,
@@ -44,9 +44,7 @@ export default function ResultScreen({ profile, onStart }: Props) {
       }),
     }))
     .sort((a, b) => b.score - a.score)
-    // 약한 매칭(<25) 제외하고 상위 3개. 그래도 최소 2개는 노출.
-    .filter((x, i) => i < 2 || x.score >= 25)
-    .slice(0, 3);
+    .slice(0, 2);
 
   return (
     <div
@@ -82,15 +80,6 @@ export default function ResultScreen({ profile, onStart }: Props) {
         >
           {stanceM.name}
         </motion.h1>
-
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.45, duration: 0.5 }}
-          className="mt-1 text-primary text-[13px] font-extrabold tracking-wide"
-        >
-          {stanceM.label}
-        </motion.p>
 
         {/* 환경 부제 — 사용자가 직접 고른 풍경 */}
         <motion.div

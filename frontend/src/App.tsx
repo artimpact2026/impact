@@ -17,6 +17,7 @@ import ResidenceListScreen from "./screens/ResidenceListScreen";
 import ResidenceDetailScreen from "./screens/ResidenceDetailScreen";
 import SettingsScreen from "./screens/SettingsScreen";
 import DiscoverScreen, { type DiscoverSubTab } from "./screens/DiscoverScreen";
+import CommunityScreen from "./screens/CommunityScreen";
 import ProfileScreen from "./screens/ProfileScreen";
 import LetterScreen from "./screens/LetterScreen";
 import {
@@ -105,7 +106,7 @@ type Tab2Route =
   | "residence-detail";
 
 // 탭3(커뮤니티) 화면 흐름 — 골격 단계, 추후 detail/write 등 확장
-type Tab3Route = "discover";
+type Tab3Route = "discover" | "community-list";
 
 // 탭4(레지던스 예약) 화면 흐름
 type Tab4Route = "booking" | "booking-detail" | "booking-form" | "booking-done";
@@ -871,7 +872,15 @@ export default function App() {
             profile={profile.profileV2}
             homeRegion={homeRegion}
             onBack={() => setTab2Route("journey")}
-            onReset={() => {
+            onLogout={() => {
+              (window as unknown as { cheongpung?: { reset: () => void } })
+                .cheongpung?.reset();
+            }}
+            onDeleteAccount={() => {
+              (window as unknown as { cheongpung?: { reset: () => void } })
+                .cheongpung?.reset();
+            }}
+            onResetOnboarding={() => {
               (window as unknown as { cheongpung?: { reset: () => void } })
                 .cheongpung?.reset();
             }}
@@ -946,7 +955,17 @@ export default function App() {
                 return next;
               })
             }
+            onSeeAllStories={() => setTab3Route("community-list")}
+            onSeeAllResidences={() => {
+              setTab4Route("booking");
+              setTab("booking");
+            }}
           />
+        )}
+
+        {/* === 발견 → 전체 이야기 (옛 CommunityScreen) === */}
+        {tab === "discover" && tab3Route === "community-list" && (
+          <CommunityScreen onBack={() => setTab3Route("discover")} />
         )}
 
         {/* === 편지 탭 === */}
@@ -976,11 +995,6 @@ export default function App() {
               bookingLiked.has(r.id)
             )}
             onOpenSettings={handleOpenSettings}
-            onResetOnboarding={() => {
-              (
-                window as unknown as { cheongpung?: { reset: () => void } }
-              ).cheongpung?.reset();
-            }}
             onSelectResidence={(r) => {
               setBookingResidenceId(r.id);
               setDiscoverSubTab("residences");
@@ -1007,6 +1021,7 @@ export default function App() {
                 return next;
               })
             }
+            onBack={() => setTab("discover")}
           />
         )}
 

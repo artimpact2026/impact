@@ -11,6 +11,8 @@ type Props = {
   // 좋아요(찜) 상태는 부모(App.tsx)에서 영속화·통합 관리. 내정보 탭과 동기화 필수.
   liked: Set<string>;
   onToggleLike: (residenceId: string) => void;
+  // 발견 탭의 "전체 보기" 로 들어왔을 때만 백 버튼 노출
+  onBack?: () => void;
 };
 
 export default function BookingScreen({
@@ -18,6 +20,7 @@ export default function BookingScreen({
   onSelectResidence,
   liked,
   onToggleLike,
+  onBack,
 }: Props) {
   const [regionFilter, setRegionFilter] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -50,15 +53,37 @@ export default function BookingScreen({
       {/* 헤더 + 필터 */}
       <header className="sticky top-0 z-20 bg-cream/95 backdrop-blur">
         <div className="px-6 pt-7 pb-4 relative">
-          <p className="text-[10px] font-bold text-ink-mute tracking-[0.18em] uppercase">
-            Booking
-          </p>
-          <h1 className="mt-1 text-[28px] font-extrabold text-ink leading-tight">
-            레지던스
-          </h1>
-          <p className="mt-1 text-[12px] text-ink-soft">
-            추천 {residences.length}곳 · 마음 정해서 떠나봐요
-          </p>
+          {/* 백 버튼 — 발견 → 전체 보기로 진입했을 때만 */}
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              aria-label="뒤로가기"
+              className="absolute top-7 left-5 w-9 h-9 rounded-full bg-white shadow-soft
+                         flex items-center justify-center text-ink z-10"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path
+                  d="M15 6 9 12l6 6"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          )}
+          <div className={onBack ? "pl-12" : ""}>
+            <p className="text-[10px] font-bold text-ink-mute tracking-[0.18em] uppercase">
+              Booking
+            </p>
+            <h1 className="mt-1 text-[28px] font-extrabold text-ink leading-tight">
+              레지던스
+            </h1>
+            <p className="mt-1 text-[12px] text-ink-soft">
+              추천 {residences.length}곳 · 마음 정해서 떠나봐요
+            </p>
+          </div>
           <img
             src="/character1/clay-baram-solo.png"
             alt=""

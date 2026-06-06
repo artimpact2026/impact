@@ -25,7 +25,6 @@ type Props = {
   onboarding?: OnboardingData;
   likedResidences: Residence[];
   onOpenSettings: () => void;
-  onResetOnboarding: () => void;
   onSelectResidence: (r: Residence) => void;
 };
 
@@ -37,14 +36,13 @@ export default function ProfileScreen({
   onboarding,
   likedResidences,
   onOpenSettings,
-  onResetOnboarding,
   onSelectResidence,
 }: Props) {
   const stanceM = profile ? stanceMeta[profile.stance] : null;
   const envM = profile ? envMeta[profile.env] : null;
 
   return (
-    <div className="relative min-h-[calc(100dvh-6rem)] bg-cream">
+    <div className="relative h-[calc(100dvh-6rem)] overflow-y-auto bg-cream">
       {/* 페이지 헤더 — Travel/Booking 같은 톤 */}
       <header className="px-5 pt-5 pb-1">
         <p className="text-[10px] font-bold text-ink-mute tracking-[0.18em] uppercase">
@@ -208,50 +206,7 @@ export default function ProfileScreen({
           )}
         </motion.section>
 
-        {/* ⑤ 설정·계정 */}
-        <motion.section
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.24, duration: 0.35 }}
-          className="rounded-3xl bg-white border border-cream-200 shadow-soft overflow-hidden"
-        >
-          <button
-            type="button"
-            onClick={onOpenSettings}
-            className="w-full px-4 py-3.5 flex items-center justify-between
-                       text-left border-b border-cream-100 active:bg-cream-50 transition"
-          >
-            <span className="flex items-center gap-2.5">
-              <span aria-hidden>⚙️</span>
-              <span className="text-ink text-[14px] font-bold">설정</span>
-            </span>
-            <span aria-hidden className="text-ink-mute text-[14px]">
-              ›
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (
-                window.confirm(
-                  "취향 설문을 다시 받으시겠어요? 다녀온 지역과 좋아요는 모두 초기화돼요."
-                )
-              ) {
-                onResetOnboarding();
-              }
-            }}
-            className="w-full px-4 py-3.5 flex items-center justify-between
-                       text-left active:bg-cream-50 transition"
-          >
-            <span className="flex items-center gap-2.5">
-              <span aria-hidden>↻</span>
-              <span className="text-ink text-[14px] font-bold">취향 설문 다시 하기</span>
-            </span>
-            <span aria-hidden className="text-ink-mute text-[14px]">
-              ›
-            </span>
-          </button>
-        </motion.section>
+{/* 설정·취향 다시 하기는 ProfileCard 우상단 ⚙️ → SettingsScreen 으로 이동 */}
       </div>
     </div>
   );

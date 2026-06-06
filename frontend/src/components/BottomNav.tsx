@@ -132,8 +132,8 @@ function CenterSimulationButton({
       aria-pressed={active}
       aria-label="시뮬레이션"
       // 다른 탭과 baseline 맞추기 위해 의도적으로 키 작게.
-      // -mt 값으로 원이 탭바 위로 솟아오르는 정도 조절 (1.3배 더 올림)
-      className="flex flex-col items-center px-2 -mt-11 pb-0.5"
+      // -mt 값으로 원이 탭바 위로 솟아오르는 정도 조절. 64px 원이 더 떠보이게.
+      className="flex flex-col items-center px-2 -mt-16 pb-0.5"
     >
       <span
         className={`w-16 h-16 rounded-full flex items-center justify-center
