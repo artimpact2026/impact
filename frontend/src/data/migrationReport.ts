@@ -11,68 +11,18 @@ import { calculateMatch } from "./journey";
 import { buildDayPlan } from "./dayPlan";
 
 // =====================================================================
-// 정적 템플릿 — AI 호출 실패/미설정 시 폴백
-// =====================================================================
-
-function templateSummary(
-  residence: Residence,
-  doneMissionCount: number,
-  match: number
-): string {
-  const region = residence.region;
-  const lines: string[] = [];
-
-  if (match >= 85) {
-    lines.push(
-      `${region}에서의 ${doneMissionCount}개 미션을 끝내고 보니, 당신과 이 동네가 닮아 있다는 게 또렷이 보여요.`
-    );
-  } else if (match >= 70) {
-    lines.push(
-      `${region}에서의 시간이 차곡차곡 쌓였어요. 어떤 흐름은 익숙하고 또 어떤 흐름은 새로웠을 거예요.`
-    );
-  } else {
-    lines.push(
-      `${region}을 두루 둘러본 시간이었어요. 잘 맞는 부분과 어색한 부분, 둘 다 분명해졌을 거예요.`
-    );
-  }
-
-  lines.push("당신이 그려본 이 동네에서의 미래, 부디 오래 마음에 남기를.");
-  return lines.join("\n");
-}
-
-// =====================================================================
-// Claude API 호출 (브라우저에서 직접 — 데모용)
+// 공통 — Claude API 호출
 // =====================================================================
 // 실제 운영에서는 백엔드 프록시 권장. 데모이므로 ENV에 키 있으면 직접 호출.
 
-async function claudeSummary(
-  residence: Residence,
-  missions: Mission[],
-  completedIds: Set<string>,
-  match: number
-): Promise<string | null> {
-  const apiKey = (import.meta as unknown as { env?: { VITE_ANTHROPIC_API_KEY?: string } }).env
+function getApiKey(): string | undefined {
+  return (import.meta as unknown as { env?: { VITE_ANTHROPIC_API_KEY?: string } }).env
     ?.VITE_ANTHROPIC_API_KEY;
+}
+
+async function callClaude(prompt: string, maxTokens: number): Promise<string | null> {
+  const apiKey = getApiKey();
   if (!apiKey) return null;
-
-  const completedTitles = missions
-    .filter((m) => completedIds.has(m.id))
-    .map((m) => m.title);
-
-  const prompt = `사용자가 ${residence.region}(${residence.name})에서 가상 이주 시뮬레이션을 마쳤습니다.
-
-완료한 미션 (${completedTitles.length}개):
-${completedTitles.map((t) => `- ${t}`).join("\n")}
-
-이 지역과의 적합도: ${match}/100점
-
-위 정보를 바탕으로 사용자에게 따뜻하고 격려하는 2~3문장 요약을 만들어주세요.
-- 청풍 서비스는 "이주 결정 도구"가 아니라 "지역과 관계 쌓고 미래를 그려보는 시뮬레이션"입니다
-- "쌓이다·만나다·상상하다·머무르다" 같은 어휘를 우선 사용
-- 점수·등수 같은 평가가 아니라 사용자가 이 지역에서 어떤 시간을 보냈는지 회상하는 톤
-- 1인칭 사용자 시점(당신은…) 으로 작성
-- 마크다운 없이 일반 텍스트로`;
-
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -84,7 +34,7 @@ ${completedTitles.map((t) => `- ${t}`).join("\n")}
       },
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
-        max_tokens: 300,
+        max_tokens: maxTokens,
         messages: [{ role: "user", content: prompt }],
       }),
     });
@@ -97,6 +47,85 @@ ${completedTitles.map((t) => `- ${t}`).join("\n")}
   } catch {
     return null;
   }
+}
+
+// 미션 + 사용자 픽 라벨 정렬해서 프롬프트 블록으로 만듦
+function pickedBlock(
+  missions: Mission[],
+  completedIds: Set<string>,
+  pickedLabels: Record<string, string[]> | undefined
+): string {
+  return missions
+    .filter((m) => completedIds.has(m.id))
+    .map((m) => {
+      const picks = pickedLabels?.[m.id] ?? [];
+      const pickLine =
+        picks.length === 0
+          ? "  (선택 기록 없음)"
+          : picks.map((p) => `  → "${p}"`).join("\n");
+      return `- ${m.title} (${m.category}, NPC: ${m.npc.name})\n${pickLine}`;
+    })
+    .join("\n");
+}
+
+// =====================================================================
+// 1) 개인화 평가 (말해보카 톤) — Slide 2
+// =====================================================================
+
+function templatePersonalReview(
+  residence: Residence,
+  match: number,
+  alignedPicks: number,
+  totalPicks: number
+): string {
+  const r = residence.region;
+  if (match >= 80) {
+    return `당신은 ${r}의 리듬에 자연스럽게 호흡을 맞춰가셨어요. 답한 ${totalPicks}개 중 ${alignedPicks.toFixed(
+      1
+    )}개가 이 동네 결과 정렬돼요. 첫 한 달이면 동네 사람 되실 것 같아요.`;
+  }
+  if (match >= 60) {
+    return `당신은 ${r}에서 익숙한 부분과 새로운 부분을 함께 만나셨어요. 답한 ${totalPicks}개 중 ${alignedPicks.toFixed(
+      1
+    )}개가 정렬됐고, 나머지는 도시 습관이 살짝 남은 자리예요. 조금만 더 머물면 자리잡힐 거예요.`;
+  }
+  return `당신은 ${r}을 솔직하게 둘러보셨어요. 정렬된 답이 ${alignedPicks.toFixed(
+    1
+  )}/${totalPicks}이에요. 잘 맞는 부분도 어색한 부분도 또렷이 드러난 시간이었네요.`;
+}
+
+async function claudePersonalReview(
+  residence: Residence,
+  missions: Mission[],
+  completedIds: Set<string>,
+  pickedLabels: Record<string, string[]> | undefined,
+  match: number,
+  alignedPicks: number,
+  totalPicks: number
+): Promise<string | null> {
+  if (!getApiKey()) return null;
+  if (completedIds.size === 0) return null;
+
+  const prompt = `사용자가 ${residence.region}(${residence.name})에서 가상 이주 시뮬레이션을 마쳤습니다.
+
+== 사용자의 실제 답변 기록 ==
+${pickedBlock(missions, completedIds, pickedLabels)}
+
+== 점수 ==
+- 적합도: ${match}/100점
+- 정렬된 답: ${alignedPicks.toFixed(1)}/${totalPicks}
+
+위 답변 기록을 바탕으로, 말해보카 회화 피드백 톤으로 사용자의 ${residence.region} 시뮬레이션을
+2~3문장으로 평가해주세요.
+
+요구사항:
+- 사용자가 실제로 고른 답 중 **1개를 직접 인용**하여 "당신은 *X* 라고 답하셨네요" 형태로 자연 인용
+- 어떤 답이 이 지역의 리듬과 잘 정렬됐는지, 혹은 어떤 답에서 도시 습관/거리감이 드러났는지 짚어주세요
+- "당신은 ___ 한 사람이에요" 처럼 짧고 또렷한 캐릭터 평가 1줄 포함
+- 청풍 톤: "쌓이다·머무르다·자리잡다" 어휘 우선. 점수·등수 평가 어휘 금지
+- 1인칭("당신은…"), 마크다운/제목 금지, 일반 텍스트만`;
+
+  return callClaude(prompt, 350);
 }
 
 // =====================================================================
@@ -157,15 +186,14 @@ function templateNarrative(
     .join("\n\n");
 }
 
-// Claude 호출 — 본문 글 1편 (4~6문장)
+// Claude 호출 — 본문 글 1편 (4~6문장). 사용자가 고른 답 라벨을 1~2개 직접 인용.
 async function claudeNarrative(
   residence: Residence,
   facts: ReturnType<typeof extractMissionFacts>,
+  pickedLabels: Record<string, string[]> | undefined,
   match: number
 ): Promise<string | null> {
-  const apiKey = (import.meta as unknown as { env?: { VITE_ANTHROPIC_API_KEY?: string } }).env
-    ?.VITE_ANTHROPIC_API_KEY;
-  if (!apiKey) return null;
+  if (!getApiKey()) return null;
   if (facts.length === 0) return null;
 
   const factsBlock = facts
@@ -175,40 +203,140 @@ async function claudeNarrative(
     )
     .join("\n");
 
+  // 사용자가 고른 답 중 인상적인 것 3개 추출 (부정 답변 제외)
+  const allPicks = pickedLabels
+    ? Object.values(pickedLabels)
+        .flat()
+        .filter((p) => p !== "(부정 답변)")
+    : [];
+  const picksBlock =
+    allPicks.length > 0
+      ? `\n사용자가 고른 답 중 인상적인 것 (인용 후보):\n${allPicks
+          .slice(0, 5)
+          .map((p) => `- "${p}"`)
+          .join("\n")}`
+      : "";
+
   const prompt = `사용자가 ${residence.region}(${residence.name})에서 가상 이주 시뮬레이션을 마쳤습니다.
 이 지역과의 적합도: ${match}/100점
 
-사용자가 거친 미션과 그곳에서 만난 주민이 들려준 정보 요약:
-${factsBlock}
+사용자가 거친 미션과 그곳에서 만난 주민이 들려준 정보:
+${factsBlock}${picksBlock}
 
 위 내용을 바탕으로, 사용자가 ${residence.region}에서 보낸 시간을 회상하는 4~6문장 글을 한 편 써주세요.
 - 청풍 서비스는 "이주 결정 도구"가 아니라 "지역과 관계 쌓고 미래를 그려보는 시뮬레이션"입니다
-- 점수·등수 평가 어휘 금지. "쌓이다·만나다·머무르다·자리잡다·그려보다" 같은 어휘 우선
-- 미션에서 알게 된 구체적 정보(가격·거리·만난 사람 이름·풍경 등)를 1~2개 자연스럽게 인용
+- **사용자가 고른 답 중 1~2개를 직접 인용**("당신은 *X* 라고 답했고…") 해서 회상에 녹여주세요
+- 미션에서 알게 된 구체적 정보(가격·거리·NPC 이름·풍경 등)를 자연스럽게 1~2개 인용
+- 점수·등수 평가 어휘 금지. "쌓이다·만나다·머무르다·자리잡다·그려보다" 어휘 우선
 - 1인칭 사용자 시점("당신은…")
 - 마크다운/제목/리스트 금지. 단락 구분만 빈 줄로.`;
 
+  return callClaude(prompt, 600);
+}
+
+// =====================================================================
+// 3) 실용 정보 (Slide 4) — 만난 사람들 / 첫 한 달 준비 / 주의할 점
+// =====================================================================
+
+type PracticalNotes = {
+  metPeople: string[];
+  preparation: string[];
+  cautions: string[];
+};
+
+function templatePracticalNotes(
+  residence: Residence,
+  facts: ReturnType<typeof extractMissionFacts>,
+  match: number
+): PracticalNotes {
+  const metPeople = Array.from(new Set(facts.map((f) => f.npcName))).slice(0, 5);
+
+  const baseTitle = (t: string) =>
+    t.replace(/ 체험$/, "").replace(/ 확인$/, "").replace(/ 기록$/, "");
+  const themes = Array.from(new Set(facts.map((f) => baseTitle(f.title)))).slice(0, 4);
+
+  const preparation: string[] = [];
+  if (themes.length > 0) {
+    preparation.push(
+      `${themes.slice(0, 2).join(", ")} 같은 동네 일상은 첫 한 달이면 손에 익어요.`
+    );
+  }
+  preparation.push(
+    `${residence.region} 도착하면 사람보다 먼저 가까운 정류장·시장·병원 위치부터 손에 익혀두는 게 편해요.`
+  );
+  if (match >= 70) {
+    preparation.push("이 동네 리듬과 결이 맞는 편이라, 초반 적응이 비교적 부드러울 거예요.");
+  }
+
+  const cautions: string[] = [];
+  if (match < 65) {
+    cautions.push("어색했던 부분이 또렷이 있었어요. 처음엔 도시 습관이 비집고 나올 수 있어요.");
+  } else {
+    cautions.push("너무 빨리 어울리려 하기보다 한 사람씩 천천히 알아가는 페이스가 좋아요.");
+  }
+  cautions.push("첫 겨울이나 비수기엔 자극이 줄어드는 시기 — 그때 마음의 준비가 필요해요.");
+
+  return { metPeople, preparation, cautions };
+}
+
+async function claudePracticalNotes(
+  residence: Residence,
+  missions: Mission[],
+  completedIds: Set<string>,
+  pickedLabels: Record<string, string[]> | undefined,
+  facts: ReturnType<typeof extractMissionFacts>,
+  match: number
+): Promise<PracticalNotes | null> {
+  if (!getApiKey()) return null;
+  if (facts.length === 0) return null;
+
+  const metPeople = Array.from(new Set(facts.map((f) => f.npcName))).slice(0, 6);
+
+  const prompt = `사용자가 ${residence.region}(${residence.name})에서 가상 이주 시뮬레이션을 마쳤습니다.
+적합도: ${match}/100점.
+
+== 사용자가 거친 미션과 답변 ==
+${pickedBlock(missions, completedIds, pickedLabels)}
+
+== 만난 NPC들 ==
+${metPeople.map((n) => `- ${n}`).join("\n")}
+
+위 내용을 바탕으로 실용적인 리포트를 만들어주세요.
+다음 JSON 형식 그대로 (다른 설명·코드블록 없이) 출력해주세요:
+
+{
+  "preparation": [
+    "첫 한 달 준비 항목 1 (한 문장, 사용자가 ${residence.region}에서 살아갈 때 실용적으로 챙길 것)",
+    "준비 항목 2",
+    "준비 항목 3"
+  ],
+  "cautions": [
+    "주의/어색했던 부분 1 (사용자의 답변에서 드러난 부분을 짚어주세요)",
+    "주의 항목 2"
+  ]
+}
+
+요구사항:
+- preparation: 3개 항목, 각 한 문장. 실용 정보(시장 시간·교통·이웃 사귀는 페이스 등) 위주
+- cautions: 2개 항목, 각 한 문장. 사용자의 답변 중 도시 습관이 드러난 부분 1개는 인용
+- 청풍 톤("쌓이다·머무르다·자리잡다" 어휘 우선)
+- 평가가 아니라 "이런 게 도움될 거예요" 톤. 점수 어휘 금지`;
+
+  const text = await callClaude(prompt, 800);
+  if (!text) return null;
   try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "anthropic-dangerous-direct-browser-access": "true",
-      },
-      body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 600,
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
-    if (!res.ok) return null;
-    const data = (await res.json()) as {
-      content?: { type: string; text?: string }[];
+    // JSON 추출 (코드블록 감싸져 와도 매칭)
+    const m = text.match(/\{[\s\S]*\}/);
+    if (!m) return null;
+    const parsed = JSON.parse(m[0]) as {
+      preparation?: string[];
+      cautions?: string[];
     };
-    const text = data.content?.find((c) => c.type === "text")?.text?.trim();
-    return text || null;
+    return {
+      metPeople,
+      preparation: Array.isArray(parsed.preparation) ? parsed.preparation : [],
+      cautions: Array.isArray(parsed.cautions) ? parsed.cautions : [],
+    };
   } catch {
     return null;
   }
@@ -229,29 +357,59 @@ export async function generateMigrationReport(
   const accumulationScore = record.score;
   const relationshipScore = calculateMatch(lifestyle, residence, record);
 
-  // AI 짧은 요약 (Slide 2) — Claude 호출 시도, 실패 시 폴백
-  const fromClaudeSummary = await claudeSummary(
+  // 사용자가 고른 답 라벨 — v3 개인화 평가의 핵심 입력
+  const pickedLabels = record.pickedLabels;
+  const pickStats = record.pickStats ?? { totalPicks: 0, alignedPicks: 0 };
+
+  // 개인화 평가 (Slide 2) — 말해보카 톤. 사용자가 고른 답을 1개 직접 인용.
+  const fromClaudeReview = await claudePersonalReview(
     residence,
     missions,
     completedIds,
-    relationshipScore
+    pickedLabels,
+    relationshipScore,
+    pickStats.alignedPicks,
+    pickStats.totalPicks
   );
   const aiSummary =
-    fromClaudeSummary ?? templateSummary(residence, infoScore, relationshipScore);
-  const aiSummarySource: "claude" | "template" = fromClaudeSummary
+    fromClaudeReview ??
+    templatePersonalReview(
+      residence,
+      relationshipScore,
+      pickStats.alignedPicks,
+      pickStats.totalPicks
+    );
+  const aiSummarySource: "claude" | "template" = fromClaudeReview
     ? "claude"
     : "template";
 
-  // AI 본문 요약 (Slide 3) — 미션 NPC 정보 발췌해서 Claude로 4~6문장 글 생성
+  // 본문 회상글 (Slide 3) — 미션 NPC 정보 + 사용자 픽 인용
   const facts = extractMissionFacts(missions, completedIds);
   const fromClaudeNarrative = await claudeNarrative(
     residence,
     facts,
+    pickedLabels,
     relationshipScore
   );
   const narrativeBody =
     fromClaudeNarrative ?? templateNarrative(residence, facts);
   const narrativeBodySource: "claude" | "template" = fromClaudeNarrative
+    ? "claude"
+    : "template";
+
+  // 실용 정보 (Slide 4) — 만난 사람들 + 준비 + 주의
+  const fromClaudePractical = await claudePracticalNotes(
+    residence,
+    missions,
+    completedIds,
+    pickedLabels,
+    facts,
+    relationshipScore
+  );
+  const practicalNotes =
+    fromClaudePractical ??
+    templatePracticalNotes(residence, facts, relationshipScore);
+  const practicalNotesSource: "claude" | "template" = fromClaudePractical
     ? "claude"
     : "template";
 
@@ -277,6 +435,8 @@ export async function generateMigrationReport(
     aiSummarySource,
     narrativeBody,
     narrativeBodySource,
+    practicalNotes,
+    practicalNotesSource,
     timeline,
     hasBeenViewed: false,
   };

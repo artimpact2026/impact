@@ -68,10 +68,11 @@ type Props = {
   // v2 — 옵션 정렬도 판정에 사용
   residenceEnv: EnvType;
   onClose: () => void;
-  // 누적 적합도 변화량 + 답한 옵션의 (총수/정렬수) 통계를 함께 전달
+  // 누적 적합도 변화량 + 답한 옵션의 (총수/정렬수) 통계 + 고른 라벨 시퀀스를 함께 전달
   onComplete: (
     fitDelta: number,
-    pickStats: { totalPicks: number; alignedPicks: number }
+    pickStats: { totalPicks: number; alignedPicks: number },
+    pickedLabels: string[]
   ) => void;
 };
 
@@ -103,6 +104,9 @@ export default function MissionExecuteScreen({
   );
   // v2 — 미션 진행 중 답한 옵션의 (총수/정렬수) 누적. ref라 동기적으로 finish에 반영됨.
   const pickStatsRef = useRef({ totalPicks: 0, alignedPicks: 0 });
+  // v3 — 사용자가 고른 옵션 라벨 시퀀스 (부정 답변은 "(부정 답변)" 으로 기록).
+  // AI 리포트가 이 라벨을 인용해 "당신은 *X* 라고 답했어요" 톤으로 평가.
+  const pickedLabelsRef = useRef<string[]>([]);
 
   const turn = mission.dialogues[turnIdx];
 
@@ -155,7 +159,8 @@ export default function MissionExecuteScreen({
     setFitDelta(total);
     setShowReward(true);
     const stats = { ...pickStatsRef.current };
-    window.setTimeout(() => onComplete(total, stats), 1800);
+    const labels = [...pickedLabelsRef.current];
+    window.setTimeout(() => onComplete(total, stats, labels), 1800);
   };
 
   // "솔직히 안 맞아요" 부정 답변 — 정렬 카운트 0, totalPicks +1, 첫 옵션의 next 경로로 진행
@@ -167,6 +172,7 @@ export default function MissionExecuteScreen({
       totalPicks: pickStatsRef.current.totalPicks + 1,
       alignedPicks: pickStatsRef.current.alignedPicks, // +0
     };
+    pickedLabelsRef.current = [...pickedLabelsRef.current, "(부정 답변)"];
     const firstNext = turn.options?.[0]?.next;
     window.setTimeout(() => {
       if (firstNext === undefined) {
@@ -193,6 +199,7 @@ export default function MissionExecuteScreen({
       totalPicks: pickStatsRef.current.totalPicks + 1,
       alignedPicks: pickStatsRef.current.alignedPicks + alignWeight,
     };
+    pickedLabelsRef.current = [...pickedLabelsRef.current, opt.label];
     // 200ms 강조 후 진행
     window.setTimeout(() => {
       if (opt.next === undefined) {

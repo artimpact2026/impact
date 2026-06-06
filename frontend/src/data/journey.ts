@@ -29,6 +29,10 @@ export type RegionRecord = {
     totalPicks: number;
     alignedPicks: number;
   };
+  // v3 — 미션별로 사용자가 실제로 고른 옵션 라벨들. AI 리포트가 이걸 인용해
+  // 말해보카 톤("당신은 *걸어가볼게요* 라고 답하셨네요...") 으로 개인화 평가.
+  // 부정 답변은 "(부정 답변)" 으로 기록.
+  pickedLabels?: Record<string, string[]>;
 };
 
 // 이주 리포트 — 마지막 일차 완료 시 잠금 해제되는 시네마틱 엔딩
@@ -45,6 +49,14 @@ export type MigrationReport = {
   // 옛 timeline 리스트를 대체.
   narrativeBody?: string;
   narrativeBodySource?: "claude" | "template";
+  // Slide 4 — 실용 정보. NPC들과 만난 흔적 + 첫 N개월 준비 + 주의할 점.
+  // bullet 형식의 짧은 항목 리스트.
+  practicalNotes?: {
+    metPeople: string[];      // 만난 NPC 이름들 (중복 제거)
+    preparation: string[];    // "첫 한 달 준비 / 챙겨갈 것" 류 bullet
+    cautions: string[];       // "이런 부분 어색했어요 / 주의" 류 bullet
+  };
+  practicalNotesSource?: "claude" | "template";
   // (옛) 미션 타임라인 — 새 narrativeBody 가 생성된 리포트엔 사용 안 함. 호환용 보존.
   timeline: { missionId: string; day: number }[];
   // 시청 여부 — 처음엔 자동재생, 다음부터는 자유 탐색 모드
@@ -158,13 +170,14 @@ export function bumpVisit(
   };
 }
 
-// 미션 완료 기록 — 축적 점수 + (v1) fitScore + (v2) pickStats 가산
+// 미션 완료 기록 — 축적 점수 + (v1) fitScore + (v2) pickStats + (v3) pickedLabels 가산
 export function completeMissionFor(
   progress: Record<string, RegionRecord>,
   residenceId: string,
   mission: Mission,
   fitDelta = 0,
-  pickStatsDelta?: { totalPicks: number; alignedPicks: number }
+  pickStatsDelta?: { totalPicks: number; alignedPicks: number },
+  pickedLabels?: string[]
 ): Record<string, RegionRecord> {
   const existing = progress[residenceId] ?? emptyRecord(residenceId);
   if (existing.completedMissionIds.includes(mission.id)) return progress;
@@ -177,6 +190,10 @@ export function completeMissionFor(
       }
     : prevStats;
 
+  const nextPickedLabels = pickedLabels
+    ? { ...(existing.pickedLabels ?? {}), [mission.id]: pickedLabels }
+    : existing.pickedLabels;
+
   return {
     ...progress,
     [residenceId]: {
@@ -185,6 +202,7 @@ export function completeMissionFor(
       score: existing.score + mission.reward,
       fitScore: existing.fitScore + fitDelta,
       pickStats: nextStats,
+      pickedLabels: nextPickedLabels,
     },
   };
 }

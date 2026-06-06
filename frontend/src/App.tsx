@@ -404,7 +404,8 @@ export default function App() {
 
   const handleMissionComplete = (
     fitDelta = 0,
-    pickStats?: { totalPicks: number; alignedPicks: number }
+    pickStats?: { totalPicks: number; alignedPicks: number },
+    pickedLabels?: string[]
   ) => {
     if (!activeMission || !selected) return;
     const newProgress = completeMissionFor(
@@ -412,7 +413,8 @@ export default function App() {
       selected.id,
       activeMission,
       fitDelta,
-      pickStats
+      pickStats,
+      pickedLabels
     );
     setRegionProgress(newProgress);
     setActiveMission(null);

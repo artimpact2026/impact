@@ -18,7 +18,7 @@ type Props = {
   onApplyResidence?: () => void; // 입주하기(MoveInScreen) 연결
 };
 
-const SLIDE_COUNT = 4;
+const SLIDE_COUNT = 5;
 const AUTO_ADVANCE_MS = 4200; // 슬라이드별 자동 전환 간격
 
 export default function MigrationReportCinematic({
@@ -81,10 +81,9 @@ export default function MigrationReportCinematic({
           >
             {idx === 0 && <SlideOne residence={residence} report={report} />}
             {idx === 1 && <SlideTwo report={report} />}
-            {idx === 2 && (
-              <SlideThree report={report} />
-            )}
-            {idx === 3 && (
+            {idx === 2 && <SlideThree report={report} />}
+            {idx === 3 && <SlidePractical report={report} />}
+            {idx === 4 && (
               <SlideFour
                 residence={residence}
                 report={report}
@@ -353,7 +352,129 @@ function SlideThree({ report }: { report: MigrationReport }) {
 }
 
 // =====================================================================
-// Slide 4 — 컨페티 + 보상 카드
+// Slide 4 — 실용 정보. 만난 사람들 / 첫 한 달 준비 / 주의할 점.
+// AI가 사용자의 답변 라벨을 인용해 채우고, 폴백은 정적 템플릿.
+// =====================================================================
+
+function SlidePractical({ report }: { report: MigrationReport }) {
+  const notes = report.practicalNotes;
+  // 옛 리포트 호환 — practicalNotes 없으면 안내문만
+  if (!notes) {
+    return (
+      <div className="flex-1 flex flex-col px-6 pt-24 pb-20">
+        <p className="text-ink-mute text-[11px] font-extrabold tracking-[0.16em] uppercase">
+          실용 정보
+        </p>
+        <h2 className="mt-2 text-ink text-[22px] font-extrabold leading-tight">
+          이 리포트엔 아직 실용 정보가 없어요
+        </h2>
+        <p className="mt-3 text-ink-soft text-[14px] leading-relaxed">
+          새 미션을 마치면 다음 리포트엔 만난 사람·준비할 것·주의할 점이 함께 채워져요.
+        </p>
+      </div>
+    );
+  }
+  const { metPeople, preparation, cautions } = notes;
+  return (
+    <div className="flex-1 flex flex-col px-6 pt-24 pb-20 overflow-hidden">
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
+        <p className="text-ink-mute text-[11px] font-extrabold tracking-[0.16em] uppercase">
+          실용 정보 · 첫 한 달
+        </p>
+        <h2 className="mt-2 text-ink text-[22px] font-extrabold leading-tight">
+          이런 게 도움될 거예요
+        </h2>
+      </motion.div>
+
+      <div className="flex-1 mt-5 overflow-y-auto pr-1 space-y-5">
+        {/* 만난 사람들 */}
+        {metPeople.length > 0 && (
+          <motion.section
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.4 }}
+          >
+            <p className="text-[10.5px] font-extrabold uppercase tracking-widest text-nature-600 mb-1.5">
+              만난 사람들
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {metPeople.map((name, i) => (
+                <span
+                  key={`${name}-${i}`}
+                  className="px-2.5 py-1 rounded-full bg-nature-50 border border-nature-200
+                             text-nature-600 text-[12px] font-bold"
+                >
+                  {name}
+                </span>
+              ))}
+            </div>
+          </motion.section>
+        )}
+
+        {/* 챙겨갈 것 */}
+        {preparation.length > 0 && (
+          <motion.section
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35, duration: 0.4 }}
+          >
+            <p className="text-[10.5px] font-extrabold uppercase tracking-widest text-primary mb-1.5">
+              챙겨갈 것
+            </p>
+            <ul className="space-y-2">
+              {preparation.map((item, i) => (
+                <li
+                  key={i}
+                  className="flex gap-2 text-ink text-[13.5px] leading-relaxed"
+                >
+                  <span aria-hidden className="text-primary mt-[2px]">✦</span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </motion.section>
+        )}
+
+        {/* 주의할 점 */}
+        {cautions.length > 0 && (
+          <motion.section
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5, duration: 0.4 }}
+          >
+            <p className="text-[10.5px] font-extrabold uppercase tracking-widest text-ink-mute mb-1.5">
+              주의할 점
+            </p>
+            <ul className="space-y-2">
+              {cautions.map((item, i) => (
+                <li
+                  key={i}
+                  className="flex gap-2 text-ink-soft text-[13px] leading-relaxed"
+                >
+                  <span aria-hidden className="text-ink-mute mt-[2px]">·</span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </motion.section>
+        )}
+
+        {report.practicalNotesSource === "claude" && (
+          <p className="text-ink-mute/60 text-[10px] tracking-wider">
+            ✦ Claude가 당신의 답변을 읽고 정리한 항목이에요
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// =====================================================================
+// Slide 5 — 컨페티 + 보상 카드
 // =====================================================================
 
 function SlideFour({
