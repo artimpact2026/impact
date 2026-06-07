@@ -8,20 +8,18 @@ import EmailScreen from "./EmailScreen";
 import BirthScreen from "./BirthScreen";
 import HomeRegionScreen from "./HomeRegionScreen";
 import InterestsScreen from "./InterestsScreen";
-import BalanceScreen from "./BalanceScreen";
 import ValuesScreen from "./ValuesScreen";
 import SceneScreen from "./SceneScreen";
 import HealingScreen from "./HealingScreen";
 import RegionDescScreen from "./RegionDescScreen";
-import EnvChoiceScreen from "./EnvChoiceScreen";
 import NicknameScreen from "./NicknameScreen";
 import ResultScreen from "./ResultScreen";
+import YardOnboardingScreen from "./YardOnboardingScreen";
+import EnvOnboardingScreen from "./EnvOnboardingScreen";
 import {
   initialOnboardingData,
   scoreOnboarding,
   type OnboardingData,
-  type BalanceB,
-  type BalanceC,
 } from "../../data/quiz";
 import { stanceToOld, type LifestyleProfile } from "../../data/lifestyle";
 import type { LifeStyleType } from "../../data/residences";
@@ -32,12 +30,11 @@ type StepKey =
   | "birth"
   | "homeRegion"
   | "interests"
-  | "balanceB"
-  | "balanceC"
+  | "yard"      // balanceB + balanceC 둘 다 흡수 (마당 인터랙션)
   | "values"
   | "scene"
   | "healing"
-  | "envChoice"
+  | "envHouse"  // envChoice 대체 (집 형태 인터랙션)
   | "regionDesc"
   | "nickname"
   | "result";
@@ -48,18 +45,17 @@ const ORDER: StepKey[] = [
   "birth",
   "homeRegion",
   "interests",
-  "balanceB",
-  "balanceC",
+  "yard",
   "values",
   "scene",
   "healing",
-  "envChoice",
+  "envHouse",
   "regionDesc",
   "nickname",
   "result",
 ];
 
-const TOTAL_QUESTIONS = 12;
+const TOTAL_QUESTIONS = 11;
 
 // onComplete 시 App에 넘기는 결과
 // lifestyle = 옛 LifeStyleType (App.tsx 매칭 호환), profile = 새 시스템 (env + stance)
@@ -143,55 +139,22 @@ export default function OnboardingShell({ onComplete }: Props) {
             />
           )}
 
-          {step === "balanceB" && (
-            <BalanceScreen<BalanceB>
+          {step === "yard" && (
+            <YardOnboardingScreen
               step={5}
               total={TOTAL_QUESTIONS}
-              title="한가한 주말 오후, 어떻게 보내고 싶어요?"
-              left={{
-                value: "alone",
-                label: "혼자 사부작",
-                emoji: "📖",
-                blurb: "내 시간에 집중",
-              }}
-              right={{
-                value: "together",
-                label: "친구들과 어울리기",
-                emoji: "💬",
-                blurb: "사람들과 함께",
-              }}
-              initial={data.balanceB}
               onBack={back}
-              onNext={(v) => update("balanceB", v)}
-            />
-          )}
-
-          {step === "balanceC" && (
-            <BalanceScreen<BalanceC>
-              step={6}
-              total={TOTAL_QUESTIONS}
-              title="낯선 동네에서 끌리는 시간은?"
-              left={{
-                value: "rest",
-                label: "멍 때리기",
-                emoji: "🍵",
-                blurb: "흘려보내는 시간",
+              onNext={({ balanceB, balanceC }) => {
+                // 마당 한 번 클릭으로 두 축 동시 채움
+                setData((d) => ({ ...d, balanceB, balanceC }));
+                advance();
               }}
-              right={{
-                value: "make",
-                label: "손으로 만들기",
-                emoji: "🪵",
-                blurb: "무언가 짓는 시간",
-              }}
-              initial={data.balanceC}
-              onBack={back}
-              onNext={(v) => update("balanceC", v)}
             />
           )}
 
           {step === "values" && (
             <ValuesScreen
-              step={7}
+              step={6}
               total={TOTAL_QUESTIONS}
               initial={data.values}
               onBack={back}
@@ -201,7 +164,7 @@ export default function OnboardingShell({ onComplete }: Props) {
 
           {step === "scene" && (
             <SceneScreen
-              step={8}
+              step={7}
               total={TOTAL_QUESTIONS}
               initial={data.dayScene}
               onBack={back}
@@ -211,7 +174,7 @@ export default function OnboardingShell({ onComplete }: Props) {
 
           {step === "healing" && (
             <HealingScreen
-              step={9}
+              step={8}
               total={TOTAL_QUESTIONS}
               initial={data.healing}
               onBack={back}
@@ -219,9 +182,9 @@ export default function OnboardingShell({ onComplete }: Props) {
             />
           )}
 
-          {step === "envChoice" && (
-            <EnvChoiceScreen
-              step={10}
+          {step === "envHouse" && (
+            <EnvOnboardingScreen
+              step={9}
               total={TOTAL_QUESTIONS}
               initial={data.envChoice}
               onBack={back}
@@ -231,7 +194,7 @@ export default function OnboardingShell({ onComplete }: Props) {
 
           {step === "regionDesc" && (
             <RegionDescScreen
-              step={11}
+              step={10}
               total={TOTAL_QUESTIONS}
               initial={data.regionDesc}
               onBack={back}
@@ -244,7 +207,7 @@ export default function OnboardingShell({ onComplete }: Props) {
 
           {step === "nickname" && (
             <NicknameScreen
-              step={12}
+              step={11}
               total={TOTAL_QUESTIONS}
               initial={data.nickname}
               onBack={back}

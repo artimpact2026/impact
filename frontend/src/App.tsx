@@ -58,6 +58,9 @@ import HospitalMissionScreen from "./screens/mission/HospitalMissionScreen";
 import OnboardingShell, {
   type OnboardingResult,
 } from "./screens/onboarding/OnboardingShell";
+import YardOnboardingScreen from "./screens/onboarding/YardOnboardingScreen";
+import EnvOnboardingScreen from "./screens/onboarding/EnvOnboardingScreen";
+import PrototypePreview from "./screens/onboarding/PrototypePreview";
 import BottomNav, { type TabKey } from "./components/BottomNav";
 import {
   recommendedResidences,
@@ -451,6 +454,11 @@ export default function App() {
   }, []);
 
   if (hash === "#hospital") return <HospitalMissionScreen />;
+  // Phase 1 prototype — 카카오식 마당 인터랙션 격리 미리보기 (#yard)
+  // Phase 2 — 실제 OnboardingShell 의 5번째 질문(yard) / 9번째(envHouse) 로 흡수됨.
+  if (hash === "#yard") return <YardOnboardingScreen />;
+  if (hash === "#env") return <EnvOnboardingScreen />;
+  if (hash === "#prototype") return <PrototypePreview />;
 
   const handleOnboardingComplete = (r: OnboardingResult) => {
     const email = r.data.email || "";
