@@ -12,8 +12,8 @@ body,
 }
 
 body {
-  /* 거의 흰빛 아이보리 — 한 단계 더 밝게 */
-  background: #fffcf7;
+  /* 순백 — 완전 흰색 */
+  background: #ffffff;
   color: #3e2c20;
   font-family: Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;

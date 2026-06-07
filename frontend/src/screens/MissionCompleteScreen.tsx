@@ -12,6 +12,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import type { Mission, MissionCategory } from "../data/missions";
+import type { Item } from "../data/items";
 
 export type MissionKeyInfo = { icon: string; text: string };
 
@@ -24,6 +25,8 @@ type Props = {
   keyInfos: MissionKeyInfo[];
   pickedLabels: string[];
   isLastMissionToday: boolean;
+  // 이번 미션으로 새로 획득한 기념품 — 처음 받았을 때만 set, 재플레이 시 undefined
+  acquiredItem?: Item;
   onNext: () => void;
 };
 
@@ -52,6 +55,7 @@ export default function MissionCompleteScreen({
   keyInfos,
   pickedLabels,
   isLastMissionToday,
+  acquiredItem,
   onNext,
 }: Props) {
   const heroColor = HERO_COLOR[mission.category] ?? "#FF7043";
@@ -64,7 +68,10 @@ export default function MissionCompleteScreen({
       : "이전과 동일";
 
   return (
-    <div className="h-[calc(100dvh-6rem)] overflow-y-auto bg-[#FAF6EE]">
+    <div
+      className="overflow-y-auto bg-cream"
+      style={{ height: "calc(100dvh - var(--content-bottom))" }}
+    >
       {/* === 히어로 — 풀블리드 컬러 === */}
       <motion.section
         initial={{ opacity: 0 }}
@@ -130,7 +137,7 @@ export default function MissionCompleteScreen({
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, delay: 0.1 }}
-        className="relative -mt-5 px-5 pt-5 pb-10 space-y-3 bg-[#FAF6EE] rounded-t-3xl"
+        className="relative -mt-5 px-5 pt-5 pb-10 space-y-3 bg-cream rounded-t-3xl"
       >
         {/* === 점수 카드 2칸 === */}
         <div className="grid grid-cols-2 gap-3">
@@ -171,6 +178,9 @@ export default function MissionCompleteScreen({
             <p className="mt-1.5 text-[11px] text-ink-soft">{deltaText}</p>
           </div>
         </div>
+
+        {/* === 획득한 기념품 — 처음 받았을 때만 노출 === */}
+        {acquiredItem && <ItemReward item={acquiredItem} />}
 
         {/* === NPC가 알려준 것들 === */}
         {keyInfos.length > 0 && (
@@ -252,6 +262,62 @@ export default function MissionCompleteScreen({
         </button>
       </motion.div>
     </div>
+  );
+}
+
+// =====================================================================
+// ItemReward — 새로 획득한 기념품 카드
+//   · 폴라로이드 톤 — "발견했다" 감각
+//   · 큰 이모지(임시 시각화) + 이름 + 어디서 얻었는지 hint
+//   · 좌상단 "기념품 · 처음 획득" 라벨로 새 컬렉션 신호
+// =====================================================================
+
+function ItemReward({ item }: { item: Item }) {
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 12, rotate: -2 }}
+      animate={{ opacity: 1, y: 0, rotate: 0 }}
+      transition={{ duration: 0.5, delay: 0.2, type: "spring", damping: 18 }}
+      className="relative bg-white rounded-2xl shadow-soft overflow-hidden
+                 border border-cream-200"
+    >
+      {/* 좌상단 라벨 */}
+      <div className="absolute top-3 left-3 z-10">
+        <span
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full
+                     bg-primary text-white text-[9.5px] font-extrabold tracking-wide
+                     shadow-[0_2px_6px_rgba(255,112,67,0.35)]"
+        >
+          ✨ 새 기념품
+        </span>
+      </div>
+
+      {/* 이미지(이모지) 영역 — 따뜻한 베이지 백그라운드 */}
+      <div
+        className="relative h-[120px] flex items-center justify-center"
+        style={{ background: "linear-gradient(135deg, #FFF5E6 0%, #FFE7D1 100%)" }}
+      >
+        <motion.span
+          initial={{ scale: 0.5, rotate: -12 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ delay: 0.45, duration: 0.6, type: "spring", damping: 14 }}
+          className="text-[72px] leading-none select-none drop-shadow-md"
+          aria-hidden
+        >
+          {item.emoji}
+        </motion.span>
+      </div>
+
+      {/* 정보 */}
+      <div className="px-4 py-3">
+        <p className="text-ink text-[15px] font-extrabold leading-tight">
+          {item.name}
+        </p>
+        <p className="mt-1 text-ink-soft text-[12px] leading-relaxed">
+          {item.hint}
+        </p>
+      </div>
+    </motion.section>
   );
 }
 

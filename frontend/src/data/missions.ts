@@ -59,6 +59,10 @@ export type NumericInputSpec = {
   next: number;
   // 기준값 — 이보다 적으면 절약형, 많으면 풍족형 (분기에 활용)
   benchmarks?: { low: number; high: number };
+  // 능동: "추측 → 정답 비교" 카드용. 정의되면 NPC 응답과 함께
+  // 시각적 reveal 카드가 나타나 사용자 추측 vs 마을 평균 vs 도시 평균을 보여줌.
+  villageActual?: number;   // 이 동네 평균
+  cityActual?: number;       // 도시(서울) 평균
 };
 
 export type DialogueTurn = {
@@ -95,6 +99,18 @@ export type Mission = {
   // 카카오 로드뷰 임베드용 좌표 — 정의되면 RoadviewWithFallback이 SDK로 panoId 조회 후 임베드
   // panoId 못 잡으면 자동으로 roadviewSteps(사진) 폴백으로 빠짐
   kakaoPosition?: { lat: number; lng: number };
+  // 능동성 강화 — "내가 먼저 묻기" 단계.
+  //   · 정의되면 미션 시작 시 NPC 는 침묵, 사용자가 질문 카드 골라 던짐
+  //   · 선택 → opener.options[i].nextTurn 으로 dialogue 진입 (= NPC 가 그 질문에 답)
+  //   · 미정의 시 기존 동작(NPC 가 dialogue[0] 부터 먼저 말 검) 그대로
+  opener?: {
+    prompt: string;          // 헤더 문구 — "어르신께 무엇을 물어볼래요?"
+    options: {
+      label: string;         // 사용자 질문 — "여기 살기 어렵지 않으세요?"
+      emoji?: string;        // 카드 좌측 아이콘 (선택)
+      nextTurn: number;      // 진입할 dialogue turn 인덱스
+    }[];
+  };
 };
 
 // ── 미니 로드뷰 한 지점 ────────────────────────
@@ -397,30 +413,34 @@ export const commonMissions: Mission[] = [
   // ───────────────────────────────────────────────
   {
     id: "food",
-    title: "하루 식비 기록",
+    title: "하루 식비, 얼마쯤일까?",
     icon: "🍽️",
     category: "생활현실형",
     mode: "numeric",
     reward: 5,
     background: "cafe",
     npc: { name: "동네 식당 사장님", emoji: "👩‍🍳" },
-    description: "오늘 식비, 이 동네 평균과 비교",
+    description: "도시 감각으로 추측해보고, 실제와 비교해보기",
     dialogues: [
       {
+        // 능동: 정답을 먼저 안 알려주고, 사용자가 추측하게 함.
         npc:
-          "오늘 식비 좀 기록해볼까요? 아침·점심·저녁 다 합쳐서 얼마쯤 쓰셨어요? 도시 평균이 1만 4천원, 이 동네 평균이 9천 5백원이에요.",
+          "이 동네에서 하루 세 끼 다 먹으면 얼마쯤 쓸 것 같아요? 도시 감각으로 한 번 추측해봐요.",
         numeric: {
-          prompt: "오늘 식비",
+          prompt: "내 추측 — 이 동네 하루 식비",
           unit: "원",
           placeholder: "예) 12000",
           next: 1,
           benchmarks: { low: 8000, high: 13000 },
+          villageActual: 9500,
+          cityActual: 14000,
         },
       },
       {
-        // 동적 응답은 MissionExecuteScreen에서 placeholder 치환
+        // {amount}/{compare} 는 MissionExecuteScreen 에서 치환.
+        // 옆에 추측 비교 카드가 같이 떠 있어서 NPC 는 짧게 코멘트만.
         npc:
-          "{amount}원 쓰셨네요. {compare} 시장에서 채소 사다가 직접 해 먹기 시작하면 자연스럽게 더 줄어요. 외식 줄이는 게 가장 큰 변화예요.",
+          "{amount}원으로 추측하셨네요. {compare} 사실 시장에서 채소 사다가 직접 해 먹기 시작하면 더 줄어요. 도시 살 때랑 가장 크게 바뀌는 부분이에요.",
         options: [
           { label: "직접 해 먹는 게 좋겠어요", next: 2, traits: ["자연탐험형", "집돌이형"] },
           { label: "한 끼 정도는 사 먹어도 돼요", next: 2, traits: ["레저형", "디지털노마드형"] },
@@ -503,47 +523,60 @@ export const commonMissions: Mission[] = [
     npc: { name: "먼저 온 이주자", emoji: "👩" },
     npcScene: { src: "/mission/yoga.webp" },
     description: "1년 차 이주민의 솔직한 경험",
+    // 능동: 처음 보는 이주자라 더 어울림 — 내가 먼저 말 걸기
+    opener: {
+      prompt: "1년 차 이주자께 뭐가 가장 궁금해?",
+      options: [
+        {
+          emoji: "⏳",
+          label: "처음 6개월은 어떠셨어요?",
+          nextTurn: 0,
+        },
+        {
+          emoji: "🌿",
+          label: "지금은 만족하세요?",
+          nextTurn: 1,
+        },
+        {
+          emoji: "😔",
+          label: "후회한 적 없으세요?",
+          nextTurn: 2,
+        },
+      ],
+    },
     dialogues: [
-      {
-        npc:
-          "저도 작년에 서울에서 왔어요. 마케팅 일했었는데. 지금은 여기서 작업하면서 동네 일도 조금씩 도와요. 뭐 궁금한 거 있어요?",
-        options: [
-          { label: "처음 6개월 어떠셨어요?", next: 1, traits: ["집돌이형", "디지털노마드형"],
-            stanceAlign: ["alone_rest"] },
-          { label: "지금은 만족하세요?", next: 2, traits: ["레저형", "자연탐험형"],
-            stanceAlign: ["together_rest", "together_make"] },
-          { label: "후회한 적 없으세요?", next: 3, traits: ["집돌이형"],
-            stanceAlign: ["alone_rest"] },
-        ],
-      },
+      // turn 0 — 처음 6개월
       {
         npc:
           "솔직히 처음 3개월은 너무 조용해서 답답했어요. 도시 친구들이랑도 멀어지는 느낌이었고. 4개월쯤부터 동네 사람들이랑 친해지면서 마음이 잡혔어요.",
         options: [
-          { label: "그 적응 기간이 진짜 필요하겠어요", next: 4, traits: ["자연탐험형", "집돌이형"],
+          { label: "그 적응 기간이 진짜 필요하겠어요", next: 3, traits: ["자연탐험형", "집돌이형"],
             stanceAlign: ["alone_rest"] },
-          { label: "사람들이 도와주셨군요", next: 4, traits: ["레저형"],
+          { label: "사람들이 도와주셨군요", next: 3, traits: ["레저형"],
             stanceAlign: ["together_rest"] },
         ],
       },
+      // turn 1 — 지금 만족
       {
         npc:
           "지금이 1년 차인데, 일하는 시간 빼면 거의 다 동네 사람들이랑 보내요. 농사 한번 도와봐요? 같이 잡곡 키우는 모임이 있어요.",
         options: [
-          { label: "꼭 한번 참여해보고 싶어요", next: 4, traits: ["자연탐험형", "레저형"],
+          { label: "꼭 한번 참여해보고 싶어요", next: 3, traits: ["자연탐험형", "레저형"],
             stanceAlign: ["together_make"], envAlign: ["field"] },
-          { label: "조용히 지내는 게 더 좋을 것 같아요", next: 4, traits: ["집돌이형"],
+          { label: "조용히 지내는 게 더 좋을 것 같아요", next: 3, traits: ["집돌이형"],
             stanceAlign: ["alone_rest"] },
         ],
       },
+      // turn 2 — 후회
       {
         npc:
           "후회는 안 해요. 다만 첫 겨울은 진짜 우울했어요. 도시처럼 자극이 없고. 그걸 견디면 봄부터는 다시 좋아져요.",
         options: [
-          { label: "마음의 준비를 단단히 해야겠네요", next: 4, traits: ["집돌이형", "자연탐험형"],
+          { label: "마음의 준비를 단단히 해야겠네요", next: 3, traits: ["집돌이형", "자연탐험형"],
             stanceAlign: ["alone_rest"] },
         ],
       },
+      // turn 3 — 공통 마무리
       {
         npc:
           "준비 잘 하고 오세요. 너무 빨리 어울리려 하지 말고, 너무 동떨어지지도 말고. 천천히 한 사람씩 알게 되는 게 좋아요.",

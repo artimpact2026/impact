@@ -35,6 +35,19 @@ import {
   unreadCount,
   type Letter,
 } from "./data/letters";
+import {
+  getItemDropFor,
+  loadAcquiredItems,
+  saveAcquiredItems,
+  ITEMS_STORAGE_KEY,
+  type Item,
+} from "./data/items";
+import {
+  loadQuotes,
+  saveQuotes,
+  QUOTES_STORAGE_KEY,
+  type SavedQuote,
+} from "./data/quotes";
 import BookingScreen from "./screens/BookingScreen";
 import BookingDetailScreen from "./screens/BookingDetailScreen";
 import BookingFormScreen from "./screens/BookingFormScreen";
@@ -196,6 +209,14 @@ export default function App() {
     const saved = loadLetters();
     return saved.length > 0 ? saved : getInitialLetters();
   });
+  // 수집한 기념품 — 미션 완료 시 드롭. localStorage 영속.
+  const [acquiredItems, setAcquiredItems] = useState<Item[]>(() =>
+    loadAcquiredItems()
+  );
+  // 기억한 말들 — 사용자가 NPC 발언 중 직접 고른 인용구. localStorage 영속.
+  const [savedQuotes, setSavedQuotes] = useState<SavedQuote[]>(() =>
+    loadQuotes()
+  );
   const [tab4Route, setTab4Route] = useState<Tab4Route>("booking");
   const [selected, setSelected] = useState<Residence | null>(null);
   const [activeMission, setActiveMission] = useState<Mission | null>(null);
@@ -209,6 +230,8 @@ export default function App() {
     keyInfos: MissionKeyInfo[];
     pickedLabels: string[];
     isLastMissionToday: boolean;
+    // 미션에서 떨어진 아이템 — 정의된 드롭이 있고 처음 획득일 때만 set
+    acquiredItem?: Item;
   } | null>(null);
   const [regionProgress, setRegionProgress] = useState<
     Record<string, RegionRecord>
@@ -245,6 +268,16 @@ export default function App() {
     saveLetters(letters);
   }, [letters]);
 
+  // 수집 아이템 localStorage 영속
+  useEffect(() => {
+    saveAcquiredItems(acquiredItems);
+  }, [acquiredItems]);
+
+  // 기억한 인용구 localStorage 영속
+  useEffect(() => {
+    saveQuotes(savedQuotes);
+  }, [savedQuotes]);
+
   // 편지 추가 헬퍼 — 중복 트리거(같은 trigger + residence) 가벼운 방지
   const addLetter = (letter: Letter) => {
     setLetters((prev) => [letter, ...prev]);
@@ -264,7 +297,11 @@ export default function App() {
         localStorage.removeItem(PROGRESS_KEY);
         localStorage.removeItem(LIKED_KEY);
         localStorage.removeItem(LETTERS_KEY);
+        localStorage.removeItem(ITEMS_STORAGE_KEY);
+        localStorage.removeItem(QUOTES_STORAGE_KEY);
         setLetters(getInitialLetters());
+        setAcquiredItems([]);
+        setSavedQuotes([]);
         setProfile(null);
         setSelected(null);
         setTab1Route("home");
@@ -544,6 +581,16 @@ export default function App() {
     const day = updatedRecord.currentDay ?? 1;
     const dayDone = isDayComplete(missionsByDay, day, completedSet);
 
+    // === 기념품 드롭 — 미션 + 마을 조합에 정의된 아이템이 있고, 아직 미수집이면 획득 ===
+    const drop = getItemDropFor(activeMission.id, selected.id);
+    const alreadyHave = drop
+      ? acquiredItems.some((it) => it.id === drop.id)
+      : false;
+    const newlyAcquired = drop && !alreadyHave ? drop : undefined;
+    if (newlyAcquired) {
+      setAcquiredItems((prev) => [...prev, newlyAcquired]);
+    }
+
     // 미션 완료 결과 카드용 데이터 저장
     setCompletionData({
       mission: activeMission,
@@ -555,6 +602,7 @@ export default function App() {
       pickedLabels:
         updatedRecord.pickedLabels?.[activeMission.id] ?? pickedLabels ?? [],
       isLastMissionToday: dayDone,
+      acquiredItem: newlyAcquired,
     });
 
     setRegionProgress(newProgress);
@@ -922,6 +970,21 @@ export default function App() {
               setTab1Route("mission-list");
             }}
             onComplete={handleMissionComplete}
+            onSaveQuote={(text) => {
+              if (!activeMission || !selected) return;
+              const newQuote: SavedQuote = {
+                id: `${Date.now()}-${activeMission.id}`,
+                text,
+                speaker: activeMission.npc.name,
+                speakerEmoji: activeMission.npc.emoji,
+                missionId: activeMission.id,
+                missionTitle: activeMission.title,
+                residenceId: selected.id,
+                residenceRegion: selected.region,
+                savedAt: Date.now(),
+              };
+              setSavedQuotes((prev) => [newQuote, ...prev]);
+            }}
           />
         )}
 
@@ -938,6 +1001,7 @@ export default function App() {
               keyInfos={completionData.keyInfos}
               pickedLabels={completionData.pickedLabels}
               isLastMissionToday={completionData.isLastMissionToday}
+              acquiredItem={completionData.acquiredItem}
               onNext={() => {
                 const dayDone = completionData.isLastMissionToday;
                 setCompletionData(null);
@@ -1076,7 +1140,7 @@ export default function App() {
           />
         )}
 
-        {/* === 내 정보 탭 — 정체성 + 좋아요 청년마을 + 설정 === */}
+        {/* === 내 정보 탭 — 정체성 + 좋아요 청년마을 + 수집한 기념품 + 설정 === */}
         {tab === "profile" && (
           <ProfileScreen
             nickname={nickname}
@@ -1087,6 +1151,8 @@ export default function App() {
             likedResidences={recommendedResidences.filter((r) =>
               bookingLiked.has(r.id)
             )}
+            acquiredItems={acquiredItems}
+            savedQuotes={savedQuotes}
             onOpenSettings={handleOpenSettings}
             onSelectResidence={(r) => {
               setBookingResidenceId(r.id);

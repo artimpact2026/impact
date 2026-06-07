@@ -25,15 +25,37 @@ const ganghwaMissions: Mission[] = [
     // 카카오 로드뷰 임베드 좌표 — 동막해수욕장 (강화군청 관광 페이지 출처)
     // agents/frontend/arrival-roadview-links.md 참고
     kakaoPosition: { lat: 37.593115, lng: 126.457175 },
+    // 능동: 갯벌 안내인께 먼저 묻기
+    opener: {
+      prompt: "갯벌 안내인께 뭐가 가장 궁금해?",
+      options: [
+        {
+          emoji: "🦀",
+          label: "발이 푹푹 빠진다던데, 직접 걸어도 안 위험해요?",
+          nextTurn: 0,
+        },
+        {
+          emoji: "🌬️",
+          label: "바닷가라 바람이 세지 않아요?",
+          nextTurn: 1,
+        },
+        {
+          emoji: "🌊",
+          label: "갯벌이 매일 풍경이면 어떤 느낌일까요?",
+          nextTurn: 2,
+        },
+      ],
+    },
     dialogues: [
+      // turn 0 — 갯벌 걷기 분기 (신규)
       {
         npc:
-          "강화 갯벌은 람사르 습지로 등록된 곳이에요. 썰물 때 1.5km까지 걸어 나갈 수 있어요. 발이 푹푹 빠지지만, 그 자체가 명상이에요.",
+          "강화 갯벌은 람사르 습지예요. 썰물 때 1.5km까지 걸어 나갈 수 있어요. 발이 푹푹 빠지지만, 그 자체가 명상이에요.",
         options: [
-          { label: "직접 걸어보면 좋겠어요", next: 1, traits: ["자연탐험형"] },
-          { label: "바람이 셀 것 같은데?", next: 1, traits: ["집돌이형"] },
+          { label: "직접 걸어보면 좋겠어요", next: 2, traits: ["자연탐험형"] },
         ],
       },
+      // turn 1 — 바람 분기
       {
         npc:
           "바람은 진짜 세요. 그래도 그 바람 맞으면서 걷다 보면, 도시에서 쌓인 게 다 날아가요. 농게도 보이고요. 한 시간 정도면 충분해요.",
@@ -42,6 +64,7 @@ const ganghwaMissions: Mission[] = [
           { label: "한 번쯤은 좋겠어요", next: 2, traits: ["레저형"] },
         ],
       },
+      // turn 2 — 일상 분기 (공통 마무리)
       {
         npc:
           "이 풍경을 일상으로 만들 수 있는 곳이에요. 매일 다른 색깔의 갯벌을 봐요. 그게 강화의 매력이에요.",
@@ -835,15 +858,29 @@ export const yeongwolMissionsOld: Mission[] = [
     background: "neighbor",
     npc: { name: "강가 어른", emoji: "🧓" },
     description: "굽이굽이 동강을 따라 걷는 한 시간",
+    // 능동: 강가에 누가 앉아 있고, 내가 다가가 묻는 그림.
+    opener: {
+      prompt: "강가에 앉아 있는 분께 뭐라고 말 걸까?",
+      options: [
+        {
+          emoji: "🚶",
+          label: "혼자 걷기 좋은 길이라고 들었어요",
+          nextTurn: 0,
+        },
+        {
+          emoji: "📷",
+          label: "사진 찍는 분들도 많이 오나요?",
+          nextTurn: 1,
+        },
+        {
+          emoji: "☕",
+          label: "동강 옆에 사는 분들 아침은 어떻게 시작해요?",
+          nextTurn: 2,
+        },
+      ],
+    },
     dialogues: [
-      {
-        npc:
-          "동강은 4대강 사업에서 빠진 마지막 자연 그대로의 강이에요. 강길이 잘 정비돼 있어서 천천히 걷기 좋아요. 한 코스 5km 정도예요.",
-        options: [
-          { label: "혼자 걷기 좋겠어요", next: 1, traits: ["자연탐험형", "집돌이형"] },
-          { label: "사진 찍는 사람 많아요?", next: 2, traits: ["자연탐험형"] },
-        ],
-      },
+      // turn 0 — 혼자 걷기 분기
       {
         npc:
           "평일엔 거의 혼자 걸어요. 강물 소리만 나고. 가다 보면 새 우는 소리, 바람 소리, 그게 다예요.",
@@ -851,6 +888,7 @@ export const yeongwolMissionsOld: Mission[] = [
           { label: "그런 시간이 진짜 필요했어요", next: 3, traits: ["자연탐험형", "집돌이형"] },
         ],
       },
+      // turn 1 — 사진가 분기
       {
         npc:
           "주말엔 사진가들이 와요. 그래도 사람 많은 건 아니고요. 새벽 안개 낀 동강 사진 찍으러 오는 분들이에요.",
@@ -858,11 +896,20 @@ export const yeongwolMissionsOld: Mission[] = [
           { label: "새벽에 가보고 싶어요", next: 3, traits: ["자연탐험형"] },
         ],
       },
+      // turn 2 — 아침 일상 분기 (신규 진입점)
       {
         npc:
-          "강 따라 걷고 산막 카페에서 커피 한 잔, 그게 영월의 오전이에요. 도시 사람이 여기 와서 가장 좋아하는 시간이에요.",
+          "강 따라 걷고 산막 카페에서 커피 한 잔, 그게 동강 사는 사람의 오전이에요. 도시에서 못 누리는 호사예요.",
         options: [
-          { label: "그 시간이 그리웠어요", traits: ["자연탐험형"] },
+          { label: "그 시간이 그리웠어요", next: 3, traits: ["자연탐험형"] },
+        ],
+      },
+      // turn 3 — 공통 마무리
+      {
+        npc:
+          "강을 매일 본다는 거, 별거 아닌 것 같지만 일 년 지나면 사람을 바꿔놓아요.",
+        options: [
+          { label: "그 변화를 받아보고 싶어요", traits: ["자연탐험형"] },
         ],
       },
     ],
@@ -921,15 +968,29 @@ export const yeongwolMissionsOld: Mission[] = [
     background: "home",
     npc: { name: "5대째 영월 어르신", emoji: "👴" },
     description: "영월에서만 5대를 산 어르신의 이야기",
+    // 능동: 어르신은 마루에 앉아 계시고, 내가 먼저 다가가 묻는 그림.
+    opener: {
+      prompt: "어르신께 무엇을 물어볼까?",
+      options: [
+        {
+          emoji: "❄️",
+          label: "겨울이 그렇게 춥다던데, 살기 어렵진 않으세요?",
+          nextTurn: 0,
+        },
+        {
+          emoji: "🌱",
+          label: "외지에서 내려온 분들도 있어요?",
+          nextTurn: 1,
+        },
+        {
+          emoji: "🪶",
+          label: "5대째 사신 분만 알 수 있는 게 있을까요?",
+          nextTurn: 2,
+        },
+      ],
+    },
     dialogues: [
-      {
-        npc:
-          "영월에 5대째 살고 있어요. 어머니 아버지 다 영월 사람이고. 이 동네에서 평생을 봤어요. 뭐 궁금한 거 있어요?",
-        options: [
-          { label: "여기 살기 어렵지 않으세요?", next: 1, traits: ["자연탐험형", "집돌이형"] },
-          { label: "외지 분들이 늘었나요?", next: 2, traits: ["자연탐험형"] },
-        ],
-      },
+      // turn 0 — 추위/계절 분기
       {
         npc:
           "어렵죠. 겨울이 길고 추워요. 그런데 봄 되면 다 잊어요. 동강에 얼음 풀리고 새가 오고, 그 시간이 한 1년 같아요.",
@@ -937,6 +998,7 @@ export const yeongwolMissionsOld: Mission[] = [
           { label: "그런 계절감이 진짜 멋지네요", next: 3, traits: ["자연탐험형"] },
         ],
       },
+      // turn 1 — 외지인 분기
       {
         npc:
           "요즘은 도시에서 내려오는 젊은 분들도 있어요. 천문대 좋아서, 강 좋아서. 처음엔 의아했는데 이젠 익숙해요.",
@@ -944,6 +1006,15 @@ export const yeongwolMissionsOld: Mission[] = [
           { label: "받아주시는 게 감사하네요", next: 3, traits: ["자연탐험형", "집돌이형"] },
         ],
       },
+      // turn 2 — 5대째 분기 (신규)
+      {
+        npc:
+          "5대째 살다 보니, 산이 어디서 어떻게 그늘지는지 다 알아요. 동강이 어느 해엔 더 차고 어느 해엔 늦게 풀리는지도. 그건 책에 안 나와요.",
+        options: [
+          { label: "그 감각이 진짜 부럽네요", next: 3, traits: ["자연탐험형", "집돌이형"] },
+        ],
+      },
+      // turn 3 — 공통 마무리
       {
         npc:
           "여기서 살려면 욕심을 좀 줄여야 해요. 빠른 거 적은 거. 그 대신 깊은 거 많아요. 별, 강, 산.",
@@ -2323,5 +2394,15 @@ export const regionMissions: Record<string, Mission[]> = {
 import { commonMissions } from "./missions";
 export function missionsForResidence(residenceId: string): Mission[] {
   const region = regionMissions[residenceId] ?? [];
+
+  // 영월 데모 — "산골 어르신 만나기" (opener 적용된 미션) 를 1일차에 노출.
+  // yeongwolMissionsOld 의 elder 데이터를 가져와 맨 앞에 prepend.
+  if (residenceId === "yeongwol") {
+    const elder = yeongwolMissionsOld.find((m) => m.id === "yeongwol-elder");
+    if (elder) {
+      return [elder, ...commonMissions, ...region];
+    }
+  }
+
   return [...commonMissions, ...region];
 }
