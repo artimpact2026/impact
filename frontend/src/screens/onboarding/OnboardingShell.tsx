@@ -4,6 +4,7 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import SplashScreen from "./SplashScreen";
+import IntroScreen from "./IntroScreen";
 import EmailScreen from "./EmailScreen";
 import BirthScreen from "./BirthScreen";
 import HomeRegionScreen from "./HomeRegionScreen";
@@ -26,6 +27,7 @@ import type { LifeStyleType } from "../../data/residences";
 
 type StepKey =
   | "splash"
+  | "intro"
   | "email"
   | "birth"
   | "homeRegion"
@@ -41,6 +43,7 @@ type StepKey =
 
 const ORDER: StepKey[] = [
   "splash",
+  "intro",
   "email",
   "birth",
   "homeRegion",
@@ -96,6 +99,8 @@ export default function OnboardingShell({ onComplete }: Props) {
           transition={{ duration: 0.26 }}
         >
           {step === "splash" && <SplashScreen onDone={advance} />}
+
+          {step === "intro" && <IntroScreen onDone={advance} />}
 
           {step === "email" && (
             <EmailScreen
