@@ -312,6 +312,38 @@ export default function App() {
         setViewingResidenceId(null);
         setResidenceListRegion(null);
       },
+      // 지역 진입만 시켜주는 단축 — 미션 미완료, 1일차, 마을 홈으로 이동.
+      //   cheongpung.enter("ganghwa") → 강화 ResidenceHomeScreen, Day 1
+      //   cheongpung.enter() → 첫 번째 지역
+      enter: (residenceId?: string) => {
+        const target = residenceId
+          ? residences.find((r) => r.id === residenceId)
+          : residences[0];
+        if (!target) {
+          console.warn(
+            `[cheongpung] 지역을 찾을 수 없어요: ${residenceId}. 사용 가능한 id:`,
+            residences.map((r) => r.id)
+          );
+          return;
+        }
+        // 비어있는 진행 기록 + 1일차로 — 미션 모두 미완료 상태
+        const fresh: RegionRecord = {
+          residenceId: target.id,
+          visitCount: 1,
+          completedMissionIds: [],
+          score: 0,
+          fitScore: 0,
+          currentDay: 1,
+        };
+        setRegionProgress((p) => ({ ...p, [target.id]: fresh }));
+        setSelected(target);
+        setActiveMission(null);
+        setTab("simulation");
+        setTab1Route("residence-home");
+        console.log(
+          `[cheongpung] ${target.region} 진입 — Day 1, 미션 0/N`
+        );
+      },
       // 지역의 8개 미션을 모두 완료 처리하고 '하루 요약' 화면으로 점프
       // 사용법: cheongpung.skipTo()  → 첫 번째 지역
       //        cheongpung.skipTo("ganghwa") → 특정 지역
@@ -438,7 +470,7 @@ export default function App() {
     };
     (window as unknown as { cheongpung?: typeof api }).cheongpung = api;
     console.log(
-      "%c[cheongpung] 데모 헬퍼 준비됨 — reset() / skipTo(id?) / bumpDay(id?) / setDay(day, id?) / regions()",
+      "%c[cheongpung] 데모 헬퍼 준비됨 — reset() / enter(id?) / skipTo(id?) / bumpDay(id?) / setDay(day, id?) / regions()",
       "color:#FF7043;font-weight:bold"
     );
   }, []);
