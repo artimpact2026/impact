@@ -237,10 +237,20 @@ function HeroCard({
   const rating = ratings[residence.id] ?? 4.5;
   const image = pickResidenceImage(residence);
   return (
-    <button
-      type="button"
+    // role="button" div — 안쪽에 진짜 <button>(찜)이 있어서 외부도 <button>이면
+    // HTML 명세상 nested button → 브라우저가 외부 button 강제 종료 → 카드 본문 클릭 안 먹음.
+    // div + role/keyboard 로 같은 접근성 유지하면서 nested 문제 회피.
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
-      className="snap-center shrink-0 w-[300px] rounded-[28px] overflow-hidden
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
+      className="snap-center shrink-0 w-[300px] rounded-[28px] overflow-hidden cursor-pointer
                  bg-white shadow-soft border border-cream-200/80 active:scale-[0.99] transition text-left"
     >
       <div className="relative aspect-[16/12] bg-cream-200">
@@ -292,7 +302,7 @@ function HeroCard({
                      drop-shadow-[0_4px_8px_rgba(62,44,32,0.28)]"
         />
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -315,10 +325,18 @@ function ListCard({
   const provides = (residence.provides ?? []).slice(0, 2);
 
   return (
-    <button
-      type="button"
+    // role="button" div — HeroCard 와 동일 사유 (안쪽 찜 button 과 nested 충돌 회피)
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
-      className="mx-4 mb-3 w-[calc(100%-2rem)] bg-white rounded-3xl
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
+      className="mx-4 mb-3 w-[calc(100%-2rem)] bg-white rounded-3xl cursor-pointer
                  shadow-soft border border-cream-200/80 p-3
                  flex gap-3 items-stretch active:scale-[0.99] transition text-left"
     >
@@ -380,7 +398,7 @@ function ListCard({
           </span>
         </div>
       </div>
-    </button>
+    </div>
   );
 }
 

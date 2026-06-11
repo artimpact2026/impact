@@ -8,6 +8,7 @@
 //   · 모션 없음 — 정적 카드. tap 시 CSS active:scale 만 살짝 피드백.
 
 import type { Mission } from "../data/missions";
+import { curiosityFor } from "../data/missionCopy";
 
 type Props = {
   mission: Mission;
@@ -16,34 +17,6 @@ type Props = {
   onClick?: () => void;
   eager?: boolean;
 };
-
-// 미션별 호기심 질문 — 정의된 게 있으면 우선, 없으면 description / 자동 생성 폴백
-const MISSION_QUESTIONS: Record<string, string> = {
-  hospital: "응급 상황엔 어디로, 얼마나 걸려서 갈까?",
-  market: "동네 시장 물가, 서울이랑 얼마나 다를까?",
-  cafe: "혼자 머물 카페, 이 동네엔 어떤 모습일까?",
-  neighbor: "처음 보는 이웃이 나에게 뭐라고 할까?",
-  library: "동네 도서관, 어떤 풍경일까?",
-  transit: "버스 한 대 놓치면 얼마나 기다려야 할까?",
-  home: "잠시 머무는 집, 첫인상은 어떨까?",
-  office: "이 동네에선 어떤 일을 하며 살 수 있을까?",
-  mailbox: "오늘 도착한 편지엔 무슨 말이 적혀있을까?",
-  restaurant: "현지인이 가는 밥집, 한 끼에 얼마쯤?",
-  walking: "걷다 보면 마주칠 풍경은 어떤 모습일까?",
-};
-
-function curiosityFor(m: Mission): string {
-  if (MISSION_QUESTIONS[m.id]) return MISSION_QUESTIONS[m.id];
-  if (m.description) return m.description;
-  switch (m.category) {
-    case "생활현실형":
-      return `${m.title} — 서울이랑 어떻게 다를까?`;
-    case "관계형성형":
-      return `${m.title} — 어떤 사람을 만나게 될까?`;
-    default:
-      return `${m.title} — 어떤 분위기일까?`;
-  }
-}
 
 export default function MissionImageCard({
   mission,

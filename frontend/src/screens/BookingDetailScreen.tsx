@@ -199,7 +199,7 @@ export default function BookingDetailScreen({
       </section>
 
       {/* ⑦ 다녀온 사람들 이야기 */}
-      <section className="px-4 pt-5 pb-32">
+      <section className="px-4 pt-5 pb-44">
         <SectionLabel>다녀온 사람들 이야기</SectionLabel>
         <div className="mt-2 flex flex-col gap-2.5">
           {reviews.length > 0 ? (
@@ -212,10 +212,11 @@ export default function BookingDetailScreen({
         </div>
       </section>
 
-      {/* ⑧ 하단 고정 CTA */}
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[420px] z-30
-                      px-4 pt-3 pb-[max(env(safe-area-inset-bottom),16px)]
-                      bg-gradient-to-t from-cream via-cream/95 to-transparent">
+      {/* ⑧ 하단 고정 CTA — BottomNav(z-40) 가 가리지 않게 nav-safe-b 만큼 위로 올림 */}
+      <div className="fixed left-1/2 -translate-x-1/2 w-full max-w-[420px] z-30
+                      px-4 pt-3 pb-3
+                      bg-gradient-to-t from-cream via-cream/95 to-transparent"
+           style={{ bottom: "var(--nav-safe-b)" }}>
         <button
           type="button"
           onClick={onBook}

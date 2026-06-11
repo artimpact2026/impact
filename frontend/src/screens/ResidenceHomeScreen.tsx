@@ -11,6 +11,11 @@
 
 import { motion } from "framer-motion";
 import type { Residence } from "../data/residences";
+import {
+  HANSEOL_IMAGE,
+  HANSEOL_INTRO,
+  HANSEOL_NAME,
+} from "../data/ganghwaStory";
 
 type Props = {
   residence: Residence;
@@ -25,6 +30,9 @@ type Props = {
   // 편지함 진입 — 편지 탭 제거 후 ResidenceHomeScreen 의 floating 버튼이 유일 진입점
   onOpenLetters?: () => void;
   letterUnread?: number;
+  // 한설 환영 모달 — Day 1 첫 진입 시만 true. 닫으면 onDismissIntro 영속 처리.
+  showHanseolIntro?: boolean;
+  onDismissHanseolIntro?: () => void;
 };
 
 export default function ResidenceHomeScreen({
@@ -39,6 +47,8 @@ export default function ResidenceHomeScreen({
   onReturnHome,
   onOpenLetters,
   letterUnread = 0,
+  showHanseolIntro = false,
+  onDismissHanseolIntro,
 }: Props) {
   const todayPercent =
     todayMissionCount === 0
@@ -124,6 +134,51 @@ export default function ResidenceHomeScreen({
           </div>
         </div>
       </footer>
+
+      {/* ===== 한설 환영 모달 — Day 1 첫 진입 시 1회 ===== */}
+      {showHanseolIntro && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center px-6
+                     bg-black/40 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+        >
+          <motion.div
+            initial={{ scale: 0.92, opacity: 0, y: 12 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            transition={{ duration: 0.35 }}
+            className="w-full max-w-[340px] rounded-3xl bg-white shadow-soft
+                       overflow-hidden flex flex-col items-center"
+          >
+            <div
+              className="w-full h-[180px] bg-cover bg-center"
+              style={{ backgroundImage: `url(${HANSEOL_IMAGE})` }}
+              aria-hidden
+            />
+            <div className="px-6 pt-5 pb-6 w-full text-center">
+              <p className="text-[10px] font-extrabold tracking-[0.18em] uppercase text-primary">
+                먼저 입주한 선배
+              </p>
+              <p className="mt-1 text-ink text-[18px] font-extrabold">
+                {HANSEOL_NAME}
+              </p>
+              <p className="mt-3 text-ink-soft text-[13.5px] leading-relaxed">
+                {HANSEOL_INTRO}
+              </p>
+              <button
+                type="button"
+                onClick={onDismissHanseolIntro}
+                className="mt-5 w-full h-12 rounded-full bg-primary text-white
+                           text-[14px] font-extrabold
+                           shadow-[0_6px_16px_-4px_rgba(255,112,67,0.5)]
+                           active:scale-[0.98] transition"
+              >
+                알겠어요
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

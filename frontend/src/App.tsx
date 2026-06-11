@@ -6,6 +6,7 @@ import DepartureScreen from "./screens/DepartureScreen";
 import TravelingScreen from "./screens/TravelingScreen";
 import ArrivalScreen from "./screens/ArrivalScreen";
 import MissionListScreen from "./screens/MissionListScreen";
+import MissionInfoScreen from "./screens/MissionInfoScreen";
 import MissionTravelingScreen from "./screens/MissionTravelingScreen";
 import MissionExecuteScreen from "./screens/MissionExecuteScreen";
 import MissionCompleteScreen, {
@@ -108,6 +109,7 @@ type Tab1Route =
   | "arrival"
   | "residence-home"
   | "mission-list"
+  | "mission-info"
   | "mission-traveling"
   | "mission-execute"
   | "mission-complete"
@@ -467,10 +469,29 @@ export default function App() {
         console.table(list);
         return list;
       },
+      // 강화 한설 환영 모달 재테스트용 — storyIntroShown 플래그 해제
+      // 사용법: cheongpung.resetIntro()             → 강화 ("ganghwa") 기본
+      //        cheongpung.resetIntro("yeongwol")    → 다른 지역도 동일하게
+      resetIntro: (residenceId: string = "ganghwa") => {
+        setRegionProgress((p) => {
+          const base = p[residenceId];
+          if (!base) {
+            console.warn(
+              `[cheongpung] ${residenceId} 진행 기록이 아직 없어요. enter() 먼저 호출하세요.`
+            );
+            return p;
+          }
+          const next: RegionRecord = { ...base, storyIntroShown: false };
+          console.log(
+            `[cheongpung] ${residenceId} storyIntroShown 해제 — Day 1 진입 시 인사 모달 다시 노출`
+          );
+          return { ...p, [residenceId]: next };
+        });
+      },
     };
     (window as unknown as { cheongpung?: typeof api }).cheongpung = api;
     console.log(
-      "%c[cheongpung] 데모 헬퍼 준비됨 — reset() / enter(id?) / skipTo(id?) / bumpDay(id?) / setDay(day, id?) / regions()",
+      "%c[cheongpung] 데모 헬퍼 준비됨 — reset() / enter(id?) / skipTo(id?) / bumpDay(id?) / setDay(day, id?) / regions() / resetIntro(id?)",
       "color:#FF7043;font-weight:bold"
     );
   }, []);
@@ -527,6 +548,7 @@ export default function App() {
   const IN_RESIDENCE_FLOW: Tab1Route[] = [
     "residence-home",
     "mission-list",
+    "mission-info",
     "mission-traveling",
     "mission-execute",
     "mission-complete",
@@ -718,18 +740,38 @@ export default function App() {
     setCinematicResidenceId(null);
   };
 
-  // 미션 선택 시 mode에 따라 라우팅 분기
+  // 강화 한설 환영 모달 — Day 1 첫 진입 시 1회 노출 후 영속 처리.
+  const handleDismissHanseolIntro = () => {
+    if (!selected) return;
+    setRegionProgress((p) => {
+      const base = p[selected.id];
+      if (!base) return p;
+      return { ...p, [selected.id]: { ...base, storyIntroShown: true } };
+    });
+  };
+
+  // 미션 선택 시 — 먼저 정보 화면으로. 진행 분기는 정보 화면의 "체험하기" 버튼에서.
   const handleSelectMission = (m: Mission) => {
     setActiveMission(m);
-    if (m.mode === "mailbox") {
-      // 우편함은 별도 — 도착 화면의 모달 흐름과 동일하게 모달 노출
+    setTab1Route("mission-info");
+  };
+
+  // 정보 화면 "체험하기" — 기존 mode 분기 로직 (예전 handleSelectMission 내용)
+  const handleStartActiveMission = () => {
+    if (!activeMission) return;
+    if (activeMission.mode === "mailbox") {
+      // 우편함 모달 노출 + 모달 닫으면 정보 화면이 아닌 미션 리스트가 보이도록 라우트 미리 복귀
+      setTab1Route("mission-list");
       setMailboxFromMission(true);
       return;
     }
-    if (m.mode === "map-dialogue" || m.mode === "map-info") {
+    if (
+      activeMission.mode === "map-dialogue" ||
+      activeMission.mode === "map-info"
+    ) {
       setTab1Route("mission-traveling");
     } else {
-      // dialogue / numeric — 바로 수행 화면
+      // dialogue / numeric / final — 바로 수행 화면
       setTab1Route("mission-execute");
     }
   };
@@ -844,6 +886,12 @@ export default function App() {
                 onReturnHome={() => setTab1Route("traveling-back")}
                 onOpenLetters={() => setTab1Route("letter")}
                 letterUnread={unreadCount(letters)}
+                showHanseolIntro={
+                  selected.id === "ganghwa" &&
+                  currentDay === 1 &&
+                  !currentRecord?.storyIntroShown
+                }
+                onDismissHanseolIntro={handleDismissHanseolIntro}
               />
             );
           })()}
@@ -912,9 +960,23 @@ export default function App() {
           />
         )}
 
+        {tab === "simulation" && tab1Route === "mission-info" && activeMission && selected && (
+          <MissionInfoScreen
+            region={selected.region}
+            residenceId={selected.id}
+            mission={activeMission}
+            onBack={() => {
+              setActiveMission(null);
+              setTab1Route("mission-list");
+            }}
+            onStart={handleStartActiveMission}
+          />
+        )}
+
         {tab === "simulation" && tab1Route === "day-end-ceremony" && selected && currentDayPlan && (
           <DayEndCeremonyScreen
             region={selected.region}
+            residenceId={selected.id}
             finishedDay={currentDay}
             totalDays={currentDayPlan.dayCount}
             prevStage={houseStageFromProgress(

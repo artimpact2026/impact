@@ -6,6 +6,12 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import HouseStage from "../components/HouseStage";
 import { SPACE_STAGE_NAMES } from "../data/dayPlan";
+import {
+  GANGHWA_ID,
+  HANSEOL_DAY_CLOSE,
+  HANSEOL_IMAGE,
+  HANSEOL_NAME,
+} from "../data/ganghwaStory";
 
 type StageNumber = 0 | 1 | 2 | 3;
 
@@ -18,6 +24,7 @@ type Suggestion = {
 
 type Props = {
   region: string;
+  residenceId: string;
   finishedDay: number;
   totalDays: number;
   prevStage: StageNumber;
@@ -30,6 +37,7 @@ type Props = {
 
 export default function DayEndCeremonyScreen({
   region,
+  residenceId,
   finishedDay,
   totalDays,
   prevStage,
@@ -37,6 +45,12 @@ export default function DayEndCeremonyScreen({
   onClose,
   suggestions,
 }: Props) {
+  // 한설 마무리 — 강화 + day 1/2/3 만 적용
+  const hanseolClose =
+    residenceId === GANGHWA_ID && (finishedDay === 1 || finishedDay === 2 || finishedDay === 3)
+      ? HANSEOL_DAY_CLOSE[finishedDay as 1 | 2 | 3]
+      : undefined;
+  const isFarewell = finishedDay === 3;
   const [stage, setStage] = useState<StageNumber>(prevStage);
 
   useEffect(() => {
@@ -139,6 +153,40 @@ export default function DayEndCeremonyScreen({
             : "오늘은 머무는 하루였어요"}
         </motion.p>
       </header>
+
+      {/* ②.5 한설 마무리 — 강화 + day 1/2/3 만. day 3 는 작별 톤(외곽선 강조) */}
+      {hanseolClose && (
+        <motion.section
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35, duration: 0.45 }}
+          className="mt-5 mx-5"
+        >
+          <div
+            className={`flex items-start gap-3 rounded-2xl p-3.5
+                       ${
+                         isFarewell
+                           ? "bg-primary-50 border-2 border-primary/30 shadow-soft"
+                           : "bg-white border border-cream-200 shadow-soft"
+                       }`}
+          >
+            <span
+              aria-hidden
+              className="w-12 h-12 rounded-full bg-cover bg-center shrink-0
+                         border border-white shadow-soft"
+              style={{ backgroundImage: `url(${HANSEOL_IMAGE})` }}
+            />
+            <div className="min-w-0">
+              <p className="text-[10.5px] font-extrabold tracking-[0.16em] uppercase text-primary">
+                {isFarewell ? `${HANSEOL_NAME}의 작별` : `${HANSEOL_NAME}의 한마디`}
+              </p>
+              <p className="mt-1 text-ink text-[13.5px] leading-relaxed">
+                {hanseolClose}
+              </p>
+            </div>
+          </div>
+        </motion.section>
+      )}
 
       {/* ③ 단계 표시 — 가운데 정렬 (카드 밖) */}
       <section className="mt-7 flex flex-col items-center gap-2">

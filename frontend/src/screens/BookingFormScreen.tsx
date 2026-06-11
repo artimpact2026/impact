@@ -94,7 +94,7 @@ export default function BookingFormScreen({
         </div>
       </header>
 
-      <section className="px-5 pt-3 pb-32">
+      <section className="px-5 pt-3 pb-44">
         {/* 입주 날짜 */}
         <h2 className="text-[16px] font-extrabold text-ink">입주 날짜</h2>
         <p className="mt-0.5 text-[11.5px] text-ink-mute">
@@ -148,10 +148,11 @@ export default function BookingFormScreen({
         </div>
       </section>
 
-      {/* 하단 고정 CTA */}
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[420px] z-30
-                      px-4 pt-3 pb-[max(env(safe-area-inset-bottom),16px)]
-                      bg-gradient-to-t from-cream via-cream/95 to-transparent">
+      {/* 하단 고정 CTA — BottomNav 위로 올려 가려지지 않게 */}
+      <div className="fixed left-1/2 -translate-x-1/2 w-full max-w-[420px] z-30
+                      px-4 pt-3 pb-3
+                      bg-gradient-to-t from-cream via-cream/95 to-transparent"
+           style={{ bottom: "var(--nav-safe-b)" }}>
         <button
           type="button"
           onClick={handleSubmit}

@@ -33,6 +33,8 @@ export type RegionRecord = {
   // 말해보카 톤("당신은 *걸어가볼게요* 라고 답하셨네요...") 으로 개인화 평가.
   // 부정 답변은 "(부정 답변)" 으로 기록.
   pickedLabels?: Record<string, string[]>;
+  // 강화 한설 튜토리얼 — Day 1 첫 진입 환영 모달이 노출됐는지. 영속 1회용.
+  storyIntroShown?: boolean;
 };
 
 // 이주 리포트 — 마지막 일차 완료 시 잠금 해제되는 시네마틱 엔딩
