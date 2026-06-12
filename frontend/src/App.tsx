@@ -488,10 +488,48 @@ export default function App() {
           return { ...p, [residenceId]: next };
         });
       },
+      // 강화 shop 미션 게임식 튜토리얼 재테스트용 — shopTutorialShown 플래그 해제
+      // 사용법: cheongpung.resetShopTutorial()              → 강화 ("ganghwa") 기본
+      //        cheongpung.resetShopTutorial("yeongwol")     → 다른 지역도 동일하게
+      resetShopTutorial: (residenceId: string = "ganghwa") => {
+        setRegionProgress((p) => {
+          const base = p[residenceId];
+          if (!base) {
+            console.warn(
+              `[cheongpung] ${residenceId} 진행 기록이 아직 없어요. enter() 먼저 호출하세요.`
+            );
+            return p;
+          }
+          const next: RegionRecord = { ...base, shopTutorialShown: false };
+          console.log(
+            `[cheongpung] ${residenceId} shopTutorialShown 해제 — shop 미션 정보 화면에서 튜토리얼 다시 노출`
+          );
+          return { ...p, [residenceId]: next };
+        });
+      },
+      // 점심 탭 튜토리얼 재테스트용 — lunchTabTutorialShown 해제.
+      // 사용법: cheongpung.resetLunchTutorial()             → 강화 기본
+      //        cheongpung.resetLunchTutorial("yeongwol")    → 다른 지역도 동일하게
+      resetLunchTutorial: (residenceId: string = "ganghwa") => {
+        setRegionProgress((p) => {
+          const base = p[residenceId];
+          if (!base) {
+            console.warn(
+              `[cheongpung] ${residenceId} 진행 기록이 아직 없어요. enter() 먼저 호출하세요.`
+            );
+            return p;
+          }
+          const next: RegionRecord = { ...base, lunchTabTutorialShown: false };
+          console.log(
+            `[cheongpung] ${residenceId} lunchTabTutorialShown 해제 — 미션 리스트 진입 시 점심 탭 안내 재노출`
+          );
+          return { ...p, [residenceId]: next };
+        });
+      },
     };
     (window as unknown as { cheongpung?: typeof api }).cheongpung = api;
     console.log(
-      "%c[cheongpung] 데모 헬퍼 준비됨 — reset() / enter(id?) / skipTo(id?) / bumpDay(id?) / setDay(day, id?) / regions() / resetIntro(id?)",
+      "%c[cheongpung] 데모 헬퍼 준비됨 — reset() / enter(id?) / skipTo(id?) / bumpDay(id?) / setDay(day, id?) / regions() / resetIntro(id?) / resetShopTutorial(id?) / resetLunchTutorial(id?)",
       "color:#FF7043;font-weight:bold"
     );
   }, []);
@@ -750,6 +788,26 @@ export default function App() {
     });
   };
 
+  // 강화 shop 미션 — 게임식 튜토리얼 1회 노출 후 영속 처리 (체험하기 버튼 클릭 시 호출).
+  const handleDismissShopTutorial = () => {
+    if (!selected) return;
+    setRegionProgress((p) => {
+      const base = p[selected.id];
+      if (!base) return p;
+      return { ...p, [selected.id]: { ...base, shopTutorialShown: true } };
+    });
+  };
+
+  // 점심 탭 튜토리얼 — 점심 버튼 클릭 시 1회 노출 플래그 영속화.
+  const handleDismissLunchTutorial = () => {
+    if (!selected) return;
+    setRegionProgress((p) => {
+      const base = p[selected.id];
+      if (!base) return p;
+      return { ...p, [selected.id]: { ...base, lunchTabTutorialShown: true } };
+    });
+  };
+
   // 미션 선택 시 — 먼저 정보 화면으로. 진행 분기는 정보 화면의 "체험하기" 버튼에서.
   const handleSelectMission = (m: Mission) => {
     setActiveMission(m);
@@ -957,6 +1015,14 @@ export default function App() {
             currentDay={currentDay}
             onBack={() => setTab1Route("arrival")}
             onSelectMission={handleSelectMission}
+            // 점심 탭 튜토리얼 게이트 — 강화 + Day1 + shop 완료 + 아직 미노출
+            showLunchTutorial={
+              selected.id === "ganghwa" &&
+              currentDay === 1 &&
+              currentCompletedIds.has("shop") &&
+              !currentRecord?.lunchTabTutorialShown
+            }
+            onDismissLunchTutorial={handleDismissLunchTutorial}
           />
         )}
 
@@ -970,6 +1036,14 @@ export default function App() {
               setTab1Route("mission-list");
             }}
             onStart={handleStartActiveMission}
+            // 게임식 튜토리얼 게이트 — 강화 + Day1 + shop + 미노출
+            showShopTutorial={
+              selected.id === "ganghwa" &&
+              currentDay === 1 &&
+              activeMission.id === "shop" &&
+              !currentRecord?.shopTutorialShown
+            }
+            onDismissShopTutorial={handleDismissShopTutorial}
           />
         )}
 

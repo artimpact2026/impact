@@ -35,6 +35,10 @@ export type RegionRecord = {
   pickedLabels?: Record<string, string[]>;
   // 강화 한설 튜토리얼 — Day 1 첫 진입 환영 모달이 노출됐는지. 영속 1회용.
   storyIntroShown?: boolean;
+  // 강화 shop 미션 — 게임식 튜토리얼 오버레이(체험하기 버튼 안내)가 노출됐는지. 영속 1회용.
+  shopTutorialShown?: boolean;
+  // 강화 점심 탭 — shop 완료 후 시간대 탭 "점심"으로 이동 안내 튜토리얼. 영속 1회용.
+  lunchTabTutorialShown?: boolean;
 };
 
 // 이주 리포트 — 마지막 일차 완료 시 잠금 해제되는 시네마틱 엔딩

@@ -36,6 +36,17 @@ export const HANSEOL_MISSION_LINES: Record<string, string> = {
     "강화 마지막 밤이네. 노을 보러 가자. 이거 보면 왜 사람들이 여기 남는지 알 거야.",
 };
 
+// 게임식 튜토리얼 말풍선 — 정보 화면 "체험하기" 버튼 위에 짧게 띄움.
+// HANSEOL_MISSION_LINES와 분리한 이유: 정보 패널 라인은 미션 동기·맥락 설명이라 길고,
+// 말풍선은 행동 유도(CTA) 톤이라 짧고 단호한 카피가 적합. 시제품은 shop 1줄만 정의.
+export const HANSEOL_TUTORIAL_LINES: Record<string, string> = {
+  shop: "여기 눌러봐.\n동네부터 시작이야.",
+};
+export const HANSEOL_TUTORIAL_FALLBACK = "여기 눌러봐!";
+
+// 시간대 점심 탭 안내 — 첫 아침 미션 완료 후 다음 시간대로 자연스럽게 넘어가게.
+export const HANSEOL_LUNCH_HINT = "이제 점심 시간이야.\n여기 눌러봐.";
+
 // 하루 끝 마무리 — day 1/2/3 별. day 3 는 작별 톤.
 export const HANSEOL_DAY_CLOSE: Record<1 | 2 | 3, string> = {
   1: "첫날 잘 버텼네. 별거 아닌 것 같아도, 오늘 네가 강화랑 처음 인사한 거야. 내일 또 보자.",

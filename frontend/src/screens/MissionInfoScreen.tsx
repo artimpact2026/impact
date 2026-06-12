@@ -3,6 +3,7 @@
 //
 // 진행 화면 자체는 안 건드림 — onStart() 한 번 호출하면 App.tsx 가 mode 별로 분기.
 
+import { useRef } from "react";
 import type { Mission } from "../data/missions";
 import { infoCopyFor } from "../data/missionCopy";
 import {
@@ -14,7 +15,10 @@ import {
   HANSEOL_IMAGE,
   HANSEOL_MISSION_LINES,
   HANSEOL_NAME,
+  HANSEOL_TUTORIAL_FALLBACK,
+  HANSEOL_TUTORIAL_LINES,
 } from "../data/ganghwaStory";
+import TutorialOverlay from "../components/TutorialOverlay";
 
 type Props = {
   region: string;
@@ -22,6 +26,10 @@ type Props = {
   mission: Mission;
   onBack: () => void;
   onStart: () => void;
+  // 게임식 튜토리얼 — "체험하기" 버튼 1단계 안내. 강화 Day1 shop 미션 1회용.
+  // 부모(App)가 게이트 조건(지역/일차/미션/플래그)을 평가해서 내려줌.
+  showShopTutorial?: boolean;
+  onDismissShopTutorial?: () => void;
 };
 
 // "낮" 내부 키 → "점심" UI 라벨 (BottomNav/TimeOfDayTabs와 동일 규칙)
@@ -34,7 +42,11 @@ export default function MissionInfoScreen({
   mission,
   onBack,
   onStart,
+  showShopTutorial = false,
+  onDismissShopTutorial,
 }: Props) {
+  // "체험하기" 버튼 ref — 튜토리얼 스포트라이트 좌표 측정용
+  const startBtnRef = useRef<HTMLButtonElement | null>(null);
   // 한설 한마디 — 강화도 + 메인 9 미션에만 적용 (line 정의된 미션 = 메인 9)
   const hanseolLine =
     residenceId === GANGHWA_ID ? HANSEOL_MISSION_LINES[mission.id] : undefined;
@@ -178,8 +190,13 @@ export default function MissionInfoScreen({
         style={{ bottom: "calc(var(--content-bottom) + 12px)" }}
       >
         <button
+          ref={startBtnRef}
           type="button"
-          onClick={onStart}
+          onClick={() => {
+            // 튜토리얼이 떠 있었으면 1회 노출 플래그 저장 후 미션 진행
+            if (showShopTutorial) onDismissShopTutorial?.();
+            onStart();
+          }}
           className="pointer-events-auto w-full h-14 rounded-full bg-primary text-white
                      text-[15px] font-extrabold
                      shadow-[0_8px_20px_-4px_rgba(255,112,67,0.6)]
@@ -198,6 +215,15 @@ export default function MissionInfoScreen({
           </svg>
         </button>
       </div>
+
+      {/* 게임식 튜토리얼 — 강화 Day1 shop 미션 첫 진입 1회만 (게이트는 부모가 결정) */}
+      <TutorialOverlay
+        visible={showShopTutorial}
+        targetRef={startBtnRef}
+        caption={HANSEOL_TUTORIAL_LINES[mission.id] ?? HANSEOL_TUTORIAL_FALLBACK}
+        characterSrc="/character1/clay-baram-solo.png"
+        characterSide="left"
+      />
     </div>
   );
 }

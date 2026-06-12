@@ -4,9 +4,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import CategoryTabs from "../components/CategoryTabs";
 import TimeOfDayTabs from "../components/TimeOfDayTabs";
-import CategoryFilterChips, {
-  type CategoryFilter,
-} from "../components/CategoryFilterChips";
 import MissionCarousel from "../components/MissionCarousel";
 import MissionImageCard from "../components/MissionImageCard";
 import { type Mission, type TimeOfDay } from "../data/missions";
@@ -21,6 +18,8 @@ import {
 } from "../data/missionCategories";
 import { buildDayPlan, missionIdsForDay } from "../data/dayPlan";
 import type { Residence } from "../data/residences";
+import TutorialOverlay from "../components/TutorialOverlay";
+import { HANSEOL_LUNCH_HINT } from "../data/ganghwaStory";
 
 type Props = {
   region: string;
@@ -31,6 +30,9 @@ type Props = {
   currentDay: number;
   onBack: () => void;
   onSelectMission: (mission: Mission) => void;
+  // 점심 탭 튜토리얼 — 강화 Day1 shop 완료 후 1회용. 게이트는 부모(App)에서 결정.
+  showLunchTutorial?: boolean;
+  onDismissLunchTutorial?: () => void;
 };
 
 export default function MissionListScreen({
@@ -42,7 +44,11 @@ export default function MissionListScreen({
   currentDay,
   onBack,
   onSelectMission,
+  showLunchTutorial = false,
+  onDismissLunchTutorial,
 }: Props) {
+  // 점심 탭 ref — 튜토리얼 스포트라이트 좌표 측정용
+  const lunchTabRef = useRef<HTMLButtonElement | null>(null);
   const allMissions = useMemo(
     () => missionsForResidence(residence.id),
     [residence.id]
@@ -140,7 +146,6 @@ export default function MissionListScreen({
     todayMissions.length > 0 && todayMissions.every((m) => m.timeOfDay);
 
   const [activeTime, setActiveTime] = useState<TimeOfDay>("아침");
-  const [activeCategory, setActiveCategory] = useState<CategoryFilter>("all");
 
   // 시간대별 미션
   const byTime = useMemo(() => {
@@ -159,30 +164,10 @@ export default function MissionListScreen({
 
   const activeTimeMissions = byTime[activeTime];
 
-  // 선택 시간대 안에서의 카테고리별 카운트 — 칩 disabled 판정용
-  const categoryCountsForTime: Record<MissionGroup, number> = useMemo(() => {
-    const out: Record<MissionGroup, number> = {
-      roadview: 0,
-      real: 0,
-      people: 0,
-      rest: 0,
-    };
-    for (const m of activeTimeMissions) out[getMissionGroup(m)]++;
-    return out;
-  }, [activeTimeMissions]);
-
-  // 시간대 ∩ 카테고리 필터 적용한 표시 미션
-  const filteredMissions = useMemo(() => {
-    if (activeCategory === "all") return activeTimeMissions;
-    return activeTimeMissions.filter(
-      (m) => getMissionGroup(m) === activeCategory
-    );
-  }, [activeTimeMissions, activeCategory]);
-
-  // 시간대 바꾸면 카테고리 필터 리셋 — 다른 시간대엔 그 카테고리가 0개일 수 있어 빈 화면 방지
   const handleTimeSelect = (t: TimeOfDay) => {
+    // 점심 탭 튜토리얼이 떠 있었으면 점심 선택 시 1회 플래그 저장
+    if (showLunchTutorial && t === "낮") onDismissLunchTutorial?.();
     setActiveTime(t);
-    setActiveCategory("all");
   };
 
   return (
@@ -204,7 +189,7 @@ export default function MissionListScreen({
             aria-hidden
             className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/20 to-black/55"
           />
-          <div className="relative h-full px-5 pt-12 pb-5 flex flex-col">
+          <div className="relative h-full px-5 pt-12 pb-10 flex flex-col">
             <button
               type="button"
               onClick={onBack}
@@ -232,12 +217,6 @@ export default function MissionListScreen({
               <p className="mt-1.5 text-white/85 text-[12.5px] leading-relaxed">
                 어디부터 들러볼까요?
               </p>
-              <div className="mt-3 h-1.5 rounded-full bg-white/25 overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-nature-300 to-primary"
-                  style={{ width: `${todayPercent}%` }}
-                />
-              </div>
             </div>
           </div>
         </header>
@@ -295,10 +274,33 @@ export default function MissionListScreen({
       >
         <div className="h-3" />
 
+        {/* ===== 오늘 진행 카드 — 흰 박스 + 살구→주황 그라디언트 게이지 + 'N/M 완료' 텍스트 ===== */}
+        {useTwoTier && todayTotal > 0 && (
+          <section className="px-5 pt-1 pb-3">
+            <div
+              className="rounded-2xl bg-white border border-cream-200
+                         shadow-soft px-4 py-3"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-ink text-[13px] font-extrabold">오늘 미션</p>
+                <p className="text-ink-soft text-[12.5px] font-extrabold tabular-nums">
+                  {todayDone}/{todayTotal} 완료
+                </p>
+              </div>
+              <div className="mt-2 h-2 rounded-full bg-cream-200 overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-[#FF8C42] to-[#FFB347]
+                             transition-[width] duration-300"
+                  style={{ width: `${todayPercent}%` }}
+                />
+              </div>
+            </div>
+          </section>
+        )}
+
         {useTwoTier ? (
-          // ===== 2단 탭 모드 (강화 plan 자동) =====
+          // ===== 2단 탭 모드 (강화 plan 자동) — 카테고리 필터 줄 삭제 =====
           <>
-            {/* sticky 두 줄 — 시간대 메인 + 카테고리 보조 */}
             <div
               className="sticky top-0 z-20 bg-cream/95 backdrop-blur
                          border-b border-cream-200"
@@ -307,18 +309,13 @@ export default function MissionListScreen({
                 active={activeTime}
                 counts={timeCounts}
                 onSelect={handleTimeSelect}
-              />
-              <CategoryFilterChips
-                active={activeCategory}
-                counts={categoryCountsForTime}
-                total={activeTimeMissions.length}
-                onSelect={setActiveCategory}
+                lunchTabRef={lunchTabRef}
               />
             </div>
 
-            {/* 필터된 미션 카드 — 한 줄 캐로셀. 섹션 헤더는 시간대 탭이 대체. */}
+            {/* 시간대 미션 카드 — 한 줄 캐로셀. */}
             <section className="pt-5 pb-2">
-              {filteredMissions.length === 0 ? (
+              {activeTimeMissions.length === 0 ? (
                 <div className="px-5 py-8 text-center">
                   <p className="text-ink-soft text-[13px] leading-relaxed">
                     이 시간대에는 미션이 없어요.<br />
@@ -327,7 +324,7 @@ export default function MissionListScreen({
                 </div>
               ) : (
                 <MissionCarousel
-                  items={filteredMissions.map((m, i) => {
+                  items={activeTimeMissions.map((m, i) => {
                     const meta = missionGroupMeta[getMissionGroup(m)];
                     return (
                       <MissionImageCard
@@ -455,6 +452,15 @@ export default function MissionListScreen({
 
         <div className="h-10" />
       </div>
+
+      {/* 점심 탭 튜토리얼 — shop 완료 후 자연스러운 시간대 이동 안내 */}
+      <TutorialOverlay
+        visible={showLunchTutorial}
+        targetRef={lunchTabRef}
+        caption={HANSEOL_LUNCH_HINT}
+        characterSrc="/character1/clay-baram-solo.png"
+        characterSide="left"
+      />
     </div>
   );
 }
