@@ -17,8 +17,9 @@ type Props = {
   active: TimeOfDay;
   counts: Record<TimeOfDay, number>;
   onSelect: (t: TimeOfDay) => void;
-  // 튜토리얼 오버레이 스포트라이트용 — "낮"(점심) 버튼 ref 외부로 노출.
+  // 튜토리얼 오버레이 스포트라이트용 — 시간대별 버튼 ref 외부로 노출.
   lunchTabRef?: React.RefObject<HTMLButtonElement | null>;
+  eveningTabRef?: React.RefObject<HTMLButtonElement | null>;
 };
 
 export default function TimeOfDayTabs({
@@ -26,6 +27,7 @@ export default function TimeOfDayTabs({
   counts,
   onSelect,
   lunchTabRef,
+  eveningTabRef,
 }: Props) {
   return (
     // pt-4: 활성 탭 위 펄스 점이 잘리지 않도록 여유 확보
@@ -40,7 +42,13 @@ export default function TimeOfDayTabs({
         return (
           <button
             key={t}
-            ref={t === "낮" ? lunchTabRef : undefined}
+            ref={
+              t === "낮"
+                ? lunchTabRef
+                : t === "저녁"
+                ? eveningTabRef
+                : undefined
+            }
             type="button"
             onClick={() => onSelect(t)}
             aria-pressed={isActive}

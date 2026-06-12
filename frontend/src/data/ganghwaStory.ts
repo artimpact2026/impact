@@ -44,8 +44,10 @@ export const HANSEOL_TUTORIAL_LINES: Record<string, string> = {
 };
 export const HANSEOL_TUTORIAL_FALLBACK = "여기 눌러봐!";
 
-// 시간대 점심 탭 안내 — 첫 아침 미션 완료 후 다음 시간대로 자연스럽게 넘어가게.
+// 시간대 안내 — 미션 완료 후 다음 시간대 탭으로 자연스럽게 넘어가게.
+// 한설이 안내자처럼 아침→점심→저녁 흐름을 잡아줌. Day 1/2/3 공통.
 export const HANSEOL_LUNCH_HINT = "이제 점심 시간이야.\n여기 눌러봐.";
+export const HANSEOL_EVENING_HINT = "해 질 시간이야.\n저녁으로 가자.";
 
 // 하루 끝 마무리 — day 1/2/3 별. day 3 는 작별 톤.
 export const HANSEOL_DAY_CLOSE: Record<1 | 2 | 3, string> = {

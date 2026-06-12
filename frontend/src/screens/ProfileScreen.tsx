@@ -20,7 +20,6 @@ import {
 import type { LifeStyleType, Residence } from "../data/residences";
 import type { OnboardingData } from "../data/quiz";
 import { pickResidenceImage, ratings } from "../data/bookingExtras";
-import type { SavedQuote } from "../data/quotes";
 import TabLayout from "../components/TabLayout";
 
 type Props = {
@@ -30,8 +29,6 @@ type Props = {
   profile?: LifestyleProfile;
   onboarding?: OnboardingData;
   likedResidences: Residence[];
-  // 기억한 말들 — 사용자가 직접 저장한 NPC 인용구
-  savedQuotes?: SavedQuote[];
   onOpenSettings: () => void;
   onSelectResidence: (r: Residence) => void;
 };
@@ -42,7 +39,6 @@ export default function ProfileScreen({
   profile,
   onboarding,
   likedResidences,
-  savedQuotes = [],
   onOpenSettings,
   onSelectResidence,
 }: Props) {
@@ -117,23 +113,6 @@ export default function ProfileScreen({
           />
         </section>
 
-        {/* ④ 기억한 말들 — 사용자가 직접 고른 인용구 */}
-        <section>
-          <div className="flex items-end justify-between px-1 mb-2">
-            <div>
-              <p className="text-[10.5px] font-extrabold text-ink-mute uppercase tracking-[0.16em]">
-                Memorized
-              </p>
-              <h2 className="mt-0.5 text-ink text-[15px] font-extrabold leading-tight">
-                기억한 말들
-              </h2>
-            </div>
-            <span className="text-[11px] font-extrabold text-primary tabular-nums">
-              🔖 {savedQuotes.length}
-            </span>
-          </div>
-          <QuoteList quotes={savedQuotes} />
-        </section>
       </div>
     </TabLayout>
   );
@@ -459,76 +438,6 @@ function LikedResidencesRail({
         );
       })}
     </motion.div>
-  );
-}
-
-// =====================================================================
-// QuoteList — 사용자가 직접 저장한 NPC 발언 컬렉션
-//   · 미저장 시: 안내 빈 상태
-//   · 저장 시: 인용 카드 세로 리스트 — 발언자 + 큰 따옴표 + 어디 미션인지 작은 메타
-// =====================================================================
-
-function QuoteList({ quotes }: { quotes: SavedQuote[] }) {
-  if (quotes.length === 0) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.1 }}
-        className="bg-white rounded-2xl border border-cream-200 shadow-soft
-                   p-6 text-center"
-      >
-        <p className="text-3xl" aria-hidden>
-          🔖
-        </p>
-        <p className="mt-2 text-ink-soft text-[12.5px] leading-relaxed">
-          마음에 닿는 말을 만나면
-          <br />
-          말풍선 옆 🔖 를 눌러 기억해 보세요.
-        </p>
-      </motion.div>
-    );
-  }
-  return (
-    <div className="space-y-2">
-      {quotes.map((q, i) => (
-        <motion.div
-          key={q.id}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.1 + i * 0.04 }}
-          className="bg-white rounded-2xl border border-cream-200 shadow-soft
-                     px-4 py-3.5 relative overflow-hidden"
-        >
-          {/* 좌측 컬러 줄 — 카테고리 시각 표시 */}
-          <span
-            aria-hidden
-            className="absolute left-0 top-0 bottom-0 w-1 bg-primary"
-          />
-          {/* 인용구 큰따옴표 + 본문 */}
-          <p className="text-ink-soft text-[13px] leading-relaxed italic pl-2">
-            <span aria-hidden className="text-primary text-[18px] font-serif mr-0.5">
-              "
-            </span>
-            {q.text}
-            <span aria-hidden className="text-primary text-[18px] font-serif ml-0.5">
-              "
-            </span>
-          </p>
-          {/* 메타 — 발언자 + 마을 */}
-          <p className="mt-2 text-ink-mute text-[10.5px] pl-2">
-            <span aria-hidden className="mr-1">
-              {q.speakerEmoji}
-            </span>
-            <span className="font-bold">{q.speaker}</span>
-            <span className="opacity-50 mx-1.5">·</span>
-            <span>{q.residenceRegion}</span>
-            <span className="opacity-50 mx-1.5">·</span>
-            <span>{q.missionTitle}</span>
-          </p>
-        </motion.div>
-      ))}
-    </div>
   );
 }
 

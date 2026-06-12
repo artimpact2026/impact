@@ -9,13 +9,19 @@
 //
 // 본가로 돌아가지 않는 한 시뮬레이션 흐름의 중심지로 남음.
 
-import { motion } from "framer-motion";
+import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import type { Residence } from "../data/residences";
 import {
   HANSEOL_IMAGE,
   HANSEOL_INTRO,
   HANSEOL_NAME,
 } from "../data/ganghwaStory";
+import {
+  DECOR_CATEGORY_META,
+  type DecorCategory,
+  type DecorItem,
+} from "../data/decorItems";
 
 type Props = {
   residence: Residence;
@@ -30,10 +36,38 @@ type Props = {
   // 편지함 진입 — 편지 탭 제거 후 ResidenceHomeScreen 의 floating 버튼이 유일 진입점
   onOpenLetters?: () => void;
   letterUnread?: number;
+  // === B-1 별도 트랙 — 집 위에 꾸미기 자재 배치 ===
+  decorInventory?: DecorItem[];
+  // 슬롯별 배치 (현재 레지던스의 것만 받음)
+  placedDecor?: Partial<Record<DecorCategory, string>>;
+  onUpdatePlaced?: (next: Partial<Record<DecorCategory, string>>) => void;
   // 한설 환영 모달 — Day 1 첫 진입 시만 true. 닫으면 onDismissIntro 영속 처리.
   showHanseolIntro?: boolean;
   onDismissHanseolIntro?: () => void;
 };
+
+// 슬롯 위치 — SceneStage 320x250 박스 안의 상대 좌표(%).
+// 구조: 흙무더기(높이 130) 하단 정렬, 집(폭 200) 중앙. 우편함 우측, 바람·지음 앞쪽.
+// 우편함과 우측 슬롯 분리 위해 seat 을 좌측으로, light 만 우상단 유지.
+// transform: translate(-50%, -50%) 적용 — 좌표는 슬롯 중심.
+const SLOT_POSITIONS: Record<
+  DecorCategory,
+  { top: string; left: string; size: number; z: number }
+> = {
+  light:  { top: "8%",  left: "86%", size: 38, z: 5 }, // 지붕 위 우측 등불
+  friend: { top: "28%", left: "10%", size: 34, z: 5 }, // 집 좌측 위 작은 친구
+  seat:   { top: "62%", left: "14%", size: 44, z: 4 }, // 집 좌측 평상 (우편함과 멀리)
+  plant:  { top: "82%", left: "20%", size: 48, z: 4 }, // 마당 좌하단 화분
+  stone:  { top: "92%", left: "78%", size: 30, z: 3 }, // 마당 우하단 디딤돌
+};
+
+const CATEGORY_ORDER: DecorCategory[] = [
+  "plant",
+  "seat",
+  "stone",
+  "light",
+  "friend",
+];
 
 export default function ResidenceHomeScreen({
   residence,
@@ -47,9 +81,44 @@ export default function ResidenceHomeScreen({
   onReturnHome,
   onOpenLetters,
   letterUnread = 0,
+  decorInventory = [],
+  placedDecor = {},
+  onUpdatePlaced,
   showHanseolIntro = false,
   onDismissHanseolIntro,
 }: Props) {
+  // === 마당 꾸미기 편집 모드 ===
+  const [editMode, setEditMode] = useState(false);
+  // 편집 모드에서 슬롯 탭 → 어느 카테고리 자재를 고를지 picker 열림
+  const [pickingFor, setPickingFor] = useState<DecorCategory | null>(null);
+  // 보기 모드에서 배치된 아이템 탭 → 스토리 툴팁
+  const [inspecting, setInspecting] = useState<DecorItem | null>(null);
+
+  // 배치 가능한 자재 카운트 — 마당 가꾸기 버튼 sub 표시용
+  const decorCount = decorInventory.length;
+
+  // slotKey → DecorItem (배치된 아이템 lookup)
+  const placedItems: Partial<Record<DecorCategory, DecorItem>> = {};
+  for (const cat of CATEGORY_ORDER) {
+    const id = placedDecor[cat];
+    if (!id) continue;
+    const found = decorInventory.find((d) => d.id === id);
+    if (found) placedItems[cat] = found;
+  }
+
+  const handlePickItem = (item: DecorItem) => {
+    if (!onUpdatePlaced || !pickingFor) return;
+    onUpdatePlaced({ ...placedDecor, [pickingFor]: item.id });
+    setPickingFor(null);
+  };
+
+  const handleRemoveFromSlot = (cat: DecorCategory) => {
+    if (!onUpdatePlaced) return;
+    const next = { ...placedDecor };
+    delete next[cat];
+    onUpdatePlaced(next);
+  };
+
   const todayPercent =
     todayMissionCount === 0
       ? 0
@@ -75,65 +144,108 @@ export default function ResidenceHomeScreen({
         </p>
       </header>
 
-      {/* ===== 우측 floating 우편함 버튼 (알아보기는 하단 카드에 있어 제거) ===== */}
-      <div className="absolute top-32 right-4 z-10">
-        <FloatingActionButton
-          emoji="✉️"
-          label="우편함"
-          onClick={onOpenLetters}
-          badge={letterUnread}
-        />
-      </div>
-
-      {/* ===== 중앙 씬 — 흙무더기 + 집 + 떠다니는 장식
-              (정중앙 배치 — items-center justify-center, 위·아래 패딩만 nav 클리어) ===== */}
+      {/* ===== 중앙 씬 — 흙무더기 + 집 + 우편함 + 떠다니는 장식 + 슬롯 ===== */}
       <section className="absolute inset-0 z-0 flex items-center justify-center pt-28 pb-44">
-        <SceneStage />
+        <SceneStage
+          placedItems={placedItems}
+          editMode={editMode}
+          onTapSlot={(cat) => {
+            if (!editMode) return;
+            // 비어있으면 picker, 차있으면 그 자리에서 토글 — 어차피 picker 안에서 교체 가능
+            setPickingFor(cat);
+          }}
+          onTapPlaced={(item) => {
+            if (editMode) return; // 편집 모드에서는 슬롯 핸들러가 우선
+            setInspecting(item);
+          }}
+          onOpenLetters={onOpenLetters}
+          letterUnread={letterUnread}
+        />
       </section>
 
-      {/* ===== 하단 카드 — 진행률 + 액션 ===== */}
+
+      {/* ===== 하단 — 편집 모드면 편집 바, 아니면 진행률 카드 ===== */}
       <footer className="absolute bottom-4 left-3 right-3 z-10">
-        <div className="bg-white rounded-3xl shadow-[0_8px_24px_-4px_rgba(80,60,40,0.12)] border border-cream-200 p-4">
-          {/* 헤더 — 페르소나 + 진행률 */}
-          <div className="flex items-baseline justify-between">
-            <p className="text-ink text-[15px] font-extrabold">
-              Day {currentDay} / {dayCount} · {residence.region}
+        {editMode ? (
+          <EditModeBar
+            decorCount={decorCount}
+            placedCount={Object.keys(placedDecor).length}
+            onDone={() => {
+              setEditMode(false);
+              setPickingFor(null);
+            }}
+          />
+        ) : (
+          <div className="bg-white rounded-3xl shadow-[0_8px_24px_-4px_rgba(80,60,40,0.12)] border border-cream-200 p-4">
+            {/* 헤더 — 페르소나 + 진행률 */}
+            <div className="flex items-baseline justify-between">
+              <p className="text-ink text-[15px] font-extrabold">
+                Day {currentDay} / {dayCount} · {residence.region}
+              </p>
+              <p className="text-primary text-[15px] font-extrabold tabular-nums">
+                {todayPercent}%
+              </p>
+            </div>
+            {/* 진행 바 */}
+            <div className="mt-2 h-1.5 rounded-full bg-cream-200 overflow-hidden">
+              <motion.div
+                className="h-full bg-gradient-to-r from-nature-300 to-primary"
+                initial={{ width: 0 }}
+                animate={{ width: `${todayPercent}%` }}
+                transition={{ duration: 0.6 }}
+              />
+            </div>
+            {/* 오늘 미션 카운트 */}
+            <p className="mt-1 text-ink-mute text-[11px]">
+              오늘 미션 {todayMissionDoneCount} / {todayMissionCount}
             </p>
-            <p className="text-primary text-[15px] font-extrabold tabular-nums">
-              {todayPercent}%
-            </p>
+            {/* 액션 2개 — grid */}
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <ActionCard
+                emoji="🎯"
+                label="알아보기"
+                sub={`${todayMissionCount - todayMissionDoneCount}개 미션 남음`}
+                onClick={onGoMissionList}
+                accent="primary"
+              />
+              <ActionCard
+                emoji="🌿"
+                label="마당 가꾸기"
+                sub={
+                  decorCount > 0
+                    ? `자재 ${decorCount}개 · 배치 ${
+                        Object.keys(placedDecor).length
+                      }개`
+                    : "미션 마치면 자재가 쌓여요"
+                }
+                onClick={
+                  decorCount > 0 ? () => setEditMode(true) : undefined
+                }
+                locked={decorCount === 0}
+              />
+            </div>
           </div>
-          {/* 진행 바 */}
-          <div className="mt-2 h-1.5 rounded-full bg-cream-200 overflow-hidden">
-            <motion.div
-              className="h-full bg-gradient-to-r from-nature-300 to-primary"
-              initial={{ width: 0 }}
-              animate={{ width: `${todayPercent}%` }}
-              transition={{ duration: 0.6 }}
-            />
-          </div>
-          {/* 오늘 미션 카운트 */}
-          <p className="mt-1 text-ink-mute text-[11px]">
-            오늘 미션 {todayMissionDoneCount} / {todayMissionCount}
-          </p>
-          {/* 액션 2개 — grid */}
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <ActionCard
-              emoji="🎯"
-              label="알아보기"
-              sub={`${todayMissionCount - todayMissionDoneCount}개 미션 남음`}
-              onClick={onGoMissionList}
-              accent="primary"
-            />
-            <ActionCard
-              emoji="🌿"
-              label="마당 가꾸기"
-              sub="내일 만나요"
-              locked
-            />
-          </div>
-        </div>
+        )}
       </footer>
+
+      {/* ===== 자재 picker — 편집 모드에서 빈 슬롯 탭 시 ===== */}
+      <DecorPicker
+        category={pickingFor}
+        inventory={decorInventory}
+        currentlyPlacedId={pickingFor ? placedDecor[pickingFor] : undefined}
+        onPick={handlePickItem}
+        onRemove={() => {
+          if (pickingFor) handleRemoveFromSlot(pickingFor);
+          setPickingFor(null);
+        }}
+        onClose={() => setPickingFor(null)}
+      />
+
+      {/* ===== 스토리 툴팁 — 보기 모드에서 배치된 아이템 탭 시 ===== */}
+      <StoryTooltip
+        item={inspecting}
+        onClose={() => setInspecting(null)}
+      />
 
       {/* ===== 한설 환영 모달 — Day 1 첫 진입 시 1회 ===== */}
       {showHanseolIntro && (
@@ -183,51 +295,6 @@ export default function ResidenceHomeScreen({
   );
 }
 
-// ─────────────────────────────────────────────────────────────
-// 우측 floating action button — 동그란 흰색 버튼 + 이모지 + 작은 라벨
-// ─────────────────────────────────────────────────────────────
-function FloatingActionButton({
-  emoji,
-  label,
-  onClick,
-  badge = 0,
-}: {
-  emoji: string;
-  label: string;
-  onClick?: () => void;
-  badge?: number;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex flex-col items-center active:scale-95 transition"
-    >
-      <span className="relative">
-        <span
-          className="block w-14 h-14 rounded-full bg-white shadow-[0_4px_12px_-2px_rgba(80,60,40,0.18)]
-                     border border-cream-200 flex items-center justify-center text-[24px]"
-        >
-          {emoji}
-        </span>
-        {badge > 0 && (
-          <span
-            aria-label={`안 읽음 ${badge}개`}
-            className="absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1.5 rounded-full
-                       bg-primary text-white text-[10.5px] font-extrabold
-                       flex items-center justify-center
-                       border-2 border-white shadow-soft"
-          >
-            {badge > 9 ? "9+" : badge}
-          </span>
-        )}
-      </span>
-      <span className="mt-1 text-ink-soft text-[10.5px] font-extrabold bg-white/80 backdrop-blur px-1.5 rounded-full">
-        {label}
-      </span>
-    </button>
-  );
-}
 
 // ─────────────────────────────────────────────────────────────
 // 하단 액션 카드 (알아보기 / 마당 가꾸기)
@@ -287,13 +354,29 @@ function ActionCard({
 }
 
 // ─────────────────────────────────────────────────────────────
-// 중앙 씬 — 둥근 흙무더기 + 집 SVG + 떠다니는 나비/꽃잎
+// 중앙 씬 — 둥근 흙무더기 + 집 SVG + 떠다니는 나비/꽃잎 + 꾸미기 슬롯
 // ─────────────────────────────────────────────────────────────
-function SceneStage() {
+function SceneStage({
+  placedItems,
+  editMode,
+  onTapSlot,
+  onTapPlaced,
+  onOpenLetters,
+  letterUnread = 0,
+}: {
+  placedItems: Partial<Record<DecorCategory, DecorItem>>;
+  editMode: boolean;
+  onTapSlot: (cat: DecorCategory) => void;
+  onTapPlaced: (item: DecorItem) => void;
+  onOpenLetters?: () => void;
+  letterUnread?: number;
+}) {
+  // 고정 사이즈 컨테이너 — 슬롯 좌표(%)가 집·마당 위에 정확히 맞도록.
+  // 흙무더기는 하단에 정렬, 집은 그 위에 얹힘. 슬롯은 % 좌표로 이 박스 안에서 배치.
   return (
-    <div className="relative">
-      {/* 둥근 흙무더기 platform */}
-      <div className="relative">
+    <div className="relative w-[320px] h-[250px]">
+      {/* 둥근 흙무더기 platform — 컨테이너 하단 정렬 */}
+      <div className="absolute bottom-0 left-0 right-0">
         {/* 흙 그림자 */}
         <div
           aria-hidden
@@ -303,7 +386,7 @@ function SceneStage() {
         {/* 흙 본체 — 위에서 본 타원 */}
         <svg
           viewBox="0 0 280 110"
-          className="relative w-[280px] h-auto drop-shadow-[0_8px_12px_rgba(80,60,40,0.18)]"
+          className="relative w-[320px] h-auto drop-shadow-[0_8px_12px_rgba(80,60,40,0.18)]"
           aria-hidden
         >
           <defs>
@@ -340,115 +423,547 @@ function SceneStage() {
         </svg>
       </div>
 
-      {/* 클레이 집 — 흙 위에 얹힘 */}
-      <motion.div
-        animate={{ y: [-3, 1, -3] }}
-        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute left-1/2 -translate-x-1/2"
-        style={{ bottom: "38px" }}
+      {/* 집 이미지 — 컨테이너 정중앙.
+          wrapper 가 translate 로 중앙 정렬, img 는 안에서 framer-motion y 둥실 애니메이션.
+          (motion.img 에 inline transform 을 주면 animate.y 가 덮어써서 중앙 정렬이 깨짐) */}
+      <div
+        className="absolute left-1/2 top-1/2"
+        style={{ transform: "translate(-50%, -50%)" }}
       >
-        <ClayHouse />
-      </motion.div>
+        <motion.img
+          src="/character1/home1.png"
+          alt=""
+          aria-hidden
+          animate={{ y: [-3, 1, -3] }}
+          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          className="block w-[200px] h-auto select-none
+                     drop-shadow-[0_6px_8px_rgba(62,44,32,0.25)]"
+        />
+      </div>
 
       {/* 떠다니는 나비 + 꽃잎 */}
       <FloatingDecorations />
+
+      {/* === 집 앞 거주 캐릭터 — 바람이 + 지음이. 마당 정중앙 앞쪽에 둘이 나란히. === */}
+      <ResidentCharacter
+        src="/character1/clay-baram-solo.png"
+        top="84%"
+        left="42%"
+        width={40}
+        animOffset={0}
+      />
+      <ResidentCharacter
+        src="/character1/clay-jieum-solo.png"
+        top="84%"
+        left="58%"
+        width={40}
+        animOffset={0.6}
+      />
+
+      {/* === 우편함 — 집 오른쪽. unread > 0 일 때 바람이 CTA 도 같이 노출 === */}
+      {onOpenLetters && (
+        <>
+          <Mailbox onClick={onOpenLetters} unread={letterUnread} />
+          {letterUnread > 0 && (
+            <LetterArrivedCTA unread={letterUnread} onOpen={onOpenLetters} />
+          )}
+        </>
+      )}
+
+      {/* === 꾸미기 슬롯 레이어 — 집 위에 자재 배치 === */}
+      <DecorSlotLayer
+        placedItems={placedItems}
+        editMode={editMode}
+        onTapSlot={onTapSlot}
+        onTapPlaced={onTapPlaced}
+      />
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────
-// 클레이 집 SVG — 한옥 + 마당 톤
+// ResidentCharacter — 집 앞 마당의 거주 캐릭터 (바람·지음).
+//   · 살짝 둥실 모션, 인터랙션 없음 (장식용).
+//   · animOffset 으로 둘이 다른 박자로 흔들리게.
 // ─────────────────────────────────────────────────────────────
-function ClayHouse() {
+function ResidentCharacter({
+  src,
+  top,
+  left,
+  width,
+  animOffset = 0,
+}: {
+  src: string;
+  top: string;
+  left: string;
+  width: number;
+  animOffset?: number;
+}) {
   return (
-    <svg
-      viewBox="0 0 140 130"
-      className="w-[140px] h-auto drop-shadow-[0_6px_8px_rgba(62,44,32,0.25)]"
-      aria-hidden
+    <div
+      className="absolute pointer-events-none"
+      style={{
+        top,
+        left,
+        transform: "translate(-50%, -50%)",
+        width,
+        zIndex: 4,
+      }}
     >
-      <defs>
-        <linearGradient id="roof" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#E08F6E" />
-          <stop offset="100%" stopColor="#B96748" />
-        </linearGradient>
-        <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#FBF0DA" />
-          <stop offset="100%" stopColor="#E8D1A8" />
-        </linearGradient>
-        <linearGradient id="door" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#A06B45" />
-          <stop offset="100%" stopColor="#7A4F30" />
-        </linearGradient>
-      </defs>
-
-      {/* 굴뚝 (오른쪽 위) */}
-      <rect x="92" y="22" width="14" height="22" fill="#C97D5C" rx="2" />
-      <rect x="90" y="22" width="18" height="4" fill="#A35F45" rx="1" />
-      {/* 굴뚝 연기 */}
-      <g fill="#FFFFFF" opacity="0.75">
-        <circle cx="100" cy="15" r="5" />
-        <circle cx="95" cy="8" r="4" />
-        <circle cx="103" cy="3" r="3" />
-      </g>
-
-      {/* 지붕 — 기와 곡선 */}
-      <path
-        d="M 20 50 Q 22 32 35 28 L 105 28 Q 118 32 120 50 Z"
-        fill="url(#roof)"
+      <motion.img
+        src={src}
+        alt=""
+        aria-hidden
+        animate={{
+          y: [0, -3, 0],
+          rotate: [-2, 2, -2],
+        }}
+        transition={{
+          duration: 3.2,
+          repeat: Infinity,
+          ease: "easeInOut",
+          delay: animOffset,
+        }}
+        className="block w-full h-auto select-none
+                   drop-shadow-[0_3px_5px_rgba(62,44,32,0.25)]"
       />
-      <path d="M 18 50 L 122 50 L 122 55 L 18 55 Z" fill="#9A4F32" />
-      <g stroke="#A35F45" strokeWidth="0.8" fill="none" opacity="0.55">
-        <path d="M 28 38 Q 50 36 70 36 Q 90 36 112 38" />
-        <path d="M 25 44 Q 50 42 70 42 Q 90 42 115 44" />
-      </g>
+    </div>
+  );
+}
 
-      {/* 본채 */}
-      <rect x="22" y="55" width="96" height="62" rx="2" fill="url(#wall)" />
-      <rect x="20" y="112" width="100" height="8" fill="#C8A877" rx="1" />
-
-      {/* 창문 */}
-      <rect
-        x="32"
-        y="68"
-        width="22"
-        height="26"
-        rx="2"
-        fill="#C9E1EF"
-        stroke="#8B5E42"
-        strokeWidth="1.5"
+// ─────────────────────────────────────────────────────────────
+// Mailbox — 마당 좌측에 놓인 우편함.
+//   · post1.png 사용. 탭하면 onOpenLetters → 우편함 화면으로.
+//   · 안 읽은 편지가 있으면 우측 상단에 카운트 배지.
+// ─────────────────────────────────────────────────────────────
+function Mailbox({
+  onClick,
+  unread = 0,
+}: {
+  onClick: () => void;
+  unread?: number;
+}) {
+  const hasUnread = unread > 0;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={hasUnread ? `우편함 — 새 편지 ${unread}통` : "우편함"}
+      className="absolute active:scale-95 transition-transform"
+      style={{
+        top: "60%",
+        left: "90%",
+        transform: "translate(-50%, -50%)",
+        width: 82,
+        zIndex: 6,
+      }}
+    >
+      {/* unread 시 펄스 링 — 우편함 강조 */}
+      {hasUnread && (
+        <motion.span
+          aria-hidden
+          animate={{ scale: [1, 1.25, 1], opacity: [0.55, 0, 0.55] }}
+          transition={{ duration: 1.6, repeat: Infinity, ease: "easeOut" }}
+          className="absolute inset-0 rounded-full"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(255,112,67,0.55) 0%, transparent 70%)",
+          }}
+        />
+      )}
+      <motion.img
+        src="/character1/post1.png"
+        alt=""
+        aria-hidden
+        animate={{ y: [0, -2, 0] }}
+        transition={{ duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
+        className="relative block w-full h-auto select-none
+                   drop-shadow-[0_4px_6px_rgba(62,44,32,0.28)]"
       />
-      <path
-        d="M 43 68 L 43 94 M 32 81 L 54 81"
-        stroke="#8B5E42"
-        strokeWidth="1"
-      />
-      <rect
-        x="86"
-        y="68"
-        width="22"
-        height="26"
-        rx="2"
-        fill="#C9E1EF"
-        stroke="#8B5E42"
-        strokeWidth="1.5"
-      />
-      <path
-        d="M 97 68 L 97 94 M 86 81 L 108 81"
-        stroke="#8B5E42"
-        strokeWidth="1"
-      />
+      {hasUnread && (
+        <span
+          aria-hidden
+          className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full
+                     bg-primary text-white text-[10px] font-extrabold
+                     flex items-center justify-center
+                     border-2 border-white shadow-soft z-10"
+        >
+          {unread > 9 ? "9+" : unread}
+        </span>
+      )}
+    </button>
+  );
+}
 
-      {/* 창문 따뜻한 빛 */}
-      <rect x="33" y="69" width="20" height="10" fill="#FFE9A8" opacity="0.6" />
-      <rect x="87" y="69" width="20" height="10" fill="#FFE9A8" opacity="0.6" />
+// ─────────────────────────────────────────────────────────────
+// LetterArrivedCTA — 집 앞 바람·지음 거주 캐릭터 위에 떠오르는 말풍선.
+//   · 캐릭터 이미지는 따로 안 가짐 — 집 앞 ResidentCharacter 들이 말하는 톤.
+//   · 말풍선 꼬리는 아래쪽(거주 캐릭터 향함).
+//   · 탭 → 우편함 화면. 우체통 자체는 별도 펄스로 강조.
+// ─────────────────────────────────────────────────────────────
+function LetterArrivedCTA({
+  unread,
+  onOpen,
+}: {
+  unread: number;
+  onOpen: () => void;
+}) {
+  return (
+    <motion.button
+      type="button"
+      onClick={onOpen}
+      initial={{ opacity: 0, y: 6, scale: 0.92 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ type: "spring", damping: 18, stiffness: 240 }}
+      aria-label={`새 편지 ${unread}통 — 우편함 열기`}
+      className="absolute z-10 active:scale-[0.96] transition-transform"
+      style={{
+        top: "62%",
+        left: "50%",
+        transform: "translate(-50%, -100%)", // 거주 캐릭터(top 84%) 바로 위에 붙도록
+      }}
+    >
+      <motion.div
+        animate={{ y: [0, -2, 0] }}
+        transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+        className="relative bg-white rounded-2xl shadow-[0_4px_10px_-2px_rgba(80,60,40,0.25)]
+                   border border-cream-200 px-3 py-1.5 max-w-[160px]"
+      >
+        <p className="text-ink text-[11.5px] font-extrabold leading-tight whitespace-nowrap">
+          편지가 왔어!
+        </p>
+        <p className="text-ink-soft text-[10.5px] font-bold leading-tight whitespace-nowrap">
+          확인해보자!
+        </p>
+        {/* 말풍선 꼬리 — 아래쪽 중앙(바람·지음 향함) */}
+        <span
+          aria-hidden
+          className="absolute -bottom-[5px] left-1/2 w-2.5 h-2.5 bg-white
+                     border-r border-b border-cream-200"
+          style={{ transform: "translateX(-50%) rotate(45deg)" }}
+        />
+      </motion.div>
+    </motion.button>
+  );
+}
 
-      {/* 문 */}
-      <rect x="62" y="84" width="16" height="28" rx="1" fill="url(#door)" />
-      <circle cx="74" cy="98" r="1.4" fill="#FFE9A8" />
+// ─────────────────────────────────────────────────────────────
+// DecorSlotLayer — SceneStage 위에 슬롯을 절대 좌표로 배치
+//   · 편집 모드: 빈 슬롯은 점선 원(탭 가능), 채워진 슬롯은 작은 X 표식 + 이모지
+//   · 보기 모드: 채워진 슬롯만 표시. 탭하면 스토리 툴팁.
+// ─────────────────────────────────────────────────────────────
+function DecorSlotLayer({
+  placedItems,
+  editMode,
+  onTapSlot,
+  onTapPlaced,
+}: {
+  placedItems: Partial<Record<DecorCategory, DecorItem>>;
+  editMode: boolean;
+  onTapSlot: (cat: DecorCategory) => void;
+  onTapPlaced: (item: DecorItem) => void;
+}) {
+  return (
+    <div className="absolute inset-0 pointer-events-none">
+      {CATEGORY_ORDER.map((cat) => {
+        const pos = SLOT_POSITIONS[cat];
+        const item = placedItems[cat];
+        const meta = DECOR_CATEGORY_META[cat];
+        // 보기 모드 + 빈 슬롯이면 렌더 안 함
+        if (!editMode && !item) return null;
+        return (
+          <button
+            key={cat}
+            type="button"
+            aria-label={item ? `${meta.label} — ${item.name}` : `${meta.label} 자리`}
+            onClick={() => {
+              if (item && !editMode) onTapPlaced(item);
+              else onTapSlot(cat);
+            }}
+            className="absolute pointer-events-auto active:scale-95 transition-transform"
+            style={{
+              top: pos.top,
+              left: pos.left,
+              width: pos.size,
+              height: pos.size,
+              transform: "translate(-50%, -50%)",
+              zIndex: pos.z,
+            }}
+          >
+            {item ? (
+              <span className="relative w-full h-full flex items-center justify-center">
+                <motion.span
+                  initial={{ scale: 0.7, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: "spring", damping: 14, stiffness: 240 }}
+                  className="leading-none drop-shadow-[0_3px_5px_rgba(80,60,40,0.3)]"
+                  style={{ fontSize: pos.size * 0.78 }}
+                >
+                  {item.emoji}
+                </motion.span>
+                {editMode && (
+                  <span
+                    aria-hidden
+                    className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white
+                               border border-cream-300 shadow-soft
+                               flex items-center justify-center text-[8px] font-extrabold text-ink-soft"
+                  >
+                    ✎
+                  </span>
+                )}
+              </span>
+            ) : (
+              <motion.span
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="block w-full h-full rounded-full border-2 border-dashed
+                           border-[#A8A085] flex items-center justify-center"
+                style={{
+                  backgroundColor: `${meta.palette}80`, // 50% alpha
+                }}
+              >
+                <span
+                  className="text-ink-mute font-extrabold"
+                  style={{ fontSize: pos.size * 0.4 }}
+                >
+                  +
+                </span>
+              </motion.span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
-      {/* 입구 계단 */}
-      <rect x="58" y="112" width="24" height="3" fill="#C8A877" rx="0.5" />
-    </svg>
+// ─────────────────────────────────────────────────────────────
+// 편집 모드 하단 바 — 안내 카피 + 완료 버튼
+// ─────────────────────────────────────────────────────────────
+function EditModeBar({
+  decorCount,
+  placedCount,
+  onDone,
+}: {
+  decorCount: number;
+  placedCount: number;
+  onDone: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ y: 20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      className="bg-white rounded-3xl shadow-[0_8px_24px_-4px_rgba(80,60,40,0.12)]
+                 border border-cream-200 p-4 flex items-center gap-3"
+    >
+      <div className="flex-1 min-w-0">
+        <p className="text-[10.5px] font-extrabold tracking-[0.16em] uppercase text-primary">
+          꾸미는 중
+        </p>
+        <p className="mt-0.5 text-ink text-[13.5px] font-extrabold leading-tight">
+          빈 자리(+)를 눌러 자재를 놓아보세요
+        </p>
+        <p className="mt-0.5 text-ink-mute text-[11px]">
+          배치 {placedCount} / 5 · 보유 {decorCount}개
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onDone}
+        className="shrink-0 bg-primary text-white text-[13px] font-extrabold
+                   px-5 py-3 rounded-full shadow-[0_4px_12px_-2px_rgba(255,112,67,0.5)]
+                   active:scale-95 transition"
+      >
+        완료
+      </button>
+    </motion.div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// DecorPicker — 편집 모드에서 슬롯 탭 시 떠오르는 바텀시트
+//   해당 카테고리 자재 목록 + 현재 배치된 것 옆에 ✓ 표시.
+// ─────────────────────────────────────────────────────────────
+function DecorPicker({
+  category,
+  inventory,
+  currentlyPlacedId,
+  onPick,
+  onRemove,
+  onClose,
+}: {
+  category: DecorCategory | null;
+  inventory: DecorItem[];
+  currentlyPlacedId?: string;
+  onPick: (item: DecorItem) => void;
+  onRemove: () => void;
+  onClose: () => void;
+}) {
+  const items = category
+    ? inventory.filter((d) => d.category === category)
+    : [];
+  const meta = category ? DECOR_CATEGORY_META[category] : null;
+
+  return (
+    <AnimatePresence>
+      {category && meta && (
+        <>
+          <motion.button
+            type="button"
+            aria-label="닫기"
+            onClick={onClose}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[55] bg-black/35"
+          />
+          <motion.div
+            initial={{ x: "-50%", y: "100%" }}
+            animate={{ x: "-50%", y: "0%" }}
+            exit={{ x: "-50%", y: "100%" }}
+            transition={{ type: "spring", damping: 28, stiffness: 280 }}
+            role="dialog"
+            className="fixed bottom-0 left-1/2 w-full max-w-[420px] z-[60]
+                       bg-white rounded-t-3xl shadow-[0_-12px_30px_-12px_rgba(80,70,40,0.18)]
+                       px-5 pt-3 pb-[max(env(safe-area-inset-bottom),20px)]"
+          >
+            <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-cream-200" />
+            <div className="flex items-end justify-between mb-2">
+              <div>
+                <p className="text-[10px] font-extrabold tracking-[0.16em] uppercase text-ink-mute">
+                  Pick
+                </p>
+                <p className="text-ink text-[16px] font-extrabold leading-tight">
+                  <span className="mr-1">{meta.emoji}</span>
+                  {meta.label} 자리
+                </p>
+              </div>
+              {currentlyPlacedId && (
+                <button
+                  type="button"
+                  onClick={onRemove}
+                  className="text-[11px] font-extrabold text-ink-mute underline underline-offset-2"
+                >
+                  자리에서 빼기
+                </button>
+              )}
+            </div>
+
+            {items.length === 0 ? (
+              <div className="bg-cream-50 border border-cream-200 rounded-2xl p-6 text-center mt-2">
+                <p className="text-[28px]" aria-hidden>
+                  {meta.emoji}
+                </p>
+                <p className="mt-2 text-ink-soft text-[12.5px] leading-relaxed">
+                  아직 {meta.label} 자재가 없어요.
+                  <br />
+                  미션을 마치고 다시 와주세요.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-2 max-h-[40vh] overflow-y-auto">
+                {items.map((it) => {
+                  const isPicked = currentlyPlacedId === it.id;
+                  return (
+                    <button
+                      key={it.id}
+                      type="button"
+                      onClick={() => onPick(it)}
+                      className={`relative rounded-2xl border p-3 flex flex-col items-center gap-1
+                                  active:scale-95 transition text-center
+                                  ${
+                                    isPicked
+                                      ? "border-primary bg-primary/5"
+                                      : "border-cream-200 bg-cream-50"
+                                  }`}
+                    >
+                      <span className="text-[32px] leading-none">{it.emoji}</span>
+                      <p className="text-[10.5px] font-extrabold text-ink leading-tight line-clamp-2">
+                        {it.regionName}
+                      </p>
+                      <p className="text-[9.5px] font-bold text-ink-mute leading-tight line-clamp-1">
+                        {it.missionTitle}
+                      </p>
+                      {isPicked && (
+                        <span
+                          aria-hidden
+                          className="absolute top-1 right-1 w-4 h-4 rounded-full bg-primary
+                                     text-white text-[9px] font-extrabold
+                                     flex items-center justify-center"
+                        >
+                          ✓
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// StoryTooltip — 보기 모드에서 배치된 아이템 탭 시 떠오르는 작은 카드
+//   "강화도에서 만난 이웃이 준 화분" 같은 스토리텔링 카피.
+// ─────────────────────────────────────────────────────────────
+function StoryTooltip({
+  item,
+  onClose,
+}: {
+  item: DecorItem | null;
+  onClose: () => void;
+}) {
+  return (
+    <AnimatePresence>
+      {item && (
+        <>
+          <motion.button
+            type="button"
+            aria-label="닫기"
+            onClick={onClose}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[55] bg-black/35"
+          />
+          <motion.div
+            initial={{ x: "-50%", y: 20, opacity: 0, scale: 0.94 }}
+            animate={{ x: "-50%", y: 0, opacity: 1, scale: 1 }}
+            exit={{ x: "-50%", y: 20, opacity: 0, scale: 0.94 }}
+            transition={{ type: "spring", damping: 22, stiffness: 320 }}
+            role="dialog"
+            className="fixed left-1/2 bottom-32 w-[min(320px,90vw)] z-[60]
+                       bg-white rounded-3xl shadow-[0_12px_30px_-8px_rgba(80,60,40,0.25)]
+                       border border-cream-200 p-5 text-center"
+          >
+            <span className="block text-[56px] leading-none mb-2">
+              {item.emoji}
+            </span>
+            <p className="text-[10.5px] font-extrabold tracking-[0.16em] uppercase text-primary">
+              {item.regionName}에서
+            </p>
+            <p className="mt-1 text-ink text-[15px] font-extrabold leading-snug">
+              만난 이웃이 준 {DECOR_CATEGORY_META[item.category].label}
+            </p>
+            <p className="mt-2 text-ink-soft text-[12px] leading-relaxed">
+              "{item.missionTitle}" 미션을 마치고 받았어요.
+            </p>
+            <button
+              type="button"
+              onClick={onClose}
+              className="mt-4 w-full bg-cream-50 border border-cream-200 text-ink-soft
+                         text-[12.5px] font-extrabold py-2.5 rounded-2xl active:scale-95 transition"
+            >
+              잘 봤어요
+            </button>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
   );
 }
 

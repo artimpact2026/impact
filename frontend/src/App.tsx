@@ -1,5 +1,5 @@
 // 청풍 앱 shell — 온보딩 게이트 + 탭/서브 라우트 관리
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import HomeScreen from "./screens/HomeScreen";
 import ResidenceHomeScreen from "./screens/ResidenceHomeScreen";
 import DepartureScreen from "./screens/DepartureScreen";
@@ -43,6 +43,22 @@ import {
   type Item,
 } from "./data/items";
 import {
+  HANSEOL_LUNCH_HINT,
+  HANSEOL_EVENING_HINT,
+  GANGHWA_ID,
+} from "./data/ganghwaStory";
+import {
+  getDecorDropFor,
+  loadAcquiredDecor,
+  saveAcquiredDecor,
+  DECOR_STORAGE_KEY,
+  loadPlacedDecor,
+  savePlacedDecor,
+  PLACED_STORAGE_KEY,
+  type DecorItem,
+  type PlacedDecorMap,
+} from "./data/decorItems";
+import {
   loadQuotes,
   saveQuotes,
   QUOTES_STORAGE_KEY,
@@ -74,6 +90,7 @@ import {
   calculateMatchV2,
   completeMissionFor,
   type RegionRecord,
+  type MigrationReport,
 } from "./data/journey";
 import { keyInfosFor } from "./data/missionKeyInfos";
 import {
@@ -209,6 +226,14 @@ export default function App() {
   const [acquiredItems, setAcquiredItems] = useState<Item[]>(() =>
     loadAcquiredItems()
   );
+  // 수집한 꾸미기 자재 — B-1 별도 트랙. 미션 완료 시 기념품과 함께 드롭.
+  const [acquiredDecorItems, setAcquiredDecorItems] = useState<DecorItem[]>(
+    () => loadAcquiredDecor()
+  );
+  // 마당 배치 — 어느 슬롯에 어떤 아이템을 놓았는지. residenceId 별.
+  const [placedDecor, setPlacedDecor] = useState<PlacedDecorMap>(() =>
+    loadPlacedDecor()
+  );
   // 기억한 말들 — 사용자가 NPC 발언 중 직접 고른 인용구. localStorage 영속.
   const [savedQuotes, setSavedQuotes] = useState<SavedQuote[]>(() =>
     loadQuotes()
@@ -269,6 +294,16 @@ export default function App() {
     saveAcquiredItems(acquiredItems);
   }, [acquiredItems]);
 
+  // 수집 꾸미기 자재 localStorage 영속
+  useEffect(() => {
+    saveAcquiredDecor(acquiredDecorItems);
+  }, [acquiredDecorItems]);
+
+  // 마당 배치 localStorage 영속
+  useEffect(() => {
+    savePlacedDecor(placedDecor);
+  }, [placedDecor]);
+
   // 기억한 인용구 localStorage 영속
   useEffect(() => {
     saveQuotes(savedQuotes);
@@ -294,9 +329,13 @@ export default function App() {
         localStorage.removeItem(LIKED_KEY);
         localStorage.removeItem(LETTERS_KEY);
         localStorage.removeItem(ITEMS_STORAGE_KEY);
+        localStorage.removeItem(DECOR_STORAGE_KEY);
+        localStorage.removeItem(PLACED_STORAGE_KEY);
         localStorage.removeItem(QUOTES_STORAGE_KEY);
         setLetters(getInitialLetters());
         setAcquiredItems([]);
+        setAcquiredDecorItems([]);
+        setPlacedDecor({});
         setSavedQuotes([]);
         setProfile(null);
         setSelected(null);
@@ -488,9 +527,7 @@ export default function App() {
           return { ...p, [residenceId]: next };
         });
       },
-      // 강화 shop 미션 게임식 튜토리얼 재테스트용 — shopTutorialShown 플래그 해제
-      // 사용법: cheongpung.resetShopTutorial()              → 강화 ("ganghwa") 기본
-      //        cheongpung.resetShopTutorial("yeongwol")     → 다른 지역도 동일하게
+      // 강화 shop 미션 게임식 튜토리얼 재테스트용 — shopTutorialShown 해제.
       resetShopTutorial: (residenceId: string = "ganghwa") => {
         setRegionProgress((p) => {
           const base = p[residenceId];
@@ -507,10 +544,9 @@ export default function App() {
           return { ...p, [residenceId]: next };
         });
       },
-      // 점심 탭 튜토리얼 재테스트용 — lunchTabTutorialShown 해제.
-      // 사용법: cheongpung.resetLunchTutorial()             → 강화 기본
-      //        cheongpung.resetLunchTutorial("yeongwol")    → 다른 지역도 동일하게
-      resetLunchTutorial: (residenceId: string = "ganghwa") => {
+      // 시간대 흐름 안내 재테스트용 — nextSlotGuidesShown 전부 해제.
+      // 미션 완료 후 다음 시간대(점심/저녁) 탭 안내가 다시 뜸. Day 1/2/3 공통.
+      resetSlotGuides: (residenceId: string = "ganghwa") => {
         setRegionProgress((p) => {
           const base = p[residenceId];
           if (!base) {
@@ -519,9 +555,9 @@ export default function App() {
             );
             return p;
           }
-          const next: RegionRecord = { ...base, lunchTabTutorialShown: false };
+          const next: RegionRecord = { ...base, nextSlotGuidesShown: {} };
           console.log(
-            `[cheongpung] ${residenceId} lunchTabTutorialShown 해제 — 미션 리스트 진입 시 점심 탭 안내 재노출`
+            `[cheongpung] ${residenceId} nextSlotGuidesShown 해제 — 미션 완료 후 시간대 안내 재노출`
           );
           return { ...p, [residenceId]: next };
         });
@@ -529,7 +565,7 @@ export default function App() {
     };
     (window as unknown as { cheongpung?: typeof api }).cheongpung = api;
     console.log(
-      "%c[cheongpung] 데모 헬퍼 준비됨 — reset() / enter(id?) / skipTo(id?) / bumpDay(id?) / setDay(day, id?) / regions() / resetIntro(id?) / resetShopTutorial(id?) / resetLunchTutorial(id?)",
+      "%c[cheongpung] 데모 헬퍼 준비됨 — reset() / enter(id?) / skipTo(id?) / bumpDay(id?) / setDay(day, id?) / regions() / resetIntro(id?) / resetShopTutorial(id?) / resetSlotGuides(id?)",
       "color:#FF7043;font-weight:bold"
     );
   }, []);
@@ -658,12 +694,18 @@ export default function App() {
 
     // 현재 일차의 모든 미션이 끝났는지 확인
     const completedSet = new Set(updatedRecord.completedMissionIds);
-    const { missionsByDay } = buildDayPlan(
+    const { missionsByDay, dayCount } = buildDayPlan(
       selected,
       missionsForResidence(selected.id)
     );
     const day = updatedRecord.currentDay ?? 1;
     const dayDone = isDayComplete(missionsByDay, day, completedSet);
+
+    // 마지막 날 마지막 미션 → 이주 리포트 백그라운드 생성.
+    // ceremony 에서 다른 옵션을 골라도 JourneyScreen 의 리포트 카드가 잠금 해제되도록.
+    if (dayDone && day >= dayCount && !updatedRecord.migrationReport) {
+      void ensureReportGenerated(selected, updatedRecord);
+    }
 
     // === 기념품 드롭 — 미션 + 마을 조합에 정의된 아이템이 있고, 아직 미수집이면 획득 ===
     const drop = getItemDropFor(activeMission.id, selected.id);
@@ -673,6 +715,20 @@ export default function App() {
     const newlyAcquired = drop && !alreadyHave ? drop : undefined;
     if (newlyAcquired) {
       setAcquiredItems((prev) => [...prev, newlyAcquired]);
+    }
+
+    // === 꾸미기 자재 드롭 — B-1 별도 트랙. 미션마다 항상 1개 (deterministic). ===
+    const decorDrop = getDecorDropFor(
+      activeMission.id,
+      selected.id,
+      selected.region,
+      activeMission.title
+    );
+    const alreadyHaveDecor = acquiredDecorItems.some(
+      (d) => d.id === decorDrop.id
+    );
+    if (!alreadyHaveDecor) {
+      setAcquiredDecorItems((prev) => [...prev, decorDrop]);
     }
 
     // 미션 완료 결과 카드용 데이터 저장
@@ -740,25 +796,59 @@ export default function App() {
       setTab("community");
     });
 
-  // 이주 리포트 시네마틱 열기 — 캐시 없으면 생성
+  // 이미 미션을 다 끝낸 지역이 있는데 리포트가 안 생긴 경우 — 백그라운드 자동 생성.
+  // (옛 데이터에 적용, 또는 미션 완료 시 자동 트리거가 어떤 이유로 실패한 경우 보완.)
+  const reportGeneratingRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    for (const r of residences) {
+      if (reportGeneratingRef.current.has(r.id)) continue;
+      const rec = regionProgress[r.id];
+      if (!rec || rec.migrationReport) continue;
+      if ((rec.visitCount ?? 0) === 0) continue;
+      const { missionsByDay, dayCount } = buildDayPlan(
+        r,
+        missionsForResidence(r.id)
+      );
+      if ((rec.currentDay ?? 1) < dayCount) continue;
+      const completedSet = new Set(rec.completedMissionIds);
+      const allDaysDone = missionsByDay
+        .slice(0, dayCount)
+        .every((ids) => ids.every((id) => completedSet.has(id)));
+      if (!allDaysDone) continue;
+      reportGeneratingRef.current.add(r.id);
+      void ensureReportGenerated(r, rec).finally(() => {
+        reportGeneratingRef.current.delete(r.id);
+      });
+    }
+  }, [regionProgress]);
+
+  // 이주 리포트 생성만 — 캐시 있으면 no-op. UI 안 띄움. 백그라운드에서도 호출 가능.
+  // rec 을 직접 받아 호출 시점의 최신 progress 를 보장 (state 업데이트 race 회피).
+  const ensureReportGenerated = async (
+    residence: Residence,
+    rec: RegionRecord
+  ): Promise<MigrationReport> => {
+    if (rec.migrationReport) return rec.migrationReport;
+    const missions = missionsForResidence(residence.id);
+    const report = await generateMigrationReport(
+      residence,
+      rec,
+      missions,
+      profile?.lifestyle ?? null
+    );
+    setRegionProgress((p) => saveReport(p, residence.id, report));
+    // 이주 리포트 처음 생성될 때 — "먼저 온 이주자" 회고 편지 도착
+    addLetter(makeReportLetter(residence));
+    return report;
+  };
+
+  // 이주 리포트 시네마틱 열기 — 없으면 생성 후 노출
   const handleOpenCinematic = async (residence: Residence) => {
     const rec = regionProgress[residence.id];
     if (!rec) return;
     setCinematicLoading(true);
     try {
-      let report = rec.migrationReport;
-      if (!report) {
-        const missions = missionsForResidence(residence.id);
-        report = await generateMigrationReport(
-          residence,
-          rec,
-          missions,
-          profile?.lifestyle ?? null
-        );
-        setRegionProgress((p) => saveReport(p, residence.id, report!));
-        // 이주 리포트 처음 생성될 때 — "먼저 온 이주자" 회고 편지 도착
-        addLetter(makeReportLetter(residence));
-      }
+      await ensureReportGenerated(residence, rec);
       setCinematicResidenceId(residence.id);
     } finally {
       setCinematicLoading(false);
@@ -798,13 +888,23 @@ export default function App() {
     });
   };
 
-  // 점심 탭 튜토리얼 — 점심 버튼 클릭 시 1회 노출 플래그 영속화.
-  const handleDismissLunchTutorial = () => {
+  // 시간대 흐름 안내 — 다음 시간대 탭 클릭 시 해당 일차-슬롯의 1회 노출 플래그 영속화.
+  // key: "day{N}-{sourceSlot}" — 예: Day 1 아침 완료 후 점심 안내를 dismiss 하면 "day1-아침" 저장.
+  const handleDismissNextSlotGuide = (key: string) => {
     if (!selected) return;
     setRegionProgress((p) => {
       const base = p[selected.id];
       if (!base) return p;
-      return { ...p, [selected.id]: { ...base, lunchTabTutorialShown: true } };
+      return {
+        ...p,
+        [selected.id]: {
+          ...base,
+          nextSlotGuidesShown: {
+            ...(base.nextSlotGuidesShown ?? {}),
+            [key]: true,
+          },
+        },
+      };
     });
   };
 
@@ -944,6 +1044,16 @@ export default function App() {
                 onReturnHome={() => setTab1Route("traveling-back")}
                 onOpenLetters={() => setTab1Route("letter")}
                 letterUnread={unreadCount(letters)}
+                decorInventory={acquiredDecorItems.filter(
+                  (d) => d.residenceId === selected.id
+                )}
+                placedDecor={placedDecor[selected.id] ?? {}}
+                onUpdatePlaced={(next) =>
+                  setPlacedDecor((prev) => ({
+                    ...prev,
+                    [selected.id]: next,
+                  }))
+                }
                 showHanseolIntro={
                   selected.id === "ganghwa" &&
                   currentDay === 1 &&
@@ -1005,26 +1115,68 @@ export default function App() {
           />
         )}
 
-        {tab === "simulation" && tab1Route === "mission-list" && selected && (
-          <MissionListScreen
-            region={selected.region}
-            residence={selected}
-            completedIds={currentCompletedIds}
-            totalScore={currentScore}
-            fitScore={currentRecord?.fitScore ?? 0}
-            currentDay={currentDay}
-            onBack={() => setTab1Route("arrival")}
-            onSelectMission={handleSelectMission}
-            // 점심 탭 튜토리얼 게이트 — 강화 + Day1 + shop 완료 + 아직 미노출
-            showLunchTutorial={
-              selected.id === "ganghwa" &&
-              currentDay === 1 &&
-              currentCompletedIds.has("shop") &&
-              !currentRecord?.lunchTabTutorialShown
+        {tab === "simulation" && tab1Route === "mission-list" && selected && (() => {
+          // === 시간대 흐름 안내 — 강화도 한정. 미션 완료 후 다음 시간대 탭으로 이끔. ===
+          // currentDayPlan.missionsByDay[day-1] 에서 timeOfDay 가 정렬되어 들어 있음(아침→낮→저녁).
+          // 아침 미션이 완료됐고 점심 안내가 아직 안 보였으면 → "낮" 탭 안내
+          // 낮 미션이 완료됐고 저녁 안내가 아직 안 보였으면 → "저녁" 탭 안내
+          // (낮 완료 안내가 우선순위 더 높음 — 단계가 더 뒤이기 때문)
+          let nextSlotGuide:
+            | { target: "낮" | "저녁"; caption: string; key: string }
+            | undefined = undefined;
+          if (selected.id === GANGHWA_ID && currentDayPlan) {
+            const todayIds = currentDayPlan.missionsByDay[currentDay - 1] ?? [];
+            const allMissions = missionsForResidence(selected.id);
+            const todayMissions = todayIds
+              .map((id) => allMissions.find((m) => m.id === id))
+              .filter((m): m is Mission => !!m);
+            const morningMission = todayMissions.find((m) => m.timeOfDay === "아침");
+            const middayMission = todayMissions.find((m) => m.timeOfDay === "낮");
+            const eveningMission = todayMissions.find((m) => m.timeOfDay === "저녁");
+            const shown = currentRecord?.nextSlotGuidesShown ?? {};
+            const middayKey = `day${currentDay}-낮`;
+            const morningKey = `day${currentDay}-아침`;
+            if (
+              middayMission &&
+              currentCompletedIds.has(middayMission.id) &&
+              eveningMission &&
+              !shown[middayKey]
+            ) {
+              nextSlotGuide = {
+                target: "저녁",
+                caption: HANSEOL_EVENING_HINT,
+                key: middayKey,
+              };
+            } else if (
+              morningMission &&
+              currentCompletedIds.has(morningMission.id) &&
+              middayMission &&
+              !shown[morningKey]
+            ) {
+              nextSlotGuide = {
+                target: "낮",
+                caption: HANSEOL_LUNCH_HINT,
+                key: morningKey,
+              };
             }
-            onDismissLunchTutorial={handleDismissLunchTutorial}
-          />
-        )}
+          }
+          return (
+            <MissionListScreen
+              region={selected.region}
+              residence={selected}
+              completedIds={currentCompletedIds}
+              totalScore={currentScore}
+              fitScore={currentRecord?.fitScore ?? 0}
+              currentDay={currentDay}
+              onBack={() => setTab1Route("arrival")}
+              onSelectMission={handleSelectMission}
+              nextSlotGuide={nextSlotGuide}
+              onDismissNextSlotGuide={() => {
+                if (nextSlotGuide) handleDismissNextSlotGuide(nextSlotGuide.key);
+              }}
+            />
+          );
+        })()}
 
         {tab === "simulation" && tab1Route === "mission-info" && activeMission && selected && (
           <MissionInfoScreen
@@ -1036,9 +1188,9 @@ export default function App() {
               setTab1Route("mission-list");
             }}
             onStart={handleStartActiveMission}
-            // 게임식 튜토리얼 게이트 — 강화 + Day1 + shop + 미노출
+            // 게임식 튜토리얼 게이트 — 강화 + Day 1 + shop + 미노출
             showShopTutorial={
-              selected.id === "ganghwa" &&
+              selected.id === GANGHWA_ID &&
               currentDay === 1 &&
               activeMission.id === "shop" &&
               !currentRecord?.shopTutorialShown
@@ -1180,6 +1332,7 @@ export default function App() {
             onOpenReport={handleOpenReport}
             onOpenCinematic={(r) => void handleOpenCinematic(r)}
             acquiredItems={acquiredItems}
+            savedQuotes={savedQuotes}
           />
         )}
 
@@ -1271,6 +1424,7 @@ export default function App() {
               setLetters((prev) => prev.map((l) => ({ ...l, read: true })))
             }
             onBack={() => setTab1Route("residence-home")}
+            nickname={nickname}
           />
         )}
 
@@ -1285,7 +1439,6 @@ export default function App() {
             likedResidences={recommendedResidences.filter((r) =>
               bookingLiked.has(r.id)
             )}
-            savedQuotes={savedQuotes}
             onOpenSettings={handleOpenSettings}
             onSelectResidence={(r) => {
               setBookingResidenceId(r.id);

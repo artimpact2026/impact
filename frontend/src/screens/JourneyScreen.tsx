@@ -15,6 +15,7 @@ import {
   type RegionRecord,
 } from "../data/journey";
 import { type LifestyleProfile } from "../data/lifestyle";
+import type { SavedQuote } from "../data/quotes";
 import { TabHeader } from "../components/TabLayout";
 
 type ViewMode = "score" | "match";
@@ -28,6 +29,8 @@ type Props = {
   onOpenCinematic?: (residence: Residence) => void;
   // 수집한 기념품 — App.tsx에서 영속 state로 관리, 표시만 함
   acquiredItems?: Item[];
+  // 기억한 말들 — NPC 발언 중 사용자가 직접 저장한 인용구. 기념품과 같은 흔적 묶음.
+  savedQuotes?: SavedQuote[];
 };
 
 export default function JourneyScreen({
@@ -37,6 +40,7 @@ export default function JourneyScreen({
   onOpenReport,
   onOpenCinematic,
   acquiredItems = [],
+  savedQuotes = [],
 }: Props) {
   const [view, setView] = useState<ViewMode>("score");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -86,7 +90,27 @@ export default function JourneyScreen({
             <TrophyCardScroll acquiredItems={acquiredItems} />
           </section>
 
-          {/* ② 지도 카드 — 토글 + 한반도 + 범례를 한 카드로 묶어 일체감 ↑ */}
+          {/* ② 기억한 말 — 미션 중 저장한 NPC 인용구. 기념품과 같은 "흔적" 묶음. */}
+          <section className="mt-6 px-4">
+            <header className="flex items-end justify-between px-1 mb-2">
+              <div>
+                <p className="text-[10px] font-extrabold text-ink-mute uppercase tracking-[0.18em]">
+                  Memorized
+                </p>
+                <h3 className="mt-0.5 text-ink text-[15px] font-extrabold">
+                  기억한 말
+                </h3>
+              </div>
+              {savedQuotes.length > 0 && (
+                <span className="text-[11px] font-extrabold text-primary tabular-nums">
+                  🔖 {savedQuotes.length}
+                </span>
+              )}
+            </header>
+            <QuoteList quotes={savedQuotes} />
+          </section>
+
+          {/* ③ 지도 카드 — 토글 + 한반도 + 범례를 한 카드로 묶어 일체감 ↑ */}
           <section className="mt-6 px-4">
             {/* 섹션 헤더 — flex L/R 정렬 */}
             <header className="flex items-end justify-between px-1 mb-2">
@@ -181,7 +205,7 @@ export default function JourneyScreen({
             </div>
           </section>
 
-          {/* ③ 이주 리포트 카드 */}
+          {/* ④ 이주 리포트 카드 */}
           <section className="mt-6 px-4">
             <header className="flex items-baseline justify-between px-1 mb-2">
               <div>
@@ -989,6 +1013,72 @@ function Bar({
           transition={{ duration: 0.5, ease: "easeOut" }}
         />
       </div>
+    </div>
+  );
+}
+
+// =====================================================================
+// QuoteList — 사용자가 직접 저장한 NPC 발언 컬렉션
+//   · 미저장 시: 안내 빈 상태
+//   · 저장 시: 인용 카드 세로 리스트 — 발언자 + 큰따옴표 + 마을·미션 메타
+// =====================================================================
+function QuoteList({ quotes }: { quotes: SavedQuote[] }) {
+  if (quotes.length === 0) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
+        className="bg-white rounded-2xl border border-cream-200 shadow-soft
+                   p-6 text-center"
+      >
+        <p className="text-3xl" aria-hidden>
+          🔖
+        </p>
+        <p className="mt-2 text-ink-soft text-[12.5px] leading-relaxed">
+          마음에 닿는 말을 만나면
+          <br />
+          말풍선 옆 🔖 를 눌러 기억해 보세요.
+        </p>
+      </motion.div>
+    );
+  }
+  return (
+    <div className="space-y-2">
+      {quotes.map((q, i) => (
+        <motion.div
+          key={q.id}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.1 + i * 0.04 }}
+          className="bg-white rounded-2xl border border-cream-200 shadow-soft
+                     px-4 py-3.5 relative overflow-hidden"
+        >
+          <span
+            aria-hidden
+            className="absolute left-0 top-0 bottom-0 w-1 bg-primary"
+          />
+          <p className="text-ink-soft text-[13px] leading-relaxed italic pl-2">
+            <span aria-hidden className="text-primary text-[18px] font-serif mr-0.5">
+              "
+            </span>
+            {q.text}
+            <span aria-hidden className="text-primary text-[18px] font-serif ml-0.5">
+              "
+            </span>
+          </p>
+          <p className="mt-2 text-ink-mute text-[10.5px] pl-2">
+            <span aria-hidden className="mr-1">
+              {q.speakerEmoji}
+            </span>
+            <span className="font-bold">{q.speaker}</span>
+            <span className="opacity-50 mx-1.5">·</span>
+            <span>{q.residenceRegion}</span>
+            <span className="opacity-50 mx-1.5">·</span>
+            <span>{q.missionTitle}</span>
+          </p>
+        </motion.div>
+      ))}
     </div>
   );
 }

@@ -19,7 +19,6 @@ import {
 import { buildDayPlan, missionIdsForDay } from "../data/dayPlan";
 import type { Residence } from "../data/residences";
 import TutorialOverlay from "../components/TutorialOverlay";
-import { HANSEOL_LUNCH_HINT } from "../data/ganghwaStory";
 
 type Props = {
   region: string;
@@ -30,9 +29,12 @@ type Props = {
   currentDay: number;
   onBack: () => void;
   onSelectMission: (mission: Mission) => void;
-  // 점심 탭 튜토리얼 — 강화 Day1 shop 완료 후 1회용. 게이트는 부모(App)에서 결정.
-  showLunchTutorial?: boolean;
-  onDismissLunchTutorial?: () => void;
+  // 시간대 흐름 안내 — 한설이 다음 시간대 탭(점심/저녁)을 가리킴. 부모가 결정해서 내려줌.
+  //   · target: "낮"=점심 탭, "저녁"=저녁 탭
+  //   · caption: 한설 말풍선 카피
+  //   · onDismiss: 해당 탭 클릭 시 1회 노출 플래그 영속화
+  nextSlotGuide?: { target: "낮" | "저녁"; caption: string };
+  onDismissNextSlotGuide?: () => void;
 };
 
 export default function MissionListScreen({
@@ -44,11 +46,12 @@ export default function MissionListScreen({
   currentDay,
   onBack,
   onSelectMission,
-  showLunchTutorial = false,
-  onDismissLunchTutorial,
+  nextSlotGuide,
+  onDismissNextSlotGuide,
 }: Props) {
-  // 점심 탭 ref — 튜토리얼 스포트라이트 좌표 측정용
+  // 시간대 탭 ref — 튜토리얼 스포트라이트 좌표 측정용 (점심·저녁 각각)
   const lunchTabRef = useRef<HTMLButtonElement | null>(null);
+  const eveningTabRef = useRef<HTMLButtonElement | null>(null);
   const allMissions = useMemo(
     () => missionsForResidence(residence.id),
     [residence.id]
@@ -165,8 +168,10 @@ export default function MissionListScreen({
   const activeTimeMissions = byTime[activeTime];
 
   const handleTimeSelect = (t: TimeOfDay) => {
-    // 점심 탭 튜토리얼이 떠 있었으면 점심 선택 시 1회 플래그 저장
-    if (showLunchTutorial && t === "낮") onDismissLunchTutorial?.();
+    // 시간대 안내가 떠 있고 사용자가 그 안내 대상 탭을 누르면 1회 플래그 저장
+    if (nextSlotGuide && t === nextSlotGuide.target) {
+      onDismissNextSlotGuide?.();
+    }
     setActiveTime(t);
   };
 
@@ -310,6 +315,7 @@ export default function MissionListScreen({
                 counts={timeCounts}
                 onSelect={handleTimeSelect}
                 lunchTabRef={lunchTabRef}
+                eveningTabRef={eveningTabRef}
               />
             </div>
 
@@ -453,11 +459,14 @@ export default function MissionListScreen({
         <div className="h-10" />
       </div>
 
-      {/* 점심 탭 튜토리얼 — shop 완료 후 자연스러운 시간대 이동 안내 */}
+      {/* 시간대 흐름 안내 — 한설이 다음 시간대 탭(점심 / 저녁)을 가리킴.
+          target 에 따라 ref 와 스포트라이트 위치가 달라짐. */}
       <TutorialOverlay
-        visible={showLunchTutorial}
-        targetRef={lunchTabRef}
-        caption={HANSEOL_LUNCH_HINT}
+        visible={!!nextSlotGuide}
+        targetRef={
+          nextSlotGuide?.target === "저녁" ? eveningTabRef : lunchTabRef
+        }
+        caption={nextSlotGuide?.caption ?? ""}
         characterSrc="/character1/clay-baram-solo.png"
         characterSide="left"
       />

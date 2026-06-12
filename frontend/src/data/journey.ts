@@ -37,8 +37,11 @@ export type RegionRecord = {
   storyIntroShown?: boolean;
   // 강화 shop 미션 — 게임식 튜토리얼 오버레이(체험하기 버튼 안내)가 노출됐는지. 영속 1회용.
   shopTutorialShown?: boolean;
-  // 강화 점심 탭 — shop 완료 후 시간대 탭 "점심"으로 이동 안내 튜토리얼. 영속 1회용.
-  lunchTabTutorialShown?: boolean;
+  // 시간대 흐름 안내 — 한설이 다음 시간대 탭(점심/저녁)으로 이끄는 안내.
+  //   key: "day{N}-{slot}" (예: "day1-아침", "day2-낮") — 어느 일차 어느 슬롯 완료 후 안내를 봤는지.
+  //   value: true 면 그 안내는 1회 노출 끝.
+  // 옛 lunchTabTutorialShown 대체 (Day 1 아침→점심도 이 맵으로 통합).
+  nextSlotGuidesShown?: Record<string, boolean>;
 };
 
 // 이주 리포트 — 마지막 일차 완료 시 잠금 해제되는 시네마틱 엔딩
