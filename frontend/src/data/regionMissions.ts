@@ -611,6 +611,7 @@ const ganghwaMissions: Mission[] = [
   {
     id: "cheongpung-jeotguk",
     title: "젓국갈비 한 그릇",
+    cover: "/character1/mission_cover/seasonal.png",
     icon: "🍲",
     category: "감정/분위기형",
     mode: "dialogue",
@@ -657,6 +658,7 @@ const ganghwaMissions: Mission[] = [
   {
     id: "cheongpung-eel",
     title: "갯벌장어 한 끼",
+    cover: "/character1/mission_cover/fish.png",
     icon: "🦪",
     category: "감정/분위기형",
     mode: "dialogue",
