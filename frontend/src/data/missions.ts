@@ -148,6 +148,9 @@ export type Mission = {
   // NPC 풀씬 일러스트 — 정의되면 미션 수행 화면을 풀스크린 씬 + 글래스 대화창으로 표시
   // src는 public 기준 절대 경로(예: "/mission/restaurantgrandma.webp")
   npcScene?: { src: string; caption?: string };
+  // 미션 정보 화면(MissionInfoScreen) 상단 커버 이미지 — public 기준 절대 경로.
+  // 정의되면 npcScene/그룹 일러스트보다 우선해서 헤더 배경으로 쓰인다.
+  cover?: string;
   // 실제 로드뷰 사진(캡처) 배열 — 슬라이드 순서대로 [출발, 골목, 다가옴, 도착]
   // 길이가 4 미만이거나 일부 undefined여도 OK — 있는 슬라이드에만 📷 버튼이 뜸
   realRoadview?: (string | undefined)[];
@@ -214,6 +217,7 @@ export const commonMissions: Mission[] = [
   {
     id: "hospital",
     title: "병원 접근성 확인",
+    cover: "/character1/mission_cover/hospital.png",
     icon: "🏥",
     category: "생활현실형",
     mode: "map-dialogue",
@@ -596,6 +600,7 @@ export const commonMissions: Mission[] = [
   {
     id: "neighbor",
     title: "이주민 만나기",
+    cover: "/character1/mission_cover/neighbor.png",
     icon: "🤝",
     category: "관계형성형",
     mode: "dialogue",

@@ -78,6 +78,7 @@ const ganghwaMissions: Mission[] = [
   {
     id: "ganghwa-dolmen",
     title: "강화 고인돌 탐방",
+    cover: "/character1/mission_cover/dolmen.png",
     icon: "🗿",
     category: "감정/분위기형",
     mode: "map-info",
@@ -117,6 +118,7 @@ const ganghwaMissions: Mission[] = [
   {
     id: "ganghwa-farm",
     title: "텃밭 클럽 — 한 평 시작",
+    cover: "/character1/mission_cover/farm.png",
     icon: "🌾",
     category: "관계형성형",
     mode: "dialogue",
@@ -163,6 +165,7 @@ const ganghwaMissions: Mission[] = [
   {
     id: "ganghwa-market",
     title: "강화풍물시장 둘러보기",
+    cover: "/character1/mission_cover/market.png",
     icon: "🛒",
     category: "관계형성형",
     mode: "map-dialogue",
@@ -555,6 +558,7 @@ const ganghwaMissions: Mission[] = [
   {
     id: "cheongpung-bookstore",
     title: "강화 이야기 한 권",
+    cover: "/character1/mission_cover/bookstore.png",
     icon: "📚",
     category: "감정/분위기형",
     mode: "dialogue",

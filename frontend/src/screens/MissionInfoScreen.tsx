@@ -49,9 +49,10 @@ export default function MissionInfoScreen({
   // 한설 한마디 — 강화도 + 메인 9 미션에만 적용 (line 정의된 미션 = 메인 9)
   const hanseolLine =
     residenceId === GANGHWA_ID ? HANSEOL_MISSION_LINES[mission.id] : undefined;
-  // 큰 이미지 폴백 체인: npcScene.src → 카테고리 그룹 일러스트
+  // 큰 이미지 폴백 체인: 전용 커버 → npcScene.src → 카테고리 그룹 일러스트
   const group = getMissionGroup(mission);
-  const heroImage = mission.npcScene?.src ?? missionGroupMeta[group].bg;
+  const heroImage =
+    mission.cover ?? mission.npcScene?.src ?? missionGroupMeta[group].bg;
 
   const { description, curiosity } = infoCopyFor(mission);
 
