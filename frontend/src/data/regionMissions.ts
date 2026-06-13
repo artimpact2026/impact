@@ -162,19 +162,122 @@ const ganghwaMissions: Mission[] = [
 
   {
     id: "ganghwa-market",
-    title: "강화풍물시장 둘러보기",
-    icon: "🛍️",
+    title: "강화풍물시장 — 오늘의 장바구니",
+    icon: "🛒",
     category: "관계형성형",
     mode: "map-dialogue",
     reward: 12,
     background: "market",
     npc: { name: "풍물시장 사장님", emoji: "🧓" },
-    description: "아삭아삭 순무민박에서 강화풍물시장까지 — 강화 대표 시장",
-    // 카카오 로드뷰 임베드 좌표 — 강화풍물시장 (visitkorea 출처)
-    // agents/frontend/arrival-roadview-links.md 참고. 검사 결과 X면 자동으로 사진 폴백.
+    description: "예산 안에서 강화 먹거리 골라 담기 — 좌판 인터랙션",
+    // 카카오 로드뷰 임베드 좌표 — 강화풍물시장 정문 (visitkorea 기준)
+    // startPosition 명시 안 함 → KakaoRoadview 가 도착지 기준 100m 8방위 중
+    //   첫 번째 panoId 잡히는 곳에서 시작. 화살표 따라 걸으면 자연스럽게 정문으로 진입.
     kakaoPosition: { lat: 37.741370, lng: 126.492831 },
-    // 도착 후 "실제 로드뷰로 확인해보기" — 새 탭에서 카카오맵 거리뷰
-    arrivalRoadviewUrl: "https://kko.to/R4HFdMJL2_",
+    // 로드뷰 도착지는 후문 — 정문 panoId 가 미등록이라 후문까지가 자연스러운 동선.
+    // 60m 안 들어오면 자동 도착 오버레이 "🎉 도착! 강화풍물시장 후문" 노출 → 인트로(정문 사진) 풀스크린.
+    destinationLabel: "강화풍물시장 후문",
+    travelGuide:
+      "강화 골목 한 번 둘러보면서 가봐요. 옛 길이 정겨워요.",
+    travelGuideArrival:
+      "이제 다 왔어요. 곧 시장 후문이 보일 거예요!",
+    // 강화풍물시장 인터랙션 — 실제 동선 그대로 1층(장보기) → 2층(밴댕이).
+    // 1층 좌판: 7품목, 예산 10,000원 — 시세 비율 반영(소포장 기준). 빠듯해서 골라야 함.
+    //   · 새우젓 8000 / 순무김치 5000 / 속노란 고구마 3500 / 약쑥떡 3000
+    //   · 국화빵 2000 / 고구마말랭이 2500 / 생순무 2000
+    // 흥정 성공률: 깎기 쉬운 간식류는 높게, 무게 있는 항목은 보수적.
+    // fact 는 모두 실제 사실 — 출처: visitkorea 강화풍물시장, 강화군 농산물 정보 등.
+    basket: {
+      npcName: "1층 사장님",
+      npcOpener:
+        "어서 와요~ 강화 특산물 다 모여 있어요. 카드 한 번 뒤집어 보고, 마음에 드는 거 장바구니로 끌어 담아요.",
+      budget: 10000,
+      items: [
+        {
+          id: "ganghwa-saeujeot",
+          name: "새우젓",
+          illustration: "saeujeot",
+          price: 8000,
+          bargainPrice: 6500,
+          bargainSuccessRate: 0.45,
+          // 시세: 강화 새우젓 1kg ≈ 16,300원. 일반 새우젓도 12,000~17,000원대. 소포장은 더 저렴.
+          fact:
+            "전국 젓새우의 70%가 강화 앞바다에서 잡혀요. 외포리 새우젓이 특히 유명하고, 1kg에 약 16,300원 — 소포장이면 더 저렴해요.",
+        },
+        {
+          id: "ganghwa-sunmu-kimchi",
+          name: "순무김치",
+          illustration: "sunmu-kimchi",
+          price: 5000,
+          bargainPrice: 4000,
+          bargainSuccessRate: 0.6,
+          // 시세: 강화도 순무김치 3kg ≈ 33,000원 (1kg 약 11,000원). 시장 소포장은 5,000~10,000원 선.
+          fact:
+            "갯벌 미네랄 머금은 강화 순무로 담가요. 3kg 통은 33,000원, 시장 소포장은 5,000~10,000원 선이에요.",
+        },
+        {
+          id: "ganghwa-ssuk-tteok",
+          name: "약쑥떡",
+          illustration: "ssuk-tteok",
+          price: 3000,
+          bargainPrice: 2500,
+          bargainSuccessRate: 0.7,
+          fact: "강화 약쑥으로 만든 쫀득한 떡이에요. 향이 진해 한 입에 알 수 있어요.",
+        },
+        {
+          id: "ganghwa-goguma-mallaengi",
+          name: "고구마말랭이",
+          illustration: "goguma-mallaengi",
+          price: 2500,
+          bargainPrice: 2000,
+          bargainSuccessRate: 0.75,
+          fact: "강화 속노란 고구마를 햇볕에 말려 만든 간식이에요.",
+        },
+        {
+          id: "ganghwa-gukhwa-bbang",
+          name: "국화빵",
+          illustration: "gukhwa-bbang",
+          price: 2000,
+          bargainPrice: 1500,
+          bargainSuccessRate: 0.8,
+          fact: "장 보다 손에 쥐는 국민 시장 간식이에요. 갓 구워 따끈해요.",
+        },
+        {
+          id: "ganghwa-raw-sunmu",
+          name: "생순무",
+          illustration: "raw-sunmu",
+          price: 2000,
+          bargainPrice: 1500,
+          bargainSuccessRate: 0.75,
+          // 시세: 10kg 단위 무료배송으로 팔릴 만큼 개당 단가는 저렴 (몇백~천원대).
+          fact:
+            "강화에서만 잘 자라는 알싸한 순무. 10kg 단위로 팔릴 만큼 개당은 몇백~천원대로 저렴해요.",
+        },
+      ],
+      dining: {
+        ctaToAscend: "2층 올라가서 밴댕이 한 입 하기",
+        npcName: "2층 식당 사장님",
+        npcOpener:
+          "오셨어요? 자리 잡고 앉아요. 밴댕이 정식이 2인 기준 32,000~35,000원이에요~",
+        // 시세 + 왜 시장에서 먹는지 한 번에 — "사오는 게 아니라 여기서 먹는 음식"
+        npcFact:
+          "밴댕이는 성질이 급해서 잡히자마자 죽어버려요. 선도가 약해서 사가는 게 아니라 강화 시장에서 바로 무쳐 먹는 게 별미죠~",
+        dish: {
+          name: "밴댕이회무침",
+          illustration: "bandaegi-bowl",
+        },
+        bites: 5,
+        biteReactions: [
+          "오 고소해요!",
+          "양념이 착 감겨요",
+          "씹을수록 단맛이…",
+          "한 점 더!",
+          "이거 진짜 별미네요",
+        ],
+        memoir:
+          "강화풍물시장 2층에서 비빈 밴댕이회무침 한 그릇. 시장에서 바로 먹는다는 게 이런 거구나.",
+      },
+    },
     dialogues: [
       {
         npc:
@@ -2792,16 +2895,15 @@ type MissionPlanEntry = {
 };
 
 const GANGHWA_PLAN: Record<string, MissionPlanEntry> = {
-  // ─── Day 1 — 첫인상 (도착·바다) ─────────
-  //   아침 = 동네 책방 (강화 로컬 작가 큐레이션 — 함민복 시인 갯벌 시로 낮 갯벌 미션과 정서 연결).
-  //   저녁 = food (하루 식비) — 기존 흐름.
-  //   shop(공통 동네 가게) + cheongpung-jeotguk(향토음식)은 보너스로.
-  "cheongpung-bookstore":{ timeOfDay: "아침", tier: "main", day: 1 },
+  // ─── Day 1 — 첫인상 (도착·시장) ─────────
+  //   아침 = 강화풍물시장 (퀄리티 가장 높은 인터랙티브 미션 — 시연 임팩트용 D1 아침으로).
+  //   낮  = 갯벌, 저녁 = food.
+  "ganghwa-market":      { timeOfDay: "아침", tier: "main", day: 1 }, // 1층 장보기 + 2층 밴댕이
   "ganghwa-mudflat":     { timeOfDay: "낮",   tier: "main", day: 1 },
   food:                  { timeOfDay: "저녁", tier: "main", day: 1 },
 
   // ─── Day 2 — 관계 (사람 만나기) ─────────
-  "ganghwa-market":      { timeOfDay: "아침", tier: "main", day: 2 }, // 순무김치 시식 + 밴댕이·약쑥떡
+  "cheongpung-bookstore":{ timeOfDay: "아침", tier: "main", day: 2 }, // 강화 로컬 책방 — 사람 이야기
   "ganghwa-farm":        { timeOfDay: "낮",   tier: "main", day: 2 }, // 텃밭 클럽 톤
   neighbor:              { timeOfDay: "저녁", tier: "main", day: 2 }, // 사랑방 펍 톤
 

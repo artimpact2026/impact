@@ -37,24 +37,7 @@ function curiosityFor(m: Mission): string {
   return m.title;
 }
 
-// NPC 아바타 — 외지/이주자 톤이면 baram, 로컬은 jieum (MissionExecuteScreen 와 동일)
-function pickNpcAvatar(name: string): string {
-  if (/이주민|이주자|노마드|크리에이터|정착|먼저 온|서퍼/.test(name)) {
-    return "/character1/clay-baram-solo.png";
-  }
-  return "/character1/clay-jieum-solo.png";
-}
-
-// NPC 가 처음 건넬 짧은 말 — 첫 dialogue 의 첫 문장 사용
-function getNpcTeaser(mission: Mission): string {
-  const first = mission.dialogues[0]?.npc;
-  if (first) {
-    const sentence = first.split(/(?<=[.!?])\s+/)[0] ?? first;
-    if (sentence.length > 60) return sentence.slice(0, 58) + "…";
-    return sentence;
-  }
-  return mission.description ?? "여기서 만나봐요";
-}
+// (도착 전 좌하단 가이드는 NPC 가 아니라 안내자 톤으로 통일 — pickNpcAvatar/getNpcTeaser 제거)
 
 // ==========================================================================
 // 지리 유틸 — 도착 100m 떨어진 위치에서 시작 + 도착지 방향 화살표
@@ -123,6 +106,9 @@ function bearingDeg(
 
 type Props = {
   position: { lat: number; lng: number };
+  // 출발 좌표 — 정의되면 이 좌표에서 panoId 잡고 시작 (100m 자동 offset 대신).
+  // 미정의 시 도착지 기준 100m 8방위 offset 으로 시작 위치 자동 탐색.
+  startPosition?: { lat: number; lng: number };
   mission: Mission;
   destination: string;
   ctaLabel: string;
@@ -136,6 +122,7 @@ type Status = "loading" | "ready" | "unavailable" | "error";
 
 export default function KakaoRoadview({
   position,
+  startPosition,
   mission,
   destination,
   ctaLabel,
@@ -158,6 +145,9 @@ export default function KakaoRoadview({
   // === 네비게이션 — 100m 떨어진 곳에서 시작 → 화살표 따라 도착지로 ===
   const [distanceM, setDistanceM] = useState<number | null>(null);
   const [bearingFromNorth, setBearingFromNorth] = useState<number>(0);
+  // 카카오 로드뷰 viewpoint pan — 사용자가 현재 어디를 보고 있는지 (북 기준 deg).
+  // 화살표 = bearingFromNorth - viewHeading 으로 상대 방위 보정 → 역주행 해소.
+  const [viewHeading, setViewHeading] = useState<number>(0);
   const [arrived, setArrived] = useState(false);
   // 도착 후 짧은 축하 → onComplete 자동 호출 (한 번만)
   const autoCompletedRef = useRef(false);
@@ -174,21 +164,48 @@ export default function KakaoRoadview({
 
     (async () => {
       try {
-        // 100m 떨어진 곳에서 시작 — 8방위 중 panoId 잡히는 첫 번째 사용
-        const directions = [0, 45, 90, 135, 180, 225, 270, 315];
         let startPos: { lat: number; lng: number } | null = null;
         let startPanoId: number | null = null;
-        for (const bearing of directions) {
-          const off = offsetCoord(position.lat, position.lng, 100, bearing);
-          const r = await getNearestPanoId(off.lat, off.lng);
+
+        // 우선순위 1: 명시 startPosition — 그 좌표 기준 panoId 잡기 (실패 시 인근 50/100m 탐색)
+        if (startPosition) {
+          const r = await getNearestPanoId(startPosition.lat, startPosition.lng);
           if (cancelled) return;
           if (r) {
-            startPos = off;
+            startPos = { lat: startPosition.lat, lng: startPosition.lng };
             startPanoId = r.panoId;
-            break;
+          } else {
+            // 명시 좌표에서 panoId 못 잡으면 그 좌표 기준 8방위 50m 탐색
+            const directions = [0, 45, 90, 135, 180, 225, 270, 315];
+            for (const bearing of directions) {
+              const off = offsetCoord(startPosition.lat, startPosition.lng, 50, bearing);
+              const rr = await getNearestPanoId(off.lat, off.lng);
+              if (cancelled) return;
+              if (rr) {
+                startPos = off;
+                startPanoId = rr.panoId;
+                break;
+              }
+            }
           }
         }
-        // 오프셋 다 실패 시 도착지에서 바로 시작 (폴백)
+
+        // 우선순위 2: 도착지 기준 100m 8방위 자동 offset (기존 동작)
+        if (!startPanoId || !startPos) {
+          const directions = [0, 45, 90, 135, 180, 225, 270, 315];
+          for (const bearing of directions) {
+            const off = offsetCoord(position.lat, position.lng, 100, bearing);
+            const r = await getNearestPanoId(off.lat, off.lng);
+            if (cancelled) return;
+            if (r) {
+              startPos = off;
+              startPanoId = r.panoId;
+              break;
+            }
+          }
+        }
+
+        // 우선순위 3: 도착지에서 바로 시작 (최종 폴백)
         if (!startPanoId || !startPos) {
           const r = await getNearestPanoId(position.lat, position.lng);
           if (cancelled) return;
@@ -236,8 +253,26 @@ export default function KakaoRoadview({
           const b = bearingDeg(curLat, curLng, position.lat, position.lng);
           setDistanceM(d);
           setBearingFromNorth(b);
-          if (d < 30) setArrived(true);
+          // 도착 임계 30 → 60m. 정문 panoId 가 멀어도 자동 도착 트리거 잘 되도록.
+          if (d < 60) setArrived(true);
         });
+
+        // viewpoint(보고 있는 방향) 변경 — 화살표 상대 방위 보정에 사용
+        kakao.maps.event.addListener(rv, "viewpoint_changed", () => {
+          try {
+            const vp = rv.getViewpoint();
+            if (vp && typeof vp.pan === "number") setViewHeading(vp.pan);
+          } catch {
+            /* SDK 호환 ignore */
+          }
+        });
+        // 초기 viewpoint 한 번 잡아두기
+        try {
+          const vp0 = rv.getViewpoint();
+          if (vp0 && typeof vp0.pan === "number") setViewHeading(vp0.pan);
+        } catch {
+          /* ignore */
+        }
 
         setStatus("ready");
       } catch (e) {
@@ -253,7 +288,7 @@ export default function KakaoRoadview({
       cancelled = true;
       if (containerRef.current) containerRef.current.innerHTML = "";
     };
-  }, [position.lat, position.lng, onUnavailable]);
+  }, [position.lat, position.lng, startPosition, onUnavailable]);
 
   return (
     <div
@@ -306,42 +341,65 @@ export default function KakaoRoadview({
         </div>
       </header>
 
-      {/* ===== 네비게이션 칩 — 도착지 방향 화살표 + 남은 거리 ===== */}
-      {status === "ready" && distanceM !== null && !arrived && (
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.2 }}
-          className="absolute top-[150px] left-1/2 -translate-x-1/2 z-30
-                     pointer-events-none"
-        >
-          <div className="flex items-center gap-2.5 px-4 py-2 rounded-full
-                          bg-white shadow-[0_8px_22px_-6px_rgba(0,0,0,0.4)]
-                          border border-cream-200">
-            {/* 회전 화살표 */}
-            <motion.span
-              animate={{ rotate: bearingFromNorth }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
-              className="inline-block text-primary text-[18px] leading-none"
-              aria-hidden
-            >
-              ↑
-            </motion.span>
-            <div className="flex flex-col">
-              <span className="text-[10px] font-bold text-ink-mute leading-none">
-                {destination}
-              </span>
-              <span className="text-ink text-[13px] font-extrabold tabular-nums leading-tight">
-                {Math.round(distanceM)}m 남음
-              </span>
+      {/* ===== 네비게이션 카드 — 회전 화살표 + 거리 + 큰 방향 라벨 ===== */}
+      {status === "ready" && distanceM !== null && !arrived && (() => {
+        // 시야 상대 방위 (0~360 정규화) — 카카오 SDK pan(0~360) 과 우리 bearing(-180~180) 차이 보정
+        const normalize360 = (deg: number) => ((deg % 360) + 360) % 360;
+        const relative = normalize360(bearingFromNorth - viewHeading);
+        // 4방향 시인성 라벨 — 사용자가 어느 쪽 골목으로 갈지 큰 글자로
+        const directionLabel =
+          relative < 45 || relative >= 315
+            ? { icon: "⬆", text: "그대로 직진" }
+            : relative < 135
+            ? { icon: "➡", text: "오른쪽 골목으로" }
+            : relative < 225
+            ? { icon: "🔄", text: "뒤로 돌아가기" }
+            : { icon: "⬅", text: "왼쪽 골목으로" };
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+            className="absolute top-[140px] left-1/2 -translate-x-1/2 z-30
+                       pointer-events-none w-[88%] max-w-[360px]"
+          >
+            {/* 큰 방향 라벨 카드 — 어느 쪽 가야 하는지 한눈에 */}
+            <div className="flex items-center gap-3 px-4 py-3 rounded-3xl
+                            bg-white shadow-[0_12px_32px_-6px_rgba(0,0,0,0.5)]
+                            border-2 border-primary">
+              {/* 회전 화살표 — 정확한 절대 방향 (시야 보정 포함) */}
+              <motion.div
+                animate={{ rotate: relative }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+                className="shrink-0"
+                aria-hidden
+              >
+                <motion.span
+                  animate={{ scale: [1, 1.15, 1] }}
+                  transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+                  className="inline-block text-primary text-[42px] leading-none font-extrabold
+                             drop-shadow-[0_2px_6px_rgba(255,112,67,0.5)]"
+                >
+                  ⬆
+                </motion.span>
+              </motion.div>
+              <div className="flex-1 min-w-0">
+                <p className="text-ink text-[16px] font-extrabold leading-tight">
+                  <span className="mr-1" aria-hidden>{directionLabel.icon}</span>
+                  {directionLabel.text}
+                </p>
+                <p className="mt-1 text-[11px] font-extrabold text-ink-mute tracking-wide">
+                  {destination} <span className="text-primary tabular-nums text-[13px]">{Math.round(distanceM)}m</span> 남음
+                </p>
+              </div>
             </div>
-          </div>
-          <p className="mt-1.5 text-center text-white/85 text-[10.5px] font-bold
-                        [text-shadow:0_1px_2px_rgba(0,0,0,0.6)]">
-            화살표 따라 걸어가요
-          </p>
-        </motion.div>
-      )}
+            <p className="mt-2 text-center text-white/90 text-[11px] font-bold
+                          [text-shadow:0_1px_3px_rgba(0,0,0,0.7)]">
+              화살표 따라 천천히 걸어가요
+            </p>
+          </motion.div>
+        );
+      })()}
 
       {/* ===== 도착 오버레이 — < 30m 근접 시 ===== */}
       <AnimatePresence>
@@ -409,8 +467,8 @@ export default function KakaoRoadview({
         )}
       </AnimatePresence>
 
-      {/* ===== 좌하단 NPC 가이드 (A) — 상주 ===== */}
-      {status === "ready" && (
+      {/* ===== 좌하단 가이드 — 도착 전에는 안내자 톤 (NPC 인사는 도착 후 미션 화면에서) ===== */}
+      {status === "ready" && !arrived && (
         <motion.div
           initial={{ opacity: 0, x: -10, y: 6 }}
           animate={{ opacity: 1, x: 0, y: 0 }}
@@ -418,24 +476,28 @@ export default function KakaoRoadview({
           className="absolute left-3 z-30 flex items-end gap-2 pointer-events-none"
           style={{ bottom: "150px" }}
         >
-          {/* 클레이 캐릭터 — 살짝 둥실 */}
+          {/* 안내자 캐릭터(바람) — 살짝 둥실 */}
           <motion.img
-            src={pickNpcAvatar(mission.npc.name)}
+            src="/character1/clay-baram-solo.png"
             alt=""
             aria-hidden
             className="w-[64px] h-auto drop-shadow-[0_4px_8px_rgba(0,0,0,0.4)] shrink-0"
             animate={{ y: [-2, 1, -2] }}
             transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
           />
-          {/* 말풍선 */}
+          {/* 말풍선 — mission.travelGuide 있으면 그거, 없으면 기본 카피 */}
           <div className="relative bg-white rounded-2xl shadow-[0_6px_16px_-4px_rgba(0,0,0,0.35)]
-                          border border-cream-200 px-3 py-2 max-w-[220px] mb-1
+                          border border-cream-200 px-3 py-2 max-w-[240px] mb-1
                           pointer-events-auto">
-            <p className="text-[10px] font-extrabold text-primary leading-none">
-              {mission.npc.emoji} {mission.npc.name}
+            <p className="text-[10px] font-extrabold text-primary leading-none tracking-wider">
+              🧭 안내
             </p>
             <p className="mt-1 text-ink text-[12px] leading-snug">
-              {getNpcTeaser(mission)}
+              {/* 100m 이내 진입 시 도착 직전 멘트(travelGuideArrival), 그 전엔 일반 travelGuide */}
+              {(distanceM !== null && distanceM < 100 && mission.travelGuideArrival)
+                ? mission.travelGuideArrival
+                : mission.travelGuide
+                ?? `${destination}으로 가요. 골목 한 번 둘러봐도 좋아요.`}
             </p>
             {/* 말풍선 꼬리 — 왼쪽 */}
             <span
@@ -447,21 +509,9 @@ export default function KakaoRoadview({
         </motion.div>
       )}
 
-      {/* 하단 — 외부링크(있으면) + 미션 시작 CTA */}
+      {/* 하단 — 미션 시작 CTA (외부링크는 제거 — 사용자 피드백) */}
       {status === "ready" && (
         <footer className="absolute bottom-6 left-0 right-0 z-30 px-6 flex flex-col items-center gap-2 pointer-events-none">
-          {mission.arrivalRoadviewUrl && (
-            <a
-              href={mission.arrivalRoadviewUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-4 py-1.5 rounded-full bg-white/15 backdrop-blur
-                         border border-white/40 text-white text-[11px] font-bold
-                         active:scale-[0.99] pointer-events-auto"
-            >
-              🗺️ 새 탭에서 크게 보기
-            </a>
-          )}
           <motion.button
             type="button"
             onClick={onComplete}

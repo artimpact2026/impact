@@ -9,6 +9,7 @@ import MissionListScreen from "./screens/MissionListScreen";
 import MissionInfoScreen from "./screens/MissionInfoScreen";
 import MissionTravelingScreen from "./screens/MissionTravelingScreen";
 import MissionExecuteScreen from "./screens/MissionExecuteScreen";
+import MissionBasketScreen from "./screens/MissionBasketScreen";
 import MissionCompleteScreen, {
   type MissionKeyInfo,
 } from "./screens/MissionCompleteScreen";
@@ -48,6 +49,11 @@ import {
   GANGHWA_ID,
 } from "./data/ganghwaStory";
 import { useDayComplete } from "./hooks/useDayComplete";
+import {
+  loadConfirmedBookings,
+  saveConfirmedBookings,
+  type ConfirmedBooking,
+} from "./data/confirmedBookings";
 import {
   getDecorDropFor,
   loadAcquiredDecor,
@@ -275,11 +281,18 @@ export default function App() {
     startDate: string;
     durationMonths: number;
   } | null>(null);
+  // 예약 확정 — 영속 (ProfileScreen 의 "다가오는 예약" 카드용)
+  const [confirmedBookings, setConfirmedBookings] = useState<ConfirmedBooking[]>(
+    () => loadConfirmedBookings()
+  );
   // 예약 찜(하트) — 화면 상태만, 영속 X
   const [bookingLiked, setBookingLiked] = useState<Set<string>>(() => loadLiked());
   // 이주 리포트 시네마틱 — 풀스크린 모달 (열려있는 청년마을 id)
   const [cinematicResidenceId, setCinematicResidenceId] = useState<string | null>(null);
   const [cinematicLoading, setCinematicLoading] = useState(false);
+  // 의식 화면 "내 자리 가서 마당 꾸미기" CTA → residence-home 진입 시 자동 편집 모드.
+  // 1회용 트리거 — ResidenceHomeScreen 마운트 직후 mascot 등과 같이 켰다가 onEnterEditModeHandled 로 해제.
+  const [autoEnterYardEdit, setAutoEnterYardEdit] = useState(false);
 
   // === 현재 지역 진행 derivation (훅 입력) ===
   // 조기 반환(`if (!profile)`) 전에 useDayComplete 가 호출돼야 React 훅 순서 보존.
@@ -361,6 +374,11 @@ export default function App() {
   useEffect(() => {
     saveLiked(bookingLiked);
   }, [bookingLiked]);
+
+  // 확정된 예약 localStorage 영속
+  useEffect(() => {
+    saveConfirmedBookings(confirmedBookings);
+  }, [confirmedBookings]);
 
   // 편지함 localStorage 영속
   useEffect(() => {
@@ -692,6 +710,29 @@ export default function App() {
     setProfile(next);
   };
 
+  // BottomNav 숨김 게이팅 — "미션하기 들어갔을 때만" 숨김 (사용자 피드백).
+  //   · 떠나기/이동/도착/집(residence-home) — 탭바 보임
+  //   · 미션 진입(mission-* 5종) — 탭바 숨김
+  //   · 의식/퍼즐/우편함 — 탭바 보임 (사용자 의도 = 미션만 숨김)
+  const HIDE_NAV_ROUTES: Tab1Route[] = [
+    "mission-list",
+    "mission-info",
+    "mission-traveling",
+    "mission-execute",
+    "mission-complete",
+  ];
+  const hideNav =
+    tab === "simulation" && HIDE_NAV_ROUTES.includes(tab1Route);
+
+  // hideNav 토글 시 --content-bottom 도 0 으로 — 미션 화면이 BottomNav 자리(약 96px)까지 활용.
+  useEffect(() => {
+    if (hideNav) {
+      document.documentElement.style.setProperty("--content-bottom", "0px");
+    } else {
+      document.documentElement.style.removeProperty("--content-bottom");
+    }
+  }, [hideNav]);
+
   if (!profile) {
     return <OnboardingShell onComplete={handleOnboardingComplete} />;
   }
@@ -712,15 +753,15 @@ export default function App() {
   const mascotKey = selected
     ? `${selected.id}::day${currentDay}`
     : null;
-  const mascotVariant: "urgent" | "complete" | null = (() => {
+  // urgent 변형은 제거됨 — "X개 더 완성해서 오늘 하루를 마쳐봐" 우하단 말풍선 사용자 피드백.
+  // 충족 시 complete 모달만 남김.
+  const mascotVariant: "complete" | null = (() => {
     if (!hasBonusFlow || !mascotKey) return null;
     if (dayState.isDayComplete && !mascotShown[`${mascotKey}::complete`])
       return "complete";
-    if (dayState.isUrgent && !mascotShown[`${mascotKey}::urgent`])
-      return "urgent";
     return null;
   })();
-  const dismissMascot = (variant: "urgent" | "complete") => {
+  const dismissMascot = (variant: "complete") => {
     if (!mascotKey) return;
     setMascotShown((prev) => ({ ...prev, [`${mascotKey}::${variant}`]: true }));
   };
@@ -738,6 +779,8 @@ export default function App() {
     "day-end-ceremony",
     "puzzle",
   ];
+
+  // (hideNav 게이팅 + useEffect 는 조기반환 위로 이동 — React 훅 순서 보존)
 
   const handleTabChange = (next: TabKey) => {
     // 이동 애니메이션 중에는 tab1Route 손대지 않음
@@ -1108,8 +1151,19 @@ export default function App() {
                 homeRegion={homeRegion}
                 currentDay={currentDay}
                 dayCount={currentDayPlan.dayCount}
-                todayMissionCount={todayMissions.length}
-                todayMissionDoneCount={todayDone}
+                todayMissionCount={
+                  // 보너스 흐름 있으면 (필수 3 + 보너스 N) 풀카운트 — MissionListScreen 과 동일 규칙.
+                  // 없으면 필수만.
+                  hasBonusFlow
+                    ? dayState.mainsRequired + dayState.bonusRequired
+                    : todayMissions.length
+                }
+                todayMissionDoneCount={
+                  hasBonusFlow
+                    ? dayState.mainsCompleted +
+                      Math.min(dayState.bonusCompleted, dayState.bonusRequired)
+                    : todayDone
+                }
                 onGoMissionList={() => setTab1Route("mission-list")}
                 onReturnHome={() => setTab1Route("traveling-back")}
                 onOpenLetters={() => setTab1Route("letter")}
@@ -1148,12 +1202,6 @@ export default function App() {
                           setTab1Route("puzzle");
                         },
                       }
-                    : mascotVariant === "urgent"
-                    ? {
-                        variant: "urgent",
-                        remaining: dayState.remainingToComplete,
-                        onDismiss: () => dismissMascot("urgent"),
-                      }
                     : undefined
                 }
                 showHanseolIntro={
@@ -1162,6 +1210,8 @@ export default function App() {
                   !currentRecord?.storyIntroShown
                 }
                 onDismissHanseolIntro={handleDismissHanseolIntro}
+                enterEditModeOnMount={autoEnterYardEdit}
+                onEnterEditModeHandled={() => setAutoEnterYardEdit(false)}
               />
             );
           })()}
@@ -1326,8 +1376,9 @@ export default function App() {
                       title: "내 자리 가서 마당 꾸미기",
                       subtitle: "오늘 받은 자재로 마당 한 곳에",
                       onClick: () => {
-                        // 비-마지막일: 다음 일차로 진행(finishDayAnd) 후 residence-home 으로.
-                        // finishDayAnd 가 일차 +1 + 안부 편지 처리.
+                        // 비-마지막일: 다음 일차로 진행(finishDayAnd) 후 residence-home 으로
+                        // + 자동으로 마당 꾸미기 편집 모드 진입.
+                        setAutoEnterYardEdit(true);
                         finishDayAnd(() => setTab1Route("residence-home"));
                       },
                     },
@@ -1370,7 +1421,46 @@ export default function App() {
           />
         )}
 
-        {tab === "simulation" && tab1Route === "mission-execute" && activeMission && selected && (
+        {tab === "simulation" && tab1Route === "mission-execute" && activeMission && selected && activeMission.basket && (
+          <MissionBasketScreen
+            mission={activeMission}
+            onClose={() => {
+              setActiveMission(null);
+              setTab1Route("mission-list");
+            }}
+            onComplete={(picked, diningMemoir) => {
+              // 사용자 피드백: "수집한 기념품은 미션 하나당 하나"
+              //   → picked 6개를 acquiredItems 에 넣지 않음. 대신 handleMissionComplete 내부의
+              //     getItemDropFor 가 ganghwa-ginseng("강화풍물시장 한 보따리") 단일 아이템을 자동 드롭.
+              //   picked 정보는 라벨로만 남김 (pickedLabels — 시뮬레이션 기록용).
+              // 2층 밴댕이 경험은 acquiredItems 가 아니라 SavedQuote(추억) 로 기록.
+              if (!activeMission || !selected) return;
+              if (diningMemoir) {
+                const memoQuote: SavedQuote = {
+                  id: `${Date.now()}-${activeMission.id}-dining`,
+                  text: diningMemoir,
+                  speaker: activeMission.basket?.dining?.npcName ?? "2층 식당 사장님",
+                  speakerEmoji: "🥢",
+                  missionId: activeMission.id,
+                  missionTitle: activeMission.title,
+                  residenceId: selected.id,
+                  residenceRegion: selected.region,
+                  savedAt: Date.now(),
+                };
+                setSavedQuotes((prev) => [memoQuote, ...prev]);
+              }
+
+              const labels = picked.map((p) => p.name);
+              handleMissionComplete(
+                0,
+                { totalPicks: picked.length, alignedPicks: picked.length },
+                labels
+              );
+            }}
+          />
+        )}
+
+        {tab === "simulation" && tab1Route === "mission-execute" && activeMission && selected && !activeMission.basket && (
           <MissionExecuteScreen
             mission={activeMission}
             residenceStance={selected.stance}
@@ -1416,16 +1506,14 @@ export default function App() {
               onNext={() => {
                 const dayDone = completionData.isLastMissionToday;
                 setCompletionData(null);
-                // 강화 (보너스 흐름 있음):
-                //   · 종료 충족(mains + bonus 2+) → ResidenceHome 으로 (마스코트 complete → 퍼즐 → 의식)
-                //   · 아직 종료 X → 바로 mission-list 로 (점심/저녁 안내 자연스럽게)
-                // 다른 지역: mains 끝났으면 의식, 아니면 mission-list (기존).
+                // 사용자 피드백: 미션 끝나면 바로 집 화면(residence-home) 으로.
+                //   · 강화(보너스 흐름 있음): 무조건 집 — 일차 충족 여부는 ResidenceHomeScreen 의
+                //     mascot/퍼즐/의식 흐름에서 자체 처리.
+                //   · 다른 지역(보너스 흐름 없음): 일차 종료 시 의식, 아니면 집.
                 if (hasBonusFlow) {
-                  setTab1Route(
-                    dayState.isDayComplete ? "residence-home" : "mission-list"
-                  );
+                  setTab1Route("residence-home");
                 } else {
-                  setTab1Route(dayDone ? "day-end-ceremony" : "mission-list");
+                  setTab1Route(dayDone ? "day-end-ceremony" : "residence-home");
                 }
               }}
             />
@@ -1572,6 +1660,8 @@ export default function App() {
             likedResidences={recommendedResidences.filter((r) =>
               bookingLiked.has(r.id)
             )}
+            confirmedBookings={confirmedBookings}
+            allResidences={recommendedResidences}
             onOpenSettings={handleOpenSettings}
             onSelectResidence={(r) => {
               setBookingResidenceId(r.id);
@@ -1647,6 +1737,17 @@ export default function App() {
                 onSubmit={(draft) => {
                   setBookingDraft(draft);
                   setTab4Route("booking-done");
+                  // 영속 — ProfileScreen 의 "다가오는 예약" 카드에 노출
+                  setConfirmedBookings((prev) => [
+                    ...prev,
+                    {
+                      id: `${r.id}-${Date.now()}`,
+                      residenceId: r.id,
+                      startDate: draft.startDate,
+                      durationMonths: draft.durationMonths,
+                      confirmedAt: new Date().toISOString(),
+                    },
+                  ]);
                   // 예약 확정 알림 편지 도착
                   addLetter(
                     makeBookingConfirmedLetter(
@@ -1691,10 +1792,11 @@ export default function App() {
           })()}
       </main>
 
-      <BottomNav
-        active={tab}
-        onChange={handleTabChange}
-      />
+      {/* BottomNav — 본가/탐색/청년마을 home 까지는 노출.
+          "알아보기 미션"(mission-*) 진입 + 이동/의식/퍼즐/우편함 화면에서만 숨김.
+          사용자 피드백: residence-home (집 자라는 곳) 에서는 탭 유지 → 본가 돌아가기 등 자유롭게.
+          미션 진입 후 콘텐츠가 화면 끝까지 차지하도록 --content-bottom 도 함께 0 으로. */}
+      {hideNav ? null : <BottomNav active={tab} onChange={handleTabChange} />}
 
       {/* 우편함 미션 모달 — 미션 리스트에서 우편함 카드 누른 경우 */}
       <MailboxModal

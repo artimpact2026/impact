@@ -12,6 +12,22 @@
 
 const ITEMS_KEY = "cheongpung.items.v1";
 
+// MarketIllust 키와 동일한 유니온 — 순환 import 피하려 inline 으로 둠.
+// 실제 정의는 data/missions.ts 의 MarketIllustKey. 추가 시 양쪽 동기화 필요.
+export type ItemIllustKey =
+  | "sunmu-kimchi"
+  | "saeujeot"
+  | "sweet-potato"
+  | "ssuk-tteok"
+  | "gukhwa-bbang"
+  | "goguma-mallaengi"
+  | "raw-sunmu"
+  | "bandaegi-bowl"
+  | "bandaegi-sashimi"
+  | "rice-bowl"
+  | "card-back"
+  | "basket-bag";
+
 export type Item = {
   id: string;
   name: string;
@@ -20,6 +36,9 @@ export type Item = {
   // 어느 미션에서 떨어지는지 — 미션 id 와 매칭됨 (공통 미션 id 사용)
   missionId: string;
   hint: string;         // 한 줄 — 어디서·어떻게 얻었는지 풍경
+  // 정의되면 emoji 대신 SVG(MarketIllust 컴포넌트)로 표시.
+  // 풍물시장 미션처럼 이모지가 부정확/품위 안 맞는 케이스용.
+  illustration?: ItemIllustKey;
 };
 
 // === 카탈로그 ============================================================
@@ -100,12 +119,15 @@ export const ITEMS: Item[] = [
     hint: "텃밭 한 평, 흙이 부드러웠어요",
   },
   {
+    // 강화풍물시장 미션 대표 아이템 — 1층 좌판에서 골라 담은 보따리.
+    //   id 는 호환 위해 유지(기존 저장 데이터). 이름/일러스트는 풍물시장 톤으로.
     id: "ganghwa-ginseng",
-    name: "강화 인삼 한 뿌리",
-    emoji: "🌿",
+    name: "강화풍물시장 한 보따리",
+    emoji: "",
+    illustration: "basket-bag",
     residenceId: "ganghwa",
     missionId: "ganghwa-market",
-    hint: "장날 시장 매대 끝에서",
+    hint: "1층 좌판에서 골라 담은 강화 특산물",
   },
   {
     id: "ganghwa-sunset-item",

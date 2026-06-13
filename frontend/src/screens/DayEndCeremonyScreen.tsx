@@ -20,7 +20,9 @@ import {
   type DecorCategory,
   type DecorItem,
 } from "../data/decorItems";
-import type { Item } from "../data/items";
+import type { Item, ItemIllustKey } from "../data/items";
+import MarketIllust from "../components/MarketIllust";
+import type { MarketIllustKey } from "../data/missions";
 
 type Suggestion = {
   icon: string;
@@ -86,6 +88,7 @@ export default function DayEndCeremonyScreen({
     ...finalState.todaySouvenirs.map((s) => ({
       key: `s-${s.id}`,
       emoji: s.emoji,
+      illustration: s.illustration,
       title: s.name,
       sub: s.hint,
       kind: "기념품" as const,
@@ -133,72 +136,100 @@ export default function DayEndCeremonyScreen({
         </svg>
       </button>
 
-      {/* ① Hero — 오늘 받은 자재·기념품 자동 슬라이드 캐러셀 */}
-      <section className="relative w-full h-[320px] overflow-hidden">
-        <div
-          aria-hidden
-          className="absolute inset-0 bg-gradient-to-b from-[#FFF8EC] via-cream to-[#F0F8F1]"
-        />
-        <svg
-          viewBox="0 0 375 320"
-          preserveAspectRatio="xMidYMax slice"
-          className="absolute inset-0 w-full h-full"
-          aria-hidden
-        >
-          <defs>
-            <linearGradient id="dayEndFade" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#F0F8F1" stopOpacity="0" />
-              <stop offset="100%" stopColor="#F0F8F1" stopOpacity="1" />
-            </linearGradient>
-          </defs>
-          <ellipse cx="187" cy="278" rx="160" ry="6" fill="#D9B68A" opacity="0.35" />
-          <rect x="0" y="260" width="375" height="60" fill="url(#dayEndFade)" />
-        </svg>
-
+      {/* ① 상단 — DAY pill + 큼직한 타이틀 + 짧은 질문 (레퍼런스 비율) */}
+      <header className="pt-14 px-6 text-center">
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
-          className="absolute top-12 left-5 z-10 text-[11px] font-extrabold tracking-[0.16em] uppercase text-primary"
+          className="text-[11px] font-extrabold tracking-[0.16em] uppercase text-primary"
         >
           {region} · DAY {finishedDay} / {totalDays}
         </motion.p>
-
-        {/* 큰 자동 슬라이드 캐러셀 — 오늘 받은 자재·기념품 한 개씩 자동 순환 */}
-        <div className="absolute inset-x-0 bottom-4 px-4 flex items-end justify-center">
-          <ItemCarousel slides={slides} />
-        </div>
-      </section>
-
-      {/* ② 타이틀 + 짧은 질문 */}
-      <header className="px-6 mt-6 text-center">
         <motion.h1
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.5 }}
-          className="text-ink text-[28px] font-extrabold leading-tight"
+          className="mt-3 text-ink text-[26px] font-extrabold leading-tight"
         >
           오늘 하루 끝났어요
+          <br />
+          꾸며볼까요?
         </motion.h1>
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3, duration: 0.5 }}
-          className="mt-2 text-ink-soft text-[14px] leading-relaxed"
+          className="mt-2 text-ink-soft text-[13px] leading-relaxed"
         >
-          꾸며볼까요?
+          오늘 주민들이 챙겨준 선물이에요
         </motion.p>
       </header>
 
-      {/* ③ 단일 CTA — "내 자리 가서 마당 꾸미기" (suggestions[0] 사용). 다른 옵션·인사 다 제거. */}
-      <section className="mt-8 px-5 pb-8">
+      {/* ② 중앙 — 큼직한 자동 슬라이드 캐러셀 (flex-1 로 화면 중앙 차지) */}
+      <section className="flex-1 flex items-center justify-center px-4 py-4 min-h-0">
+        <ItemCarousel slides={slides} />
+      </section>
+
+      {/* ③ 하단 — 오늘 받은 것 썸네일 카드 (레퍼런스의 4-medal 카드 톤) */}
+      {slides.length > 0 && (
+        <section className="px-5 pb-3">
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.4 }}
+            className="bg-white rounded-3xl border border-cream-200 shadow-soft px-4 py-4"
+          >
+            <div className="flex justify-center mb-3">
+              <span
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full
+                           bg-ink text-white text-[11px] font-extrabold tracking-wide"
+              >
+                🎁 오늘 받은 선물 {slides.length}개
+              </span>
+            </div>
+            <div className="flex items-start justify-center gap-3 flex-wrap">
+              {slides.slice(0, 5).map((s, i) => (
+                <motion.div
+                  key={s.key}
+                  initial={{ opacity: 0, scale: 0.7 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.5 + i * 0.06, type: "spring", damping: 14 }}
+                  className="flex flex-col items-center gap-1"
+                >
+                  <div
+                    className="w-12 h-12 rounded-full bg-cream-50 border-2 border-dashed border-cream-300
+                               flex items-center justify-center text-[24px] select-none"
+                    aria-hidden
+                  >
+                    {"illustration" in s && s.illustration ? (
+                      <MarketIllust
+                        variant={s.illustration as MarketIllustKey}
+                        size={32}
+                      />
+                    ) : (
+                      s.emoji
+                    )}
+                  </div>
+                  <p className="text-[9.5px] font-extrabold text-ink-mute tracking-wide">
+                    {s.kind}
+                  </p>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        </section>
+      )}
+
+      {/* ④ CTA — "내 자리 가서 마당 꾸미기" 단일 버튼 */}
+      <section className="px-5 pb-7">
         {suggestions[0] && (
           <motion.button
             type="button"
             onClick={suggestions[0].onClick}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.45 }}
+            transition={{ delay: 0.55, duration: 0.4 }}
             className="w-full h-14 rounded-full bg-primary text-white
                        text-[15px] font-extrabold
                        shadow-[0_8px_20px_-4px_rgba(255,112,67,0.55)]
@@ -490,6 +521,7 @@ function FinalDayPreYard({
 type CarouselSlide = {
   key: string;
   emoji: string;
+  illustration?: ItemIllustKey;
   title: string;
   sub?: string;
   kind: "자재" | "기념품";
@@ -567,12 +599,19 @@ function ItemCarousel({ slides }: { slides: CarouselSlide[] }) {
                       : undefined,
                   }}
                 >
-                  <span
-                    aria-hidden
-                    className="text-[72px] leading-none select-none"
-                  >
-                    {s.emoji}
-                  </span>
+                  {s.illustration ? (
+                    <MarketIllust
+                      variant={s.illustration as MarketIllustKey}
+                      size={96}
+                    />
+                  ) : (
+                    <span
+                      aria-hidden
+                      className="text-[72px] leading-none select-none"
+                    >
+                      {s.emoji}
+                    </span>
+                  )}
                   <p className="mt-2 text-[9.5px] font-extrabold tracking-[0.18em] uppercase text-primary">
                     {s.kind}
                   </p>

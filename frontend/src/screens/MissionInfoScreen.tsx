@@ -159,7 +159,7 @@ export default function MissionInfoScreen({
       <div
         className="fixed left-1/2 -translate-x-1/2 w-full max-w-[420px]
                    px-5 pointer-events-none z-30"
-        style={{ bottom: "calc(var(--content-bottom) + 12px)" }}
+        style={{ bottom: "calc(var(--content-bottom) + 32px)" }}
       >
         <button
           ref={startBtnRef}

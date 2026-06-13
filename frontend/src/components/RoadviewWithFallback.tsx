@@ -10,6 +10,7 @@ import MiniRoadview from "./MiniRoadview";
 
 type Props = {
   position: { lat: number; lng: number };
+  startPosition?: { lat: number; lng: number };
   fallbackSteps?: RoadviewStep[];
   mission: Mission;
   destination: string;
@@ -20,6 +21,7 @@ type Props = {
 
 export default function RoadviewWithFallback({
   position,
+  startPosition,
   fallbackSteps,
   mission,
   destination,
@@ -60,18 +62,6 @@ export default function RoadviewWithFallback({
           이 지점의 로드뷰가 아직 준비되지 않았어요
         </p>
         <p className="mt-2 text-white/60 text-[11px]">{destination}</p>
-        {mission.arrivalRoadviewUrl && (
-          <a
-            href={mission.arrivalRoadviewUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-5 px-4 py-1.5 rounded-full bg-white/15 backdrop-blur
-                       border border-white/40 text-white text-[11px] font-bold
-                       active:scale-[0.99]"
-          >
-            🗺️ 새 탭에서 크게 보기
-          </a>
-        )}
         <button
           type="button"
           onClick={onComplete}
@@ -94,6 +84,7 @@ export default function RoadviewWithFallback({
   return (
     <KakaoRoadview
       position={position}
+      startPosition={startPosition}
       mission={mission}
       destination={destination}
       ctaLabel={ctaLabel}

@@ -73,6 +73,56 @@ export type DialogueTurn = {
   numeric?: NumericInputSpec;
 };
 
+// ── 시장 좌판 아이템 (basket 모드) ──────────────
+// 한 미션에 7개 정도 — 가격 차이로 예산 게임이 성립.
+// 사용자가 고른 BasketItem 들은 onComplete 시 acquiredItems(찬장) 으로 주입됨.
+//
+// 인터랙션 (강화풍물시장 1층):
+//   1) 카드 좌판 — 처음엔 뒷면. 탭 → 3D 뒤집기로 강화 사실(fact) 정보 노출.
+//   2) 뒤집힌 카드를 장바구니로 "드래그" → 흥정 모달 (가격 부름 → 깎아주세요)
+//   3) 깎기 성공 → 깎인 가격, 실패/안 함 → 정가로 담김
+// 이모지는 사용 금지 — illustration 키로 SVG 컴포넌트(MarketIllust)에 매핑.
+export type MarketIllustKey =
+  | "sunmu-kimchi"
+  | "saeujeot"
+  | "sweet-potato"
+  | "ssuk-tteok"
+  | "gukhwa-bbang"
+  | "goguma-mallaengi"
+  | "raw-sunmu"
+  | "bandaegi-bowl"       // 2층 회무침 (산처럼 쌓인 양념)
+  | "bandaegi-sashimi"    // 2층 밴댕이 회 (깻잎 위 흰 살)
+  | "rice-bowl"           // 2층 밥공기
+  | "card-back"           // (구) 카드 뒷면 — 현재 미사용
+  | "basket-bag";         // 장바구니 라탄 가방
+
+export type BasketItem = {
+  id: string;
+  name: string;
+  illustration: MarketIllustKey;
+  price: number;                // 원 — 정가 (실제 시세 비율 반영)
+  bargainPrice: number;         // 흥정 성공 시 가격
+  bargainSuccessRate?: number;  // 흥정 성공 확률 0~1. 미정의 시 0.6
+  fact: string;                 // 카드 뒤집힘 시 노출되는 강화 사실 한 줄
+};
+
+// ── 2층 식당 (basket 미션의 후반부) ──────────────
+// 1층 장보기 완료 후 자연스럽게 연결. "비비기 → 먹기" 의 별도 인터랙션 단계.
+// 사가는 게 아니라 먹는 경험으로 끝남 (acquiredItems 에는 안 들어가고, SavedQuote 로 기록).
+export type DiningStop = {
+  ctaToAscend: string;          // "2층 올라가서 한 입 하기" 등
+  npcName: string;              // "2층 식당 사장님"
+  npcOpener: string;            // 상에 차려질 때 한 줄
+  npcFact: string;              // 비비는 동안/먹은 후 한 줄 — 실제 사실
+  dish: {
+    name: string;               // "밴댕이회무침"
+    illustration: MarketIllustKey;
+  };
+  bites: number;                // 한 입씩 사라지는 횟수
+  biteReactions: string[];      // 한 입마다 캐릭터 반응 (bites 만큼 순환)
+  memoir: string;               // 다 먹은 후 한 줄 감상 — SavedQuote 로 저장
+};
+
 // ── 시간대 / tier (Phase A — 하루 흐름 설계용) ─────
 // timeOfDay: 미션 카드에 칩으로 표시. "아침 / 낮 / 저녁"
 // tier: "main" = 일자별 메인 9개, "bonus" = 추가/선택 미션
@@ -109,6 +159,17 @@ export type Mission = {
   // 카카오 로드뷰 임베드용 좌표 — 정의되면 RoadviewWithFallback이 SDK로 panoId 조회 후 임베드
   // panoId 못 잡으면 자동으로 roadviewSteps(사진) 폴백으로 빠짐
   kakaoPosition?: { lat: number; lng: number };
+  // 로드뷰 출발 좌표 — 정의되면 도착지(kakaoPosition) 기준 100m 자동 offset 대신 명시 좌표에서 시작.
+  // "어디 → 어디" 가 서사적으로 중요한 미션 (예: 순무민박 → 강화풍물시장) 에 사용.
+  startPosition?: { lat: number; lng: number };
+  // 상단 헤더에 뜨는 도착지 짧은 라벨. 미정의 시 mission.title 사용.
+  destinationLabel?: string;
+  // 도착 전 좌하단 가이드 말풍선 텍스트. 정의되면 NPC 인사 대신 안내 톤으로 표시
+  //   (NPC 가 도착도 전에 말풍선 뱉는 어색함을 없애기 위함)
+  travelGuide?: string;
+  // 도착지 100m 이내 진입 시 좌하단 가이드 멘트 교체용. 미정의 시 travelGuide 그대로.
+  //   (예: 골목 둘러보기 → 도착 지점이 어떻게 보이는지 안내)
+  travelGuideArrival?: string;
   // 능동성 강화 — "내가 먼저 묻기" 단계.
   //   · 정의되면 미션 시작 시 NPC 는 침묵, 사용자가 질문 카드 골라 던짐
   //   · 선택 → opener.options[i].nextTurn 으로 dialogue 진입 (= NPC 가 그 질문에 답)
@@ -120,6 +181,16 @@ export type Mission = {
       emoji?: string;        // 카드 좌측 아이콘 (선택)
       nextTurn: number;      // 진입할 dialogue turn 인덱스
     }[];
+  };
+  // 시장 좌판 인터랙션 — 정의되면 dialogue 대신 MissionBasketScreen 으로 진입
+  //   · 1층: 카드 뒤집기 → 드래그 → 흥정 → 담기. 구매 → acquiredItems(찬장).
+  //   · 2층 (옵셔널 dining): 비비기 → 먹기. SavedQuote 로 기록.
+  basket?: {
+    npcName: string;         // 1층 사장님 이름
+    npcOpener: string;       // 시작 시 NPC 한 줄
+    budget: number;          // 원 단위 예산 — 빠듯하게
+    items: BasketItem[];
+    dining?: DiningStop;     // 정의되면 1층 종료 후 자연 연결
   };
 };
 

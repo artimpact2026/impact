@@ -84,7 +84,9 @@ export default function MissionExecuteScreen({
   residenceStance,
   residenceStanceAlt,
   residenceEnv,
-  onClose,
+  // onClose 는 props 로 받지만 현재 화면에선 미사용 (SKIP 제거 — 사용자 피드백).
+  // BottomNav 로 다른 탭 이동 시 App.tsx 에서 정리. 추후 닫기 버튼이 다시 필요할 수 있어 시그니처 유지.
+  onClose: _onClose,
   onComplete,
   onSaveQuote,
 }: Props) {
@@ -304,20 +306,11 @@ export default function MissionExecuteScreen({
         {muted ? "🔇" : "🔊"}
       </button>
 
-      {/* 우상단 — 보상 점수 뱃지 + SKIP */}
+      {/* 우상단 — 보상 점수 뱃지 (SKIP 제거 — 사용자 피드백) */}
       <div className="absolute top-4 right-4 z-30 flex items-center gap-2">
         <span className="px-2.5 py-1 rounded-full bg-white/95 text-primary text-[10px] font-extrabold shadow-soft">
           +{mission.reward}점
         </span>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="대화 스킵"
-          className="px-3 py-1.5 rounded-full bg-white/95 shadow-soft
-                     text-ink-soft text-[11px] font-extrabold tracking-wider"
-        >
-          SKIP
-        </button>
       </div>
 
       {/* 중앙 — 화자 이름 뱃지 + 캐릭터 (phase에 따라 NPC↔플레이어 전환)
@@ -414,7 +407,7 @@ export default function MissionExecuteScreen({
           exit={{ y: 8, opacity: 0 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
           className="absolute left-0 right-0 bottom-0 z-20 px-5 pt-3
-                     pb-[max(env(safe-area-inset-bottom),20px)]
+                     pb-[max(env(safe-area-inset-bottom),40px)]
                      flex flex-col gap-2.5"
         >
           {/* 내가 던진 질문 — opener 사용 시 대화 내내 작은 배너로 유지 */}
@@ -861,7 +854,7 @@ function OpenerPanel({
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
       className="absolute left-0 right-0 bottom-0 z-20 px-5 pt-3
-                 pb-[max(env(safe-area-inset-bottom),20px)]
+                 pb-[max(env(safe-area-inset-bottom),40px)]
                  flex flex-col gap-3"
     >
       {/* 상단 헤더 — NPC 가 침묵 중임을 짧게 명시 */}

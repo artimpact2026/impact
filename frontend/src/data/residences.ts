@@ -38,6 +38,9 @@ export type Residence = {
   capacity?: number;        // 정원 (명)
   contactUrl?: string;      // 신청 외부 링크 (mock)
   provides?: string[];      // 제공 사항
+  // 추천 이유 보강 — "왜 추천받았나요?" 섹션에서 matchReason 한 줄 아래 bullet 으로 노출.
+  //   레지던스 지향점(임팩 3축 등) 을 짧고 구체적인 한 줄씩 풀어 설명.
+  recommendBullets?: string[];
   // 카카오 로드뷰 fallback 좌표 — 마을 중심부.
   // 미션 개별 kakaoPosition 이 없을 때 이 좌표를 써서 로드뷰를 띄움.
   // (모든 map-* 미션이 좌표 없어도 실제 로드뷰가 뜨도록 보장)
@@ -54,7 +57,18 @@ export const residences: Residence[] = [
     name: "청풍",
     duration: "3박 4일",
     matchType: "자연탐험형",
-    matchReason: "갯벌과 한옥, 사람들과 함께 쉬어가는 시간이 어울려요",
+    matchReason:
+      "갯벌과 한옥, 그리고 주민들과 함께 강화의 문화를 만들어가는 시간이 어울려요",
+    // 청풍의 지향점 — 임팩 3축(지역·사용자·파트너) 톤으로 풀어서 노출.
+    //   1) 자연 — 갯벌·한옥
+    //   2) 사람 — 주민·청년·먼저 온 이주자
+    //   3) 만들어가기 — 시장·문화·다음 누군가에게 잇기
+    recommendBullets: [
+      "갯벌·한옥·동막해변 — 강화 특유의 자연 한가운데 머물고 싶은 분",
+      "시장 사장님, 먼저 온 이주자, 청년 호스트와 자연스럽게 이어지고 싶은 분",
+      "결정하기 전에 한 번 살아보며 미래의 모습을 그려보고 싶은 분",
+      "단순 체류가 아니라, 머무는 동안 강화의 문화를 함께 만들어보고 싶은 분",
+    ],
     xPct: 23,
     yPct: 18,
     themeEmoji: "🌿",

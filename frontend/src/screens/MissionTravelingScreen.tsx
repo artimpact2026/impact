@@ -20,10 +20,11 @@ type Props = {
   fallbackPosition?: { lat: number; lng: number };
 };
 
-// 미션별 도착지 라벨
+// 미션별 도착지 라벨 — mission.destinationLabel 명시 시 그게 1순위
 function getDestinationLabel(mission: Mission): string {
+  if (mission.destinationLabel) return mission.destinationLabel;
   const m: Record<string, string> = {
-    market: "동네 밥집",
+    market: "동네 시장",
     hospital: "동네 종합병원",
     cafe: "주민 카페",
     home: "레지던스",
@@ -95,6 +96,8 @@ function waGwa(word: string): string {
 
 // 도착 슬라이드의 CTA 라벨 — 미션 모드에 맞게 분기
 function getArrivalCtaLabel(mission: Mission): string {
+  // basket 미션은 대화가 아니라 좌판 인터랙션이라 "들어가기" 톤으로.
+  if (mission.basket) return "정문으로 들어가기 👉";
   switch (mission.mode) {
     case "map-dialogue":
       return `${mission.npc.name}${waGwa(mission.npc.name)} 대화 나누기 💬`;
@@ -126,6 +129,7 @@ export default function MissionTravelingScreen({
     return (
       <RoadviewWithFallback
         position={position}
+        startPosition={mission.startPosition}
         fallbackSteps={mission.roadviewSteps}
         mission={mission}
         destination={destination}

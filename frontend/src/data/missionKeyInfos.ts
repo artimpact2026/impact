@@ -54,6 +54,12 @@ export const MISSION_KEY_INFOS: Record<string, MissionKeyInfo[]> = {
   ],
 
   // ── 지역 미션 일부 (예시) ───────────────────
+  "ganghwa-market": [
+    { icon: "🦐", text: "전국 젓새우의 70%가 강화 앞바다에서 잡혀요" },
+    { icon: "🥬", text: "강화 순무김치 3kg 33,000원, 시장 소포장 5~10천원" },
+    { icon: "🐟", text: "밴댕이는 선도 약해 시장에서 바로 무쳐 먹는 음식" },
+    { icon: "🏛️", text: "풍물시장 구조 — 1층 특산물, 2층 밴댕이 먹거리" },
+  ],
   "ganghwa-farm": [
     { icon: "🌾", text: "강화 갯벌과 논이 만나는 농업 풍경" },
     { icon: "🥬", text: "텃밭 한 평이면 한 가족 채소가 됨" },

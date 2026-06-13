@@ -9,7 +9,7 @@
 //
 // 본가로 돌아가지 않는 한 시뮬레이션 흐름의 중심지로 남음.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { Residence } from "../data/residences";
 import {
@@ -41,10 +41,14 @@ type Props = {
   // 슬롯별 배치 (현재 레지던스의 것만 받음)
   placedDecor?: Partial<Record<DecorCategory, string>>;
   onUpdatePlaced?: (next: Partial<Record<DecorCategory, string>>) => void;
-  // 바람이지음 마스코트 — 하루 종료 임박/충족 알림. 하루 1회 노출은 부모가 게이팅.
-  mascot?:
-    | { variant: "urgent"; remaining: number; onDismiss: () => void }
-    | { variant: "complete"; onDismiss: () => void };
+  // 바람이지음 마스코트 — 하루 종료 충족 시 모달. 하루 1회 노출은 부모가 게이팅.
+  // urgent("X개 더 완성") 모드는 제거 — 사용자 피드백 (말풍선 시끄러움).
+  mascot?: { variant: "complete"; onDismiss: () => void };
+  // 마운트 직후 자동으로 마당 꾸미기 편집 모드 진입.
+  //   · 의식 화면의 "내 자리 가서 마당 꾸미기" CTA 흐름에 사용.
+  //   · 부모가 진입 후 setEnterEditModeOnMount(false) 로 한 번만 트리거.
+  enterEditModeOnMount?: boolean;
+  onEnterEditModeHandled?: () => void;
   // 한설 환영 모달 — Day 1 첫 진입 시만 true. 닫으면 onDismissIntro 영속 처리.
   showHanseolIntro?: boolean;
   onDismissHanseolIntro?: () => void;
@@ -76,7 +80,8 @@ const CATEGORY_ORDER: DecorCategory[] = [
 export default function ResidenceHomeScreen({
   residence,
   nickname,
-  // homeRegion, onReturnHome — Props 에는 남겨두지만 본문에서 미사용 (편집 모드 통합 후)
+  // homeRegion — 화면에서 미사용
+  onReturnHome,
   currentDay,
   dayCount,
   todayMissionCount,
@@ -90,9 +95,19 @@ export default function ResidenceHomeScreen({
   mascot,
   showHanseolIntro = false,
   onDismissHanseolIntro,
+  enterEditModeOnMount = false,
+  onEnterEditModeHandled,
 }: Props) {
   // === 마당 꾸미기 편집 모드 ===
   const [editMode, setEditMode] = useState(false);
+  // 의식 화면 "내 자리 가서 마당 꾸미기" → 자동 편집 모드 진입 (한 번만)
+  useEffect(() => {
+    if (enterEditModeOnMount) {
+      setEditMode(true);
+      onEnterEditModeHandled?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enterEditModeOnMount]);
   // 편집 모드에서 슬롯 탭 → 어느 카테고리 자재를 고를지 picker 열림
   const [pickingFor, setPickingFor] = useState<DecorCategory | null>(null);
   // 보기 모드에서 배치된 아이템 탭 → 스토리 툴팁
@@ -147,6 +162,20 @@ export default function ResidenceHomeScreen({
           {residence.region}에서 잠시 머무는 중
         </p>
       </header>
+
+      {/* ===== 우상단 — 시뮬레이션 끝내고 본가로 돌아가기 ===== */}
+      <button
+        type="button"
+        onClick={onReturnHome}
+        aria-label="시뮬레이션 끝내기"
+        className="absolute top-12 right-4 z-20 px-3 py-1.5 rounded-full
+                   bg-white/95 border border-cream-200 shadow-soft
+                   text-ink-soft text-[11px] font-extrabold tracking-wider
+                   flex items-center gap-1.5 active:scale-[0.96] transition"
+      >
+        <span aria-hidden>🏠</span>
+        본가로 돌아가기
+      </button>
 
       {/* ===== 중앙 씬 — 흙무더기 + 집 + 우편함 + 떠다니는 장식 + 슬롯 ===== */}
       <section className="absolute inset-0 z-0 flex items-center justify-center pt-28 pb-44">
@@ -251,13 +280,7 @@ export default function ResidenceHomeScreen({
         onClose={() => setInspecting(null)}
       />
 
-      {/* ===== 바람이지음 마스코트 — 종료 임박/충족 안내 ===== */}
-      {mascot?.variant === "urgent" && (
-        <BaramiMascotUrgent
-          remaining={mascot.remaining}
-          onDismiss={mascot.onDismiss}
-        />
-      )}
+      {/* ===== 바람이지음 마스코트 — 종료 충족 모달만 (urgent 제거) ===== */}
       {mascot?.variant === "complete" && (
         <BaramiMascotComplete onDismiss={mascot.onDismiss} />
       )}
@@ -453,6 +476,8 @@ function SceneStage({
           transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
           className="block w-[200px] h-auto select-none
                      drop-shadow-[0_6px_8px_rgba(62,44,32,0.25)]"
+          // 집 이미지 톤 살짝 밝게 — 사용자 피드백
+          style={{ filter: "brightness(1.12) saturate(1.05)" }}
         />
       </div>
 
@@ -611,9 +636,9 @@ function Mailbox({
 }
 
 // ─────────────────────────────────────────────────────────────
-// LetterArrivedCTA — 집 앞 바람·지음 거주 캐릭터 위에 떠오르는 말풍선.
-//   · 캐릭터 이미지는 따로 안 가짐 — 집 앞 ResidentCharacter 들이 말하는 톤.
-//   · 말풍선 꼬리는 아래쪽(거주 캐릭터 향함).
+// LetterArrivedCTA — 바람이(left 42%, top 84%) 머리 위 말풍선.
+//   · 우편함이 오른쪽(left 90%)에 있어 예전엔 50% 위치라 지음이/우편함 쪽에 붙어 보였음.
+//   · 사용자 피드백: "왼쪽 바람이 위" 로 명확히. 꼬리도 바람이 향해 아래로.
 //   · 탭 → 우편함 화면. 우체통 자체는 별도 펄스로 강조.
 // ─────────────────────────────────────────────────────────────
 function LetterArrivedCTA({
@@ -634,8 +659,8 @@ function LetterArrivedCTA({
       className="absolute z-10 active:scale-[0.96] transition-transform"
       style={{
         top: "62%",
-        left: "50%",
-        transform: "translate(-50%, -100%)", // 거주 캐릭터(top 84%) 바로 위에 붙도록
+        left: "42%", // 바람이(left 42%) 머리 위 정렬
+        transform: "translate(-50%, -100%)",
       }}
     >
       <motion.div
@@ -650,7 +675,7 @@ function LetterArrivedCTA({
         <p className="text-ink-soft text-[10.5px] font-bold leading-tight whitespace-nowrap">
           확인해보자!
         </p>
-        {/* 말풍선 꼬리 — 아래쪽 중앙(바람·지음 향함) */}
+        {/* 말풍선 꼬리 — 아래쪽 중앙(바람이 향함) */}
         <span
           aria-hidden
           className="absolute -bottom-[5px] left-1/2 w-2.5 h-2.5 bg-white
@@ -1036,68 +1061,8 @@ function FloatingDecorations() {
   );
 }
 
-// ─────────────────────────────────────────────────────────────
-// BaramiMascotUrgent — 종료 임박 (남은 미션 1~2개) 독려
-//   · 우하단 floating 말풍선 + 바람이 캐릭터
-//   · 탭하면 닫힘 (부모가 하루 1회 게이팅)
-// ─────────────────────────────────────────────────────────────
-function BaramiMascotUrgent({
-  remaining,
-  onDismiss,
-}: {
-  remaining: number;
-  onDismiss: () => void;
-}) {
-  const copy =
-    remaining <= 1
-      ? "한 개만 더 하면\n오늘 하루 끝!"
-      : `${remaining}개만 더 완성해서\n오늘 하루를 마쳐봐!`;
-  return (
-    <motion.button
-      type="button"
-      onClick={onDismiss}
-      initial={{ opacity: 0, y: 12, scale: 0.92 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 12, scale: 0.92 }}
-      transition={{ type: "spring", damping: 22, stiffness: 260 }}
-      aria-label="바람이지음 — 닫기"
-      className="absolute bottom-32 right-3 z-30 flex items-end gap-2
-                 active:scale-[0.97] transition-transform"
-    >
-      {/* 말풍선 — 우체통 CTA 와 같은 톤(말풍선 + 꼬리) */}
-      <motion.div
-        animate={{ y: [0, -2, 0] }}
-        transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
-        className="relative bg-white rounded-2xl shadow-[0_4px_10px_-2px_rgba(80,60,40,0.22)]
-                   border border-cream-200 px-3 py-2 max-w-[170px] text-left"
-      >
-        <p className="text-[10px] font-extrabold tracking-[0.16em] uppercase text-primary">
-          바람이지음
-        </p>
-        <p className="mt-0.5 text-ink text-[12px] font-extrabold leading-tight whitespace-pre-line">
-          {copy}
-        </p>
-        {/* 꼬리 — 오른쪽 캐릭터 방향 */}
-        <span
-          aria-hidden
-          className="absolute -right-[5px] bottom-3 w-2.5 h-2.5 bg-white
-                     border-r border-b border-cream-200"
-          style={{ transform: "rotate(-45deg)" }}
-        />
-      </motion.div>
-      {/* 바람이 — 조금 흔들리며 호소 */}
-      <motion.img
-        src="/character1/clay-baram-solo.png"
-        alt=""
-        aria-hidden
-        animate={{ y: [-2, 2, -2], rotate: [-4, 4, -4] }}
-        transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
-        className="block w-[48px] h-auto select-none
-                   drop-shadow-[0_3px_6px_rgba(62,44,32,0.28)]"
-      />
-    </motion.button>
-  );
-}
+// (BaramiMascotUrgent 제거됨 — "X개 더 완성해서 오늘 하루를 마쳐봐" 우하단 말풍선·캐릭터.
+//  사용자 피드백: 시끄러움. 동기부여는 미션 카운터·편지 말풍선만으로 충분.)
 
 // ─────────────────────────────────────────────────────────────
 // BaramiMascotComplete — 하루 종료 충족 마무리

@@ -221,18 +221,41 @@ export default function ResidenceDetailScreen({
 
         {/* ─── 부가 섹션 (잠시섬 흐름 특유) ─── */}
 
-        {/* 매칭 이유 */}
+        {/* 매칭 이유 — matchReason 한 줄 + (있으면) 마을 지향점 bullet */}
         <section className="px-4 pt-6">
           <SectionLabel>왜 추천받았나요?</SectionLabel>
           <div className="mt-2 bg-gradient-to-br from-primary-50 to-nature-50
                           border border-primary-200 rounded-3xl px-5 py-4">
-            <p className="text-ink text-[13.5px] leading-relaxed">
+            <p className="text-ink text-[14px] font-bold leading-relaxed">
               {residence.matchReason}
             </p>
             <p className="mt-2 text-ink-soft text-[11.5px]">
               <span className="text-primary font-bold">{stance.name}</span> ·{" "}
               {env.emoji} {env.blurb}
             </p>
+
+            {/* 지향점 bullet — 청풍 등 marquee 마을은 더 풍부하게 풀어줌 */}
+            {residence.recommendBullets && residence.recommendBullets.length > 0 && (
+              <div className="mt-3.5 pt-3.5 border-t border-primary/15">
+                <p className="text-[10px] font-extrabold text-primary tracking-[0.16em] uppercase">
+                  이런 분께 잘 맞아요
+                </p>
+                <ul className="mt-2 space-y-1.5">
+                  {residence.recommendBullets.map((line, i) => (
+                    <li
+                      key={i}
+                      className="flex gap-2 text-ink text-[12.5px] leading-snug"
+                    >
+                      <span
+                        aria-hidden
+                        className="mt-1.5 inline-block w-1.5 h-1.5 rounded-full bg-primary shrink-0"
+                      />
+                      <span className="flex-1">{line}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </section>
 

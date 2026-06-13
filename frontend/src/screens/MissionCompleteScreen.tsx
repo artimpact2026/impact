@@ -11,8 +11,9 @@
 // 인용구는 mission.dialogues 의 마지막 NPC 발화에서 발췌 (placeholder 토큰 제거).
 
 import { motion, AnimatePresence } from "framer-motion";
-import type { Mission, MissionCategory } from "../data/missions";
+import type { Mission, MissionCategory, MarketIllustKey } from "../data/missions";
 import type { Item } from "../data/items";
+import MarketIllust from "../components/MarketIllust";
 
 export type MissionKeyInfo = { icon: string; text: string };
 
@@ -53,8 +54,10 @@ export default function MissionCompleteScreen({
   fitScore,
   fitScoreDelta,
   keyInfos,
-  pickedLabels,
-  isLastMissionToday,
+  // "내가 고른 답들" 섹션 제거 — props 시그니처는 유지, 미사용 표시
+  pickedLabels: _pickedLabels,
+  // CTA 분기 라벨이 "확인" 단일로 통일돼 미사용. 시그니처는 유지.
+  isLastMissionToday: _isLastMissionToday,
   acquiredItem,
   onNext,
 }: Props) {
@@ -215,40 +218,7 @@ export default function MissionCompleteScreen({
           </section>
         )}
 
-        {/* === 내가 고른 답들 === */}
-        {pickedLabels.length > 0 && (
-          <section className="bg-white rounded-2xl p-4 shadow-soft">
-            <h2 className="text-[15px] font-extrabold text-[#3D3530] mb-2.5">
-              내가 고른 답들
-            </h2>
-            <div className="flex flex-wrap gap-1.5">
-              {pickedLabels.map((label, i) => {
-                const isNeg = label === "(부정 답변)";
-                return (
-                  <span
-                    key={i}
-                    className={`px-3 py-1.5 rounded-[20px] text-[12px] font-bold border`}
-                    style={
-                      isNeg
-                        ? {
-                            background: "#F5F5F5",
-                            color: "#999",
-                            borderColor: "#E8E8E8",
-                          }
-                        : {
-                            background: "#FAF6EE",
-                            color: "#993C1D",
-                            borderColor: "#FFD4C2",
-                          }
-                    }
-                  >
-                    {label}
-                  </span>
-                );
-              })}
-            </div>
-          </section>
-        )}
+        {/* "내가 고른 답들" 섹션은 사용자 피드백으로 제거 — 결과 카드를 가볍게 유지. */}
 
         {/* === CTA === */}
         <button
@@ -258,7 +228,7 @@ export default function MissionCompleteScreen({
                      shadow-soft active:scale-[0.99] transition"
           style={{ background: "#FF7043" }}
         >
-          {isLastMissionToday ? "오늘 하루 마무리하기" : "다음 미션 보기 →"}
+          확인
         </button>
       </motion.div>
     </div>
@@ -301,10 +271,14 @@ function ItemReward({ item }: { item: Item }) {
           initial={{ scale: 0.5, rotate: -12 }}
           animate={{ scale: 1, rotate: 0 }}
           transition={{ delay: 0.45, duration: 0.6, type: "spring", damping: 14 }}
-          className="text-[72px] leading-none select-none drop-shadow-md"
+          className="leading-none select-none drop-shadow-md"
           aria-hidden
         >
-          {item.emoji}
+          {item.illustration ? (
+            <MarketIllust variant={item.illustration as MarketIllustKey} size={88} />
+          ) : (
+            <span className="text-[72px]">{item.emoji}</span>
+          )}
         </motion.span>
       </div>
 

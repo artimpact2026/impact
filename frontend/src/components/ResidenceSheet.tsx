@@ -78,7 +78,7 @@ export default function ResidenceSheet({ residence, onClose, onDepart }: Props) 
             {/* CTA */}
             <div className="mt-5">
               <PrimaryButton onClick={() => onDepart(residence)}>
-                여기로 떠나기 ✈️
+                여기로 떠나기
               </PrimaryButton>
             </div>
           </motion.div>

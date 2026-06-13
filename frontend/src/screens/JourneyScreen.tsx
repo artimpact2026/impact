@@ -8,6 +8,8 @@ import KoreaMap from "../components/KoreaMap";
 import { residences, type Residence, type LifeStyleType } from "../data/residences";
 import { baseMissions } from "../data/missions";
 import { ITEMS, type Item } from "../data/items";
+import MarketIllust from "../components/MarketIllust";
+import type { MarketIllustKey } from "../data/missions";
 import {
   calculateMatch,
   calculateMatchV2,
@@ -541,13 +543,17 @@ function TrophyCard({
           #{String(index + 1).padStart(2, "0")}
         </span>
 
-        {/* 이모지 본체 */}
+        {/* 일러스트 or 이모지 본체 */}
         <span
           aria-hidden
-          className="relative text-[36px] leading-none select-none"
+          className="relative leading-none select-none"
           style={{ filter: "drop-shadow(0 2px 3px rgba(255,112,67,0.25))" }}
         >
-          {item.emoji}
+          {item.illustration ? (
+            <MarketIllust variant={item.illustration as MarketIllustKey} size={42} />
+          ) : (
+            <span className="text-[36px]">{item.emoji}</span>
+          )}
         </span>
       </div>
 
