@@ -692,7 +692,7 @@ const ganghwaMissions: Mission[] = [
   {
     id: "cheongpung-snack",
     title: "시장 간식 한 봉지",
-    cover: "/character1/mission_cover/market.png",
+    cover: "/character1/mission_cover/snack.png",
     icon: "🍠",
     category: "감정/분위기형",
     mode: "dialogue",
