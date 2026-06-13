@@ -16,7 +16,7 @@
 //
 // 인터랙션 기준 충족: 카드 뒤집기 / 드래그 / 빙글빙글 문지르기 / 탭 — 모두 손맛 동작.
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   AnimatePresence,
   motion,
@@ -49,6 +49,8 @@ type IntroStep = {
   title: string;
   npc: string;       // 캐릭터(바람) 한 줄
   cta: string;
+  // object-position 보정 — 이미지 자체가 한쪽 치우친 구도일 때 사용. 기본 "center".
+  objectPosition?: string;
 };
 
 // 2층 식당가 첫 진입 시 1회 풀스크린 스플래쉬 — "와~ 2층은 전부 밴댕이네!" 인식 → 비비기로.
@@ -67,6 +69,8 @@ const GANGHWA_MARKET_INTRO: IntroStep[] = [
     title: "여긴 강화풍물시장 정문!",
     npc: "아까 로드뷰에서 본 건 후문이었고, 한 골목 돌아 정문에 도착했어요! 한옥 지붕 보이죠? 들어가봐요.",
     cta: "들어가기",
+    // 사진 구도가 우측 치우침 — 좌측으로 많이 당겨서 정문이 화면 중앙에 보이게.
+    objectPosition: "25% center",
   },
   {
     image: "/mission/ganghwa-market/02-map.png",
@@ -74,6 +78,8 @@ const GANGHWA_MARKET_INTRO: IntroStep[] = [
     title: "오! 지도가 있어요!",
     npc: "1층은 특산물·반찬·젓갈, 2층은 먹거리예요. 1층부터 둘러봐요.",
     cta: "1층으로 가기",
+    // 지도 사진도 우측 치우침 — 좌측으로 보정.
+    objectPosition: "25% center",
   },
   {
     image: "/mission/ganghwa-market/03-floor1.png",
@@ -845,79 +851,9 @@ function BargainButtons({
 // 비빈 후 화면 탭하면 회 입자 하나가 위로 fly out (한 점 먹기).
 
 const STAGE_SIZE = 220; // 그릇 안쪽 지름 (px). 사이드 그릇(밴댕이회·밥) 공간 확보 위해 축소.
-const STAGE_R = STAGE_SIZE / 2;
-const MIX_MOTION_TARGET = 950; // 손가락 push 누적량 임계
 
-type PType = "sashimi" | "sauce" | "veg-g" | "veg-y";
-
-type Particle = {
-  type: PType;
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  r: number; // 반지름
-  eaten?: boolean;
-};
-
-// 비비기 전 색상
-const COLOR_RAW: Record<PType, string> = {
-  sashimi: "#F4D3CA",
-  sauce: "#D14B3A",
-  "veg-g": "#7FB069",
-  "veg-y": "#FFC56A",
-};
-// 비빈 후 (회 입자만 양념 묻은 색으로)
-const COLOR_MIXED_SASHIMI = "#E07050";
-
-function spawnParticles(): Particle[] {
-  const out: Particle[] = [];
-  // 회 8개 — 한쪽에 무더기로 (비비기 전 그대로 배치)
-  for (let i = 0; i < 8; i++) {
-    const angle = (i / 8) * Math.PI * 2;
-    out.push({
-      type: "sashimi",
-      x: STAGE_R + Math.cos(angle) * 50 + (Math.random() - 0.5) * 12,
-      y: STAGE_R + Math.sin(angle) * 22 + (Math.random() - 0.5) * 12,
-      vx: 0,
-      vy: 0,
-      r: 9,
-    });
-  }
-  // 양념 10개 — 중심 부근에 몰림 (비비기 전 = 한곳에 모인 양념)
-  for (let i = 0; i < 10; i++) {
-    out.push({
-      type: "sauce",
-      x: STAGE_R + (Math.random() - 0.5) * 36,
-      y: STAGE_R + (Math.random() - 0.5) * 36,
-      vx: 0,
-      vy: 0,
-      r: 5.5,
-    });
-  }
-  // 야채 — 그릇 안 무작위
-  for (let i = 0; i < 5; i++) {
-    out.push({
-      type: "veg-g",
-      x: STAGE_R + (Math.random() - 0.5) * 130,
-      y: STAGE_R + (Math.random() - 0.5) * 130,
-      vx: 0,
-      vy: 0,
-      r: 4,
-    });
-  }
-  for (let i = 0; i < 4; i++) {
-    out.push({
-      type: "veg-y",
-      x: STAGE_R + (Math.random() - 0.5) * 110,
-      y: STAGE_R + (Math.random() - 0.5) * 110,
-      vx: 0,
-      vy: 0,
-      r: 4,
-    });
-  }
-  return out;
-}
+// (이전 입자 물리 시스템(Particle, COLOR_RAW, spawnParticles) 제거 — 사용자 피드백.
+//  대신 회무침 SVG 정적 + 손가락 자취 양념 묻기로 단순화.)
 
 // 사장님 실시간 응원 멘트 — push 누적량 0~100% 구간별. 진행 중 자동 전환.
 const MIX_LINES: Array<{ minProgress: number; text: string }> = [
@@ -948,7 +884,6 @@ function MarketFloor2({
   const [introShown, setIntroShown] = useState(true);
   const [mixed, setMixed] = useState(false);
   const [bitesEaten, setBitesEaten] = useState(0);
-  // 밴댕이회 사이드 — 6점 깻잎 위. 비빈 후 한 점씩 탭으로 사라짐.
   const [sashimiEaten, setSashimiEaten] = useState(0);
   const SASHIMI_TOTAL = 6;
   const [reactionIdx, setReactionIdx] = useState(0);
@@ -956,152 +891,89 @@ function MarketFloor2({
   const [npcLineIdx, setNpcLineIdx] = useState(0);
   const [mixProgress, setMixProgress] = useState(0);
 
-  // 회무침 + 밴댕이회 둘 다 다 먹어야 완료
   const allEaten = bitesEaten >= dining.bites && sashimiEaten >= SASHIMI_TOTAL;
 
-  // === 입자 물리 비빔 ======================================================
-  const particlesRef = useRef<Particle[]>([]);
-  const particleElsRef = useRef<(HTMLDivElement | null)[]>([]);
-  const pointerRef = useRef<{ x: number; y: number; vx: number; vy: number; active: boolean } | null>(null);
-  const accumMotionRef = useRef(0);
-  const mixedRef = useRef(false);
-  const rafRef = useRef<number | null>(null);
+  // === 회무침 비비기 — 입자 시스템 폐기. 손가락 자취에 양념 묻는 톤. ===
+  //   stageRef = 그릇 영역. pointermove 마다 작은 빨간 점 DOM 직접 추가 → 0.8s 후 자동 제거.
+  //   진행도는 누적 거리 임계 → 100% 시 그릇 spring 펄스 + 회무침 색 더 진해지게.
   const stageRef = useRef<HTMLDivElement | null>(null);
+  const trailLayerRef = useRef<HTMLDivElement | null>(null);
+  const lastPointRef = useRef<{ x: number; y: number } | null>(null);
+  const accumDistRef = useRef(0);
+  const mixedRef = useRef(false);
+  const MIX_TARGET_DIST = 1200; // 손가락 자취 누적 거리 px
 
-  // RAF 루프 — 마운트 후 시작, 매 프레임 입자 물리/렌더 갱신
-  useEffect(() => {
-    // 처음 한 번만 입자 spawn
-    if (particlesRef.current.length === 0) {
-      particlesRef.current = spawnParticles();
-    }
-
-    const loop = () => {
-      const particles = particlesRef.current;
-      const p = pointerRef.current;
-
-      for (const part of particles) {
-        if (part.eaten) continue;
-
-        // 손가락 영향 — 가까이 있는 입자에 push + curl(소용돌이) 추가
-        if (p && p.active) {
-          const dx = part.x - p.x;
-          const dy = part.y - p.y;
-          const d2 = dx * dx + dy * dy;
-          const RADIUS = 52;
-          if (d2 < RADIUS * RADIUS) {
-            const d = Math.sqrt(d2) || 1;
-            const falloff = 1 - d / RADIUS;
-            // 손가락 속도 방향으로 push (직진 성분)
-            part.vx += p.vx * falloff * 0.55;
-            part.vy += p.vy * falloff * 0.55;
-            // 회전 curl — 손가락 주변으로 도는 효과 (퍼펜디큘러)
-            part.vx += (-dy / d) * falloff * 2.4;
-            part.vy += (dx / d) * falloff * 2.4;
-            // 비빔 누적 — 손가락 속도 크기 * falloff
-            const speedMag = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
-            accumMotionRef.current += speedMag * falloff * 0.12;
-          }
-        }
-
-        // 마찰
-        part.vx *= 0.86;
-        part.vy *= 0.86;
-
-        // 위치 업데이트
-        part.x += part.vx;
-        part.y += part.vy;
-
-        // 그릇 원형 경계 — 안쪽에 가두기
-        const cdx = part.x - STAGE_R;
-        const cdy = part.y - STAGE_R;
-        const maxR = STAGE_R - part.r - 6;
-        const cd = Math.sqrt(cdx * cdx + cdy * cdy);
-        if (cd > maxR && cd > 0) {
-          const s = maxR / cd;
-          part.x = STAGE_R + cdx * s;
-          part.y = STAGE_R + cdy * s;
-          part.vx *= -0.32;
-          part.vy *= -0.32;
-        }
-      }
-
-      // 포인터 속도 감쇠 — pointermove 사이 자연스럽게 죽음
-      if (p) {
-        p.vx *= 0.72;
-        p.vy *= 0.72;
-      }
-
-      // DOM transform 직접 갱신 — state 거치지 않음 (60fps)
-      for (let i = 0; i < particles.length; i++) {
-        const el = particleElsRef.current[i];
-        const part = particles[i];
-        if (!el || part.eaten) continue;
-        el.style.transform = `translate3d(${part.x - part.r}px, ${part.y - part.r}px, 0)`;
-      }
-
-      // 진행도 + 멘트 갱신 (state 는 변화 시에만)
-      const progress = Math.min(100, (accumMotionRef.current / MIX_MOTION_TARGET) * 100);
-      setMixProgress((prev) => (Math.abs(prev - progress) > 0.5 ? progress : prev));
-      const lineIdx = pickLineIdx(progress);
-      setNpcLineIdx((prev) => (prev !== lineIdx ? lineIdx : prev));
-
-      // 완성 체크 — 누적 push 임계 도달 시 회 입자 색 바꿈
-      if (!mixedRef.current && accumMotionRef.current >= MIX_MOTION_TARGET) {
-        mixedRef.current = true;
-        setMixed(true);
-        for (let i = 0; i < particles.length; i++) {
-          if (particles[i].type !== "sashimi") continue;
-          const el = particleElsRef.current[i];
-          if (!el) continue;
-          el.style.transition =
-            "background 0.6s ease, border-color 0.6s ease, box-shadow 0.6s";
-          el.style.background = COLOR_MIXED_SASHIMI;
-          el.style.borderColor = "#A6311E";
-          el.style.boxShadow = "0 2px 4px rgba(166, 49, 30, 0.35)";
-        }
-      }
-
-      rafRef.current = requestAnimationFrame(loop);
-    };
-
-    rafRef.current = requestAnimationFrame(loop);
-    return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
-  }, []);
+  const spawnTrailDot = (x: number, y: number, speed: number) => {
+    const layer = trailLayerRef.current;
+    if (!layer) return;
+    const dot = document.createElement("div");
+    // 속도에 따라 크기/투명도 — 빠르면 크고 진하게. (전반 크기 키움 — 시각 임팩트)
+    const size = 22 + Math.min(28, speed * 0.6);
+    const alpha = 0.55 + Math.min(0.4, speed * 0.015);
+    Object.assign(dot.style, {
+      position: "absolute",
+      left: `${x - size / 2}px`,
+      top: `${y - size / 2}px`,
+      width: `${size}px`,
+      height: `${size}px`,
+      borderRadius: "50%",
+      background: `radial-gradient(circle, rgba(220,55,40,${alpha}) 0%, rgba(166,49,30,${alpha * 0.7}) 50%, transparent 80%)`,
+      pointerEvents: "none",
+      transition: "opacity 1s ease-out, transform 1s ease-out",
+      transform: "scale(1)",
+      willChange: "opacity, transform",
+    } as Partial<CSSStyleDeclaration>);
+    layer.appendChild(dot);
+    requestAnimationFrame(() => {
+      dot.style.opacity = "0";
+      dot.style.transform = "scale(0.45)";
+    });
+    window.setTimeout(() => {
+      if (dot.parentNode) dot.parentNode.removeChild(dot);
+    }, 1100);
+  };
 
   const handleStagePointerDown = (e: React.PointerEvent) => {
+    if (mixed) return;
     const rect = stageRef.current?.getBoundingClientRect();
     if (!rect) return;
     (e.target as Element).setPointerCapture?.(e.pointerId);
-    pointerRef.current = {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-      vx: 0,
-      vy: 0,
-      active: true,
-    };
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    lastPointRef.current = { x, y };
+    spawnTrailDot(x, y, 0);
   };
 
   const handleStagePointerMove = (e: React.PointerEvent) => {
-    if (!pointerRef.current) return;
+    if (mixed || !lastPointRef.current) return;
     const rect = stageRef.current?.getBoundingClientRect();
     if (!rect) return;
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    // 손가락 속도 추정 — 새 위치와 직전 위치 차이. (RAF 와 비동기적이므로 그냥 차이 사용)
-    pointerRef.current.vx = (x - pointerRef.current.x) * 0.55;
-    pointerRef.current.vy = (y - pointerRef.current.y) * 0.55;
-    pointerRef.current.x = x;
-    pointerRef.current.y = y;
+    const dx = x - lastPointRef.current.x;
+    const dy = y - lastPointRef.current.y;
+    const d = Math.sqrt(dx * dx + dy * dy);
+    if (d < 4) return; // 짧은 move 무시 — 점 너무 많이 안 쌓이게
+    accumDistRef.current += d;
+    spawnTrailDot(x, y, d);
+    lastPointRef.current = { x, y };
+
+    const progress = Math.min(100, (accumDistRef.current / MIX_TARGET_DIST) * 100);
+    setMixProgress(progress);
+    const lineIdx = pickLineIdx(progress);
+    setNpcLineIdx((prev) => (prev !== lineIdx ? lineIdx : prev));
+
+    if (!mixedRef.current && accumDistRef.current >= MIX_TARGET_DIST) {
+      mixedRef.current = true;
+      setMixed(true);
+    }
   };
 
   const handleStagePointerUp = () => {
-    if (pointerRef.current) pointerRef.current.active = false;
+    lastPointRef.current = null;
   };
 
   // === 먹기 ================================================================
-  // 회무침(메인 stage) 한 점 — 입자 sashimi 하나 fly out
   const eatOneBite = () => {
     if (!mixed || bitesEaten >= dining.bites) return;
     const idx = bitesEaten;
@@ -1109,20 +981,6 @@ function MarketFloor2({
     setReactionIdx(idx % dining.biteReactions.length);
     setShowReaction(true);
     window.setTimeout(() => setShowReaction(false), 1200);
-
-    const particles = particlesRef.current;
-    for (let i = 0; i < particles.length; i++) {
-      const part = particles[i];
-      if (part.type !== "sashimi" || part.eaten) continue;
-      part.eaten = true;
-      const el = particleElsRef.current[i];
-      if (el) {
-        el.style.transition = "opacity 0.5s, transform 0.5s ease-out";
-        el.style.opacity = "0";
-        el.style.transform = `translate3d(${part.x - part.r}px, ${part.y - part.r - 60}px, 0) scale(1.8)`;
-      }
-      break;
-    }
   };
 
   // 밴댕이회 (사이드 접시) 한 점 — sashimiEaten++ 와 함께 반응 멘트
@@ -1190,58 +1048,80 @@ function MarketFloor2({
                      flex items-center justify-center select-none"
           style={{ width: STAGE_SIZE + 36 }}
         >
-          {/* 그릇 — 위에서 본 큰 원형. 안쪽 stage 영역에서 입자 floating */}
-          <div
+          {/* 그릇 영역 — 갈색 책상 위에 회무침 그릇 SVG 가 그대로 놓임.
+              stage 자체는 투명(베이지 원형 제거 — 책상이 뻥 뚫린 듯 보이는 어색함 해소). */}
+          <motion.div
             ref={stageRef}
-            className="relative rounded-full overflow-hidden touch-none select-none cursor-grab active:cursor-grabbing"
+            className="relative touch-none select-none cursor-grab active:cursor-grabbing overflow-hidden"
             style={{
               width: STAGE_SIZE,
               height: STAGE_SIZE,
-              background:
-                "radial-gradient(circle at 35% 30%, #FFF1E0 0%, #F2D9B6 55%, #D8AE7E 100%)",
-              border: "6px solid #9A6A40",
-              boxShadow:
-                "inset 0 4px 12px rgba(80,40,10,0.18), inset 0 -3px 6px rgba(255,255,255,0.4)",
+              background: "transparent",
             }}
+            animate={mixed ? { scale: [1, 1.06, 1] } : undefined}
+            transition={{ duration: 0.55, ease: "easeOut" }}
             onPointerDown={!allEaten ? handleStagePointerDown : undefined}
             onPointerMove={!allEaten ? handleStagePointerMove : undefined}
             onPointerUp={!allEaten ? handleStagePointerUp : undefined}
             onPointerCancel={!allEaten ? handleStagePointerUp : undefined}
             onClick={mixed && !allEaten ? eatOneBite : undefined}
           >
-            {/* 입자들 — RAF 가 transform 으로 매 프레임 위치 갱신 */}
-            {particlesRef.current.map((part, i) => (
-              <div
-                key={i}
-                ref={(el) => {
-                  particleElsRef.current[i] = el;
-                }}
-                aria-hidden
-                style={{
-                  position: "absolute",
-                  left: 0,
-                  top: 0,
-                  width: part.r * 2,
-                  height: part.r * 2,
-                  borderRadius: "50%",
-                  background: COLOR_RAW[part.type],
-                  border:
-                    part.type === "sashimi"
-                      ? "1.5px solid #C99084"
-                      : part.type === "sauce"
-                      ? "1px solid #A6311E"
-                      : "none",
-                  boxShadow:
-                    part.type === "sashimi"
-                      ? "0 1px 2px rgba(80,40,20,0.25)"
-                      : "0 1px 1px rgba(0,0,0,0.18)",
-                  transform: `translate3d(${part.x - part.r}px, ${part.y - part.r}px, 0)`,
-                  pointerEvents: "none",
-                  willChange: "transform, opacity, background",
-                }}
-              />
-            ))}
-          </div>
+            {/* 회무침 SVG — 비비기 진행도(mixProgress) 에 따라 saturate/brightness 가 실시간 변함.
+                0% 시 살짝 옅음 → 100% 시 양념이 진하게 익은 톤 + 살짝 wobble. */}
+            <motion.div
+              className="absolute inset-0 flex items-center justify-center pointer-events-none"
+              animate={{ rotate: mixed ? 0 : Math.sin(mixProgress / 6) * 3 }}
+              transition={{ duration: 0.15 }}
+              style={{
+                filter: `saturate(${0.85 + (mixProgress / 100) * 0.5}) brightness(${1 + (mixProgress / 100) * 0.08})`,
+                transition: "filter 0.2s ease",
+              }}
+            >
+              <MarketIllust variant="bandaegi-bowl" size={STAGE_SIZE - 40} />
+            </motion.div>
+
+            {/* 손가락 자취 트레일 — DOM 직접 조작. handleStagePointerMove 가 점 추가/제거 */}
+            <div
+              ref={trailLayerRef}
+              className="absolute inset-0 pointer-events-none"
+              aria-hidden
+            />
+
+            {/* 비빈 후 회 5점 — 그릇 위에 떠오름. 탭하면 eatOneBite */}
+            {mixed && (
+              <div className="absolute inset-0 pointer-events-none">
+                {[...Array(dining.bites)].map((_, i) => {
+                  if (i < bitesEaten) return null;
+                  const positions = [
+                    { top: "32%", left: "30%" },
+                    { top: "30%", left: "58%" },
+                    { top: "52%", left: "26%" },
+                    { top: "55%", left: "62%" },
+                    { top: "65%", left: "44%" },
+                  ];
+                  const pos = positions[i % positions.length];
+                  return (
+                    <motion.span
+                      key={i}
+                      initial={{ scale: 0, opacity: 0, y: -8 }}
+                      animate={{ scale: 1, opacity: 1, y: 0 }}
+                      exit={{ scale: 1.6, opacity: 0, y: -40 }}
+                      transition={{
+                        delay: i * 0.08,
+                        type: "spring",
+                        damping: 14,
+                      }}
+                      style={pos}
+                      className="absolute w-7 h-4 rounded-full bg-[#E89B8C]
+                                 border-[1.5px] border-[#A6311E]
+                                 shadow-[0_2px_4px_rgba(0,0,0,0.3)]"
+                      aria-hidden
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </motion.div>
         </div>
 
         {/* === 사이드 그릇 — 밥 + 밴댕이회 한 상 톤 === */}
@@ -1404,6 +1284,7 @@ function MarketIntroSplash({
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.7, ease: [0.2, 0.8, 0.3, 1] }}
         className="absolute inset-0 w-full h-full object-cover select-none"
+        style={{ objectPosition: step.objectPosition ?? "center" }}
         draggable={false}
       />
 

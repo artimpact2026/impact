@@ -80,8 +80,8 @@ export default function ProfileScreen({
         </button>
       }
     >
-      <div className="px-4 pb-10 space-y-5">
-        {/* ① HERO */}
+      <div className="px-4 pt-6 pb-10 space-y-5">
+        {/* ① HERO — 커뮤니티 탭의 필터 칩 위치까지 살짝 내려서 시작 (사용자 피드백) */}
         <HeroSection
           nickname={nickname}
           homeRegion={homeRegion}

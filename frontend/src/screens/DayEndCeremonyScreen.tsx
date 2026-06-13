@@ -166,63 +166,15 @@ export default function DayEndCeremonyScreen({
         </motion.p>
       </header>
 
-      {/* ② 중앙 — 큼직한 자동 슬라이드 캐러셀 (flex-1 로 화면 중앙 차지) */}
-      <section className="flex-1 flex items-center justify-center px-4 py-4 min-h-0">
+      {/* ② 중앙 — 큼직한 자동 슬라이드 캐러셀. 하단 썸네일 카드 제거됐으니 영역 더 넉넉히. */}
+      <section className="flex-1 flex items-center justify-center px-4 pt-4 pb-2 min-h-0">
         <ItemCarousel slides={slides} />
       </section>
 
-      {/* ③ 하단 — 오늘 받은 것 썸네일 카드 (레퍼런스의 4-medal 카드 톤) */}
-      {slides.length > 0 && (
-        <section className="px-5 pb-3">
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.4 }}
-            className="bg-white rounded-3xl border border-cream-200 shadow-soft px-4 py-4"
-          >
-            <div className="flex justify-center mb-3">
-              <span
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full
-                           bg-ink text-white text-[11px] font-extrabold tracking-wide"
-              >
-                🎁 오늘 받은 선물 {slides.length}개
-              </span>
-            </div>
-            <div className="flex items-start justify-center gap-3 flex-wrap">
-              {slides.slice(0, 5).map((s, i) => (
-                <motion.div
-                  key={s.key}
-                  initial={{ opacity: 0, scale: 0.7 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.5 + i * 0.06, type: "spring", damping: 14 }}
-                  className="flex flex-col items-center gap-1"
-                >
-                  <div
-                    className="w-12 h-12 rounded-full bg-cream-50 border-2 border-dashed border-cream-300
-                               flex items-center justify-center text-[24px] select-none"
-                    aria-hidden
-                  >
-                    {"illustration" in s && s.illustration ? (
-                      <MarketIllust
-                        variant={s.illustration as MarketIllustKey}
-                        size={32}
-                      />
-                    ) : (
-                      s.emoji
-                    )}
-                  </div>
-                  <p className="text-[9.5px] font-extrabold text-ink-mute tracking-wide">
-                    {s.kind}
-                  </p>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        </section>
-      )}
+      {/* (하단 "🎁 오늘 받은 선물 N개" 썸네일 카드 제거 — 사용자 피드백) */}
 
-      {/* ④ CTA — "내 자리 가서 마당 꾸미기" 단일 버튼 */}
-      <section className="px-5 pb-7">
+      {/* ③ CTA — "내 자리 가서 마당 꾸미기" 단일 버튼. 살짝 위로 (pb-7 → pb-14). */}
+      <section className="px-5 pb-14">
         {suggestions[0] && (
           <motion.button
             type="button"

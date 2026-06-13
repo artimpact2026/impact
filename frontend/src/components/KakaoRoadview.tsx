@@ -17,26 +17,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { Mission } from "../data/missions";
 import { getNearestPanoId, loadKakaoMaps } from "../lib/kakao";
 
-// 미션별 호기심 질문 — MissionImageCard 와 동일 매핑 (작은 데이터라 inline 복제)
-const MISSION_QUESTIONS: Record<string, string> = {
-  hospital: "응급 상황엔 어디로, 얼마나 걸려서 갈까?",
-  market: "동네 시장 물가, 서울이랑 얼마나 다를까?",
-  cafe: "혼자 머물 카페, 이 동네엔 어떤 모습일까?",
-  neighbor: "처음 보는 이웃이 나에게 뭐라고 할까?",
-  library: "동네 도서관, 어떤 풍경일까?",
-  transit: "버스 한 대 놓치면 얼마나 기다려야 할까?",
-  home: "잠시 머무는 집, 첫인상은 어떨까?",
-  office: "이 동네에선 어떤 일을 하며 살 수 있을까?",
-  mailbox: "오늘 도착한 편지엔 무슨 말이 적혀있을까?",
-  shop: "30년된 동네 가게, 어떤 인사가 기다릴까?",
-};
-
-function curiosityFor(m: Mission): string {
-  if (MISSION_QUESTIONS[m.id]) return MISSION_QUESTIONS[m.id];
-  if (m.description) return m.description;
-  return m.title;
-}
-
+// (호기심 질문 카드 제거 — MISSION_QUESTIONS / curiosityFor 제거)
 // (도착 전 좌하단 가이드는 NPC 가 아니라 안내자 톤으로 통일 — pickNpcAvatar/getNpcTeaser 제거)
 
 // ==========================================================================
@@ -133,14 +114,7 @@ export default function KakaoRoadview({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [status, setStatus] = useState<Status>("loading");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  // 상단 호기심 질문 카드 — ready 시 잠깐 뜨고 4.5초 후 자동 닫힘 (사용자가 ✕로도 닫음)
-  const [showCuriosityCard, setShowCuriosityCard] = useState(false);
-  useEffect(() => {
-    if (status !== "ready") return;
-    setShowCuriosityCard(true);
-    const t = window.setTimeout(() => setShowCuriosityCard(false), 4500);
-    return () => window.clearTimeout(t);
-  }, [status]);
+  // 호기심 질문 카드 제거 — 사용자 피드백. 그 자리는 화살표 네비게이션 카드로 대체.
 
   // === 네비게이션 — 100m 떨어진 곳에서 시작 → 화살표 따라 도착지로 ===
   const [distanceM, setDistanceM] = useState<number | null>(null);
@@ -360,8 +334,8 @@ export default function KakaoRoadview({
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.2 }}
-            className="absolute top-[140px] left-1/2 -translate-x-1/2 z-30
-                       pointer-events-none w-[88%] max-w-[360px]"
+            className="absolute top-[68px] left-4 right-4 z-30
+                       pointer-events-none"
           >
             {/* 큰 방향 라벨 카드 — 어느 쪽 가야 하는지 한눈에 */}
             <div className="flex items-center gap-3 px-4 py-3 rounded-3xl
@@ -430,42 +404,7 @@ export default function KakaoRoadview({
         )}
       </AnimatePresence>
 
-      {/* ===== 상단 호기심 질문 카드 (B) — ready 시 fade-in, 4.5s 자동 닫힘 ===== */}
-      <AnimatePresence>
-        {status === "ready" && showCuriosityCard && (
-          <motion.div
-            initial={{ opacity: 0, y: -8, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.96 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-            className="absolute top-[68px] left-4 right-4 z-30 pointer-events-none"
-          >
-            <div
-              className="relative bg-white rounded-2xl shadow-[0_12px_30px_-8px_rgba(0,0,0,0.4)]
-                         border border-cream-200 px-4 py-3 pointer-events-auto"
-            >
-              <p className="text-[10px] font-extrabold text-primary tracking-[0.2em] uppercase">
-                🔍 오늘의 미션
-              </p>
-              <p
-                className="mt-1.5 text-ink text-[14.5px] font-extrabold leading-[1.35] pr-6"
-              >
-                "{curiosityFor(mission)}"
-              </p>
-              <button
-                type="button"
-                onClick={() => setShowCuriosityCard(false)}
-                aria-label="닫기"
-                className="absolute top-2 right-2 w-6 h-6 rounded-full
-                           bg-cream-100 text-ink-soft text-[11px] font-bold
-                           flex items-center justify-center"
-              >
-                ✕
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* (호기심 질문 카드 제거 — 그 자리에 화살표 네비게이션 카드가 들어감) */}
 
       {/* ===== 좌하단 가이드 — 도착 전에는 안내자 톤 (NPC 인사는 도착 후 미션 화면에서) ===== */}
       {status === "ready" && !arrived && (
@@ -509,8 +448,8 @@ export default function KakaoRoadview({
         </motion.div>
       )}
 
-      {/* 하단 — 미션 시작 CTA (외부링크는 제거 — 사용자 피드백) */}
-      {status === "ready" && (
+      {/* 하단 — 미션 시작 CTA. 도착 후에만 표시 (도착 안 했는데 "들어가기" 떠 있던 어색함 제거). */}
+      {status === "ready" && arrived && (
         <footer className="absolute bottom-6 left-0 right-0 z-30 px-6 flex flex-col items-center gap-2 pointer-events-none">
           <motion.button
             type="button"
@@ -523,10 +462,13 @@ export default function KakaoRoadview({
           >
             {ctaLabel}
           </motion.button>
-          <p className="text-white/60 text-[10px]">
-            드래그·핀치로 둘러보세요
-          </p>
         </footer>
+      )}
+      {/* 도착 전 안내 — "드래그·핀치로 둘러보세요" 만 */}
+      {status === "ready" && !arrived && (
+        <p className="absolute bottom-6 left-0 right-0 z-30 text-center text-white/70 text-[10.5px] pointer-events-none">
+          드래그·핀치로 둘러보세요
+        </p>
       )}
     </div>
   );

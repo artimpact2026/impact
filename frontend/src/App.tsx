@@ -932,7 +932,9 @@ export default function App() {
       void handleOpenCinematic(selected);
       return;
     }
-    finishDayAnd(() => setTab1Route("arrival"));
+    // 사용자 피드백: 의식 닫기 후 "강화도에 도착했어요"(arrival) 다시 보여주지 말고
+    //   바로 집(residence-home) 으로. arrival 은 처음 마을 진입 시 한 번만.
+    finishDayAnd(() => setTab1Route("residence-home"));
   };
 
   const handleCeremonyGoJourney = () =>

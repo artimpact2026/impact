@@ -171,72 +171,82 @@ function renderVariant(v: MarketIllustKey) {
       );
     }
     case "bandaegi-bowl": {
-      // 사실적인 밴댕이 회무침 — 흰 접시 위 빨간 양념 산 모양 + 채소 줄기 + 깻잎 받침.
-      // 실제 사진 톤(고추장 양념에 회·채소 무친 산 모양)을 단순 SVG 로 모사.
+      // 한식 둥근 밥그릇 톤 — 위에서 살짝 비스듬히 본 시점. 그릇 안에 회무침 양념·회·채소가
+      //   가득. 그릇 자체는 낮고 둥글게(밥그릇 사이즈 톤).
       return (
         <>
-          <ellipse cx="32" cy="58" rx="26" ry="3" fill={C.ink} opacity="0.22" />
-          {/* 흰 둥근 접시 */}
-          <ellipse cx="32" cy="48" rx="28" ry="9" fill="#FAFAFA" />
-          <ellipse cx="32" cy="48" rx="28" ry="9" fill="none" stroke="#D6D6D6" strokeWidth="0.6" />
-          {/* 접시 바닥에 살짝 보이는 깻잎 */}
-          <path d="M8 50 Q12 44 22 44 Q26 48 22 52 Q12 54 8 50 Z" fill="#7E9E5C" opacity="0.9" />
-          <path d="M56 50 Q52 44 42 44 Q38 48 42 52 Q52 54 56 50 Z" fill="#7E9E5C" opacity="0.9" />
-          {/* 회무침 본체 — 산처럼 쌓인 빨간 양념 (어두운 톤 → 밝은 톤 레이어) */}
-          <path d="M10 47 Q22 22 32 18 Q42 22 54 47 Q42 50 32 50 Q22 50 10 47 Z" fill="#7A1F12" />
-          <path d="M14 46 Q24 24 32 20 Q40 24 50 46 Q40 48 32 48 Q24 48 14 46 Z" fill="#A6311E" />
-          <path d="M20 44 Q26 28 32 24 Q38 28 44 44 Q38 46 32 46 Q26 46 20 44 Z" fill="#D14B3A" />
-          {/* 채소 줄기들 — 양념 사이 살짝 보임 */}
-          <path d="M22 38 L28 32" stroke="#86A864" strokeWidth="1.4" strokeLinecap="round" />
-          <path d="M40 36 L34 30" stroke="#86A864" strokeWidth="1.2" strokeLinecap="round" />
-          <path d="M32 28 L32 22" stroke="#FFC56A" strokeWidth="1.4" strokeLinecap="round" />
-          <path d="M28 44 L20 42" stroke="#FFC56A" strokeWidth="1.2" strokeLinecap="round" />
-          <path d="M40 44 L48 42" stroke="#FFC56A" strokeWidth="1.2" strokeLinecap="round" />
-          <path d="M36 40 L30 36" stroke="#86A864" strokeWidth="1" strokeLinecap="round" />
-          <path d="M18 40 L24 38" stroke="#86A864" strokeWidth="1" strokeLinecap="round" />
-          {/* 살짝 보이는 회 살 (양념에 묻은 톤) */}
-          <ellipse cx="26" cy="42" rx="2.2" ry="1.3" fill="#E89B8C" opacity="0.85" />
-          <ellipse cx="38" cy="40" rx="2.2" ry="1.3" fill="#E89B8C" opacity="0.85" />
+          <ellipse cx="32" cy="56" rx="20" ry="2.5" fill={C.ink} opacity="0.28" />
+          {/* 그릇 본체 — 둥근 반원 사발 */}
+          <path
+            d="M12 38 Q12 32 18 32 L46 32 Q52 32 52 38 L50 50 Q48 56 42 56 L22 56 Q16 56 14 50 Z"
+            fill="#FAFAFA"
+            stroke={C.ink}
+            strokeWidth="1.6"
+            strokeLinejoin="round"
+          />
+          {/* 그릇 윗단 림 (안쪽 그림자 살짝) */}
+          <ellipse cx="32" cy="34" rx="20" ry="3" fill="#FAFAFA" stroke={C.ink} strokeWidth="1.6" />
+          <ellipse cx="32" cy="34" rx="18" ry="2.5" fill="#F0E8D8" />
+          {/* 회무침 — 그릇 안 양념 평면 */}
+          <ellipse cx="32" cy="33" rx="17.5" ry="2.4" fill="#C53D2E" />
+          {/* 양념 산처럼 살짝 솟은 더미 (위쪽 진한 빨강 → 밝은 빨강 레이어) */}
+          <path
+            d="M14 33 Q22 25 32 23 Q42 25 50 33 Q42 35 32 35 Q22 35 14 33 Z"
+            fill="#A6311E"
+          />
+          <path
+            d="M18 32 Q24 26 32 24 Q40 26 46 32 Q40 34 32 34 Q24 34 18 32 Z"
+            fill="#D14B3A"
+          />
+          {/* 회 살 5점 — 양념 위 살짝 솟음 */}
+          <ellipse cx="22" cy="30" rx="2.3" ry="1.5" fill="#F4D3CA" stroke={C.ink} strokeWidth="0.6" />
+          <ellipse cx="28" cy="29" rx="2.4" ry="1.5" fill="#F4D3CA" stroke={C.ink} strokeWidth="0.6" />
+          <ellipse cx="33.5" cy="29" rx="2.3" ry="1.5" fill="#F4D3CA" stroke={C.ink} strokeWidth="0.6" />
+          <ellipse cx="39" cy="29.5" rx="2.3" ry="1.5" fill="#F4D3CA" stroke={C.ink} strokeWidth="0.6" />
+          <ellipse cx="44" cy="30.5" rx="2.3" ry="1.5" fill="#F4D3CA" stroke={C.ink} strokeWidth="0.6" />
+          {/* 채소 — 초록 + 노랑 점 */}
+          <circle cx="20" cy="33" r="1" fill="#5C9B6B" />
+          <circle cx="26" cy="33.5" r="0.9" fill="#5C9B6B" />
+          <circle cx="32" cy="34" r="1" fill="#86A864" />
+          <circle cx="38" cy="33.5" r="0.9" fill="#FFC56A" />
+          <circle cx="44" cy="33" r="1" fill="#5C9B6B" />
         </>
       );
     }
     case "bandaegi-sashimi": {
-      // 밴댕이 회 — 큰 타원 접시 + 깻잎 받침 + 줄지어 놓인 흰 회 살.
+      // 밴댕이 회 — 큰 타원 접시 + 깻잎 + 줄지어 놓인 흰 회 살 (단순 톤, 처음 버전).
       return (
         <>
-          <ellipse cx="32" cy="56" rx="26" ry="3" fill={C.ink} opacity="0.22" />
+          <ellipse cx="32" cy="56" rx="22" ry="3" fill={C.ink} opacity="0.2" />
           {/* 타원 접시 */}
-          <ellipse cx="32" cy="42" rx="29" ry="14" fill="#FAFAFA" />
-          <ellipse cx="32" cy="42" rx="29" ry="14" fill="none" stroke="#D6D6D6" strokeWidth="0.6" />
-          {/* 깻잎 — 접시 위 한 장 */}
+          <ellipse cx="32" cy="42" rx="26" ry="14" fill="#FAFAFA" />
+          <ellipse
+            cx="32"
+            cy="42"
+            rx="26"
+            ry="14"
+            fill="none"
+            stroke="#D6D6D6"
+            strokeWidth="0.6"
+          />
+          {/* 깻잎 */}
           <path
-            d="M6 42 Q10 28 32 26 Q54 28 58 42 Q54 52 32 52 Q10 52 6 42 Z"
+            d="M8 42 Q12 28 32 26 Q52 28 56 42 Q52 52 32 52 Q12 52 8 42 Z"
             fill="#6D8C4B"
           />
           <path
-            d="M12 42 Q16 32 32 30 Q48 32 52 42"
+            d="M14 42 Q18 32 32 30 Q46 32 50 42"
             stroke="#557039"
             strokeWidth="0.8"
             fill="none"
           />
-          {/* 잎맥 */}
-          <path d="M32 28 L32 50" stroke="#557039" strokeWidth="0.4" />
-          {/* 밴댕이 회 살 — 6점, 살짝 어긋나게 놓임 */}
-          {[
-            { cx: 13, cy: 40 },
-            { cx: 20.5, cy: 39 },
-            { cx: 28, cy: 40 },
-            { cx: 35.5, cy: 39 },
-            { cx: 43, cy: 40 },
-            { cx: 50.5, cy: 39 },
-          ].map((p, i) => (
-            <g key={i}>
-              <ellipse cx={p.cx} cy={p.cy} rx="3.4" ry="2.4" fill="#F4D3CA" />
-              <ellipse cx={p.cx} cy={p.cy} rx="3.4" ry="2.4" fill="none" stroke="#C99084" strokeWidth="0.7" />
-              {/* 살 위 광택 */}
-              <ellipse cx={p.cx - 0.7} cy={p.cy - 0.7} rx="1.4" ry="0.7" fill="#FFF" opacity="0.55" />
-            </g>
-          ))}
+          {/* 밴댕이 회 살 — 6점 줄지어 */}
+          <ellipse cx="13" cy="40" rx="3.5" ry="2.5" fill="#F4D3CA" stroke="#C99084" strokeWidth="0.8" />
+          <ellipse cx="20.5" cy="40" rx="3.5" ry="2.5" fill="#F4D3CA" stroke="#C99084" strokeWidth="0.8" />
+          <ellipse cx="28" cy="40" rx="3.5" ry="2.5" fill="#F4D3CA" stroke="#C99084" strokeWidth="0.8" />
+          <ellipse cx="35.5" cy="40" rx="3.5" ry="2.5" fill="#F4D3CA" stroke="#C99084" strokeWidth="0.8" />
+          <ellipse cx="43" cy="40" rx="3.5" ry="2.5" fill="#F4D3CA" stroke="#C99084" strokeWidth="0.8" />
+          <ellipse cx="50.5" cy="40" rx="3.5" ry="2.5" fill="#F4D3CA" stroke="#C99084" strokeWidth="0.8" />
         </>
       );
     }

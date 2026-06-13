@@ -77,9 +77,8 @@ const MISSION_INFO: Record<string, InfoCopy> = {
     curiosity: "텃밭 한 평, 동네 사람들과 같이 키운다는 건?",
   },
   "ganghwa-market": {
-    description:
-      "아삭아삭 순무민박에서 강화풍물시장까지 골목을 따라 걸어 들어갑니다. 강화 대표 시장 안에서 사장님과 이야기 나누며 매대의 풍경·인심·물가를 한 번에 짚어요.",
-    curiosity: "5일장 사장님, 처음 본 손님에게 뭐라고 할까?",
+    description: "강화 사람들이 가장 자주 찾는 시장 한 바퀴.",
+    curiosity: "오늘 시장에서 만나는 강화 한 상은 어떤 모습일까?",
   },
   "ganghwa-sunset": {
     description:

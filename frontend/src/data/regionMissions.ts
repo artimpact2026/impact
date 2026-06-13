@@ -162,14 +162,14 @@ const ganghwaMissions: Mission[] = [
 
   {
     id: "ganghwa-market",
-    title: "강화풍물시장 — 오늘의 장바구니",
+    title: "강화풍물시장 둘러보기",
     icon: "🛒",
     category: "관계형성형",
     mode: "map-dialogue",
     reward: 12,
     background: "market",
     npc: { name: "풍물시장 사장님", emoji: "🧓" },
-    description: "예산 안에서 강화 먹거리 골라 담기 — 좌판 인터랙션",
+    description: "강화 사람들이 가장 자주 찾는 시장 한 바퀴",
     // 카카오 로드뷰 임베드 좌표 — 강화풍물시장 정문 (visitkorea 기준)
     // startPosition 명시 안 함 → KakaoRoadview 가 도착지 기준 100m 8방위 중
     //   첫 번째 panoId 잡히는 곳에서 시작. 화살표 따라 걸으면 자연스럽게 정문으로 진입.
