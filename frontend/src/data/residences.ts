@@ -52,7 +52,7 @@ export const residences: Residence[] = [
     id: "ganghwa",
     region: "강화도",
     name: "청풍",
-    duration: "4박 5일",
+    duration: "3박 4일",
     matchType: "자연탐험형",
     matchReason: "갯벌과 한옥, 사람들과 함께 쉬어가는 시간이 어울려요",
     xPct: 23,

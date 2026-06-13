@@ -41,6 +41,10 @@ type Props = {
   // 슬롯별 배치 (현재 레지던스의 것만 받음)
   placedDecor?: Partial<Record<DecorCategory, string>>;
   onUpdatePlaced?: (next: Partial<Record<DecorCategory, string>>) => void;
+  // 바람이지음 마스코트 — 하루 종료 임박/충족 알림. 하루 1회 노출은 부모가 게이팅.
+  mascot?:
+    | { variant: "urgent"; remaining: number; onDismiss: () => void }
+    | { variant: "complete"; onDismiss: () => void };
   // 한설 환영 모달 — Day 1 첫 진입 시만 true. 닫으면 onDismissIntro 영속 처리.
   showHanseolIntro?: boolean;
   onDismissHanseolIntro?: () => void;
@@ -84,6 +88,7 @@ export default function ResidenceHomeScreen({
   decorInventory = [],
   placedDecor = {},
   onUpdatePlaced,
+  mascot,
   showHanseolIntro = false,
   onDismissHanseolIntro,
 }: Props) {
@@ -246,6 +251,17 @@ export default function ResidenceHomeScreen({
         item={inspecting}
         onClose={() => setInspecting(null)}
       />
+
+      {/* ===== 바람이지음 마스코트 — 종료 임박/충족 안내 ===== */}
+      {mascot?.variant === "urgent" && (
+        <BaramiMascotUrgent
+          remaining={mascot.remaining}
+          onDismiss={mascot.onDismiss}
+        />
+      )}
+      {mascot?.variant === "complete" && (
+        <BaramiMascotComplete onDismiss={mascot.onDismiss} />
+      )}
 
       {/* ===== 한설 환영 모달 — Day 1 첫 진입 시 1회 ===== */}
       {showHanseolIntro && (
@@ -1018,5 +1034,137 @@ function FloatingDecorations() {
         🌼
       </motion.span>
     </>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// BaramiMascotUrgent — 종료 임박 (남은 미션 1~2개) 독려
+//   · 우하단 floating 말풍선 + 바람이 캐릭터
+//   · 탭하면 닫힘 (부모가 하루 1회 게이팅)
+// ─────────────────────────────────────────────────────────────
+function BaramiMascotUrgent({
+  remaining,
+  onDismiss,
+}: {
+  remaining: number;
+  onDismiss: () => void;
+}) {
+  const copy =
+    remaining <= 1
+      ? "한 개만 더 하면\n오늘 하루 끝!"
+      : `${remaining}개만 더 완성해서\n오늘 하루를 마쳐봐!`;
+  return (
+    <motion.button
+      type="button"
+      onClick={onDismiss}
+      initial={{ opacity: 0, y: 12, scale: 0.92 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 12, scale: 0.92 }}
+      transition={{ type: "spring", damping: 22, stiffness: 260 }}
+      aria-label="바람이지음 — 닫기"
+      className="absolute bottom-32 right-3 z-30 flex items-end gap-2
+                 active:scale-[0.97] transition-transform"
+    >
+      {/* 말풍선 — 우체통 CTA 와 같은 톤(말풍선 + 꼬리) */}
+      <motion.div
+        animate={{ y: [0, -2, 0] }}
+        transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+        className="relative bg-white rounded-2xl shadow-[0_4px_10px_-2px_rgba(80,60,40,0.22)]
+                   border border-cream-200 px-3 py-2 max-w-[170px] text-left"
+      >
+        <p className="text-[10px] font-extrabold tracking-[0.16em] uppercase text-primary">
+          바람이지음
+        </p>
+        <p className="mt-0.5 text-ink text-[12px] font-extrabold leading-tight whitespace-pre-line">
+          {copy}
+        </p>
+        {/* 꼬리 — 오른쪽 캐릭터 방향 */}
+        <span
+          aria-hidden
+          className="absolute -right-[5px] bottom-3 w-2.5 h-2.5 bg-white
+                     border-r border-b border-cream-200"
+          style={{ transform: "rotate(-45deg)" }}
+        />
+      </motion.div>
+      {/* 바람이 — 조금 흔들리며 호소 */}
+      <motion.img
+        src="/character1/clay-baram-solo.png"
+        alt=""
+        aria-hidden
+        animate={{ y: [-2, 2, -2], rotate: [-4, 4, -4] }}
+        transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+        className="block w-[48px] h-auto select-none
+                   drop-shadow-[0_3px_6px_rgba(62,44,32,0.28)]"
+      />
+    </motion.button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// BaramiMascotComplete — 하루 종료 충족 마무리
+//   · 중앙 모달 + 바람이/지음이 둘 다 등장
+//   · "좋아" 탭하면 onDismiss → 부모가 day-end-ceremony 진입 처리
+//   · Phase 4 에서 dismiss 후 퍼즐 조각 애니메이션이 끼움
+// ─────────────────────────────────────────────────────────────
+function BaramiMascotComplete({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center px-6
+                 bg-black/40 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+    >
+      <motion.div
+        initial={{ scale: 0.92, opacity: 0, y: 16 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        transition={{ type: "spring", damping: 22, stiffness: 240 }}
+        className="w-full max-w-[340px] rounded-3xl bg-white shadow-soft
+                   overflow-hidden flex flex-col items-center px-6 pt-6 pb-5"
+      >
+        <p className="text-[10.5px] font-extrabold tracking-[0.18em] uppercase text-primary">
+          바람이지음
+        </p>
+        {/* 두 캐릭터 — 살짝 다른 박자로 둥실 */}
+        <div className="mt-3 flex items-end gap-2">
+          <motion.img
+            src="/character1/clay-baram-solo.png"
+            alt=""
+            aria-hidden
+            animate={{ y: [-3, 1, -3], rotate: [-3, 3, -3] }}
+            transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+            className="w-[80px] h-auto drop-shadow-[0_4px_8px_rgba(62,44,32,0.28)]"
+          />
+          <motion.img
+            src="/character1/clay-jieum-solo.png"
+            alt=""
+            aria-hidden
+            animate={{ y: [-1, 3, -1], rotate: [3, -3, 3] }}
+            transition={{
+              duration: 2.4,
+              repeat: Infinity,
+              ease: "easeInOut",
+              delay: 0.4,
+            }}
+            className="w-[80px] h-auto drop-shadow-[0_4px_8px_rgba(62,44,32,0.28)]"
+          />
+        </div>
+        <h2 className="mt-4 text-ink text-[18px] font-extrabold text-center leading-tight">
+          오늘 하루도 잘 보냈어!
+        </h2>
+        <p className="mt-1.5 text-ink-soft text-[13px] text-center leading-relaxed">
+          조각 하나 더 끼워줄게
+        </p>
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="mt-5 w-full h-12 rounded-full bg-primary text-white
+                     text-[14px] font-extrabold
+                     shadow-[0_6px_16px_-4px_rgba(255,112,67,0.5)]
+                     active:scale-[0.98] transition"
+        >
+          좋아
+        </button>
+      </motion.div>
+    </div>
   );
 }

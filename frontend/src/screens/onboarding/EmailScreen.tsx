@@ -55,7 +55,11 @@ export default function EmailScreen({
                      bg-white text-ink text-[15px] focus:outline-none
                      focus:border-primary placeholder:text-ink-mute"
         />
-        <p className="mt-2 text-[11px] text-ink-mute">
+        {/* 받는 용도 한 줄 — 거부감 줄이는 reason copy */}
+        <p className="mt-2 text-[12px] text-primary font-bold">
+          📮 내일 미션이랑 마당 소식 보내드릴게요
+        </p>
+        <p className="mt-1 text-[11px] text-ink-mute">
           데모 환경에서는 인증 메일을 발송하지 않아요.
         </p>
       </div>

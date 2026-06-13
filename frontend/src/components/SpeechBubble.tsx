@@ -1,5 +1,5 @@
 // 캐릭터 말풍선 — 둥근 흰 카드 + 아래쪽 꼬리
-// PRD: 말풍선 "오늘도 어디론가 떠나볼까?"
+// PRD: 말풍선 "어느 동네에서 지내볼까?"
 
 import type { ReactNode } from "react";
 

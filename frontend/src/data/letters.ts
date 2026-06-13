@@ -73,30 +73,44 @@ function uid(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-// 지역별 운영자(레지던스 대표) — NPC 편지의 주된 발신자
-// 미정 지역은 generic 폴백.
-const RESIDENCE_REP: Record<
-  string,
-  { name: string; role: string; emoji: string }
-> = {
-  ganghwa: { name: "민지", role: "강화도 운영자", emoji: "🌿" },
-  yeongwol: { name: "지호", role: "영월 운영자", emoji: "🍃" },
-  gwangyang: { name: "수민", role: "광양 운영자", emoji: "🌸" },
-  geoje: { name: "유진", role: "거제 운영자", emoji: "🌊" },
-  taean: { name: "도윤", role: "태안 운영자", emoji: "🏝" },
-  yangyang: { name: "서연", role: "양양 운영자", emoji: "🏄" },
-  jindo: { name: "한나", role: "진도 운영자", emoji: "🍵" },
-  uiseong: { name: "재현", role: "의성 운영자", emoji: "🌾" },
+// NPC 편지 발신자 풀 — "운영자" 단일 톤 대신 다양한 인물군.
+//   · 동네 사람, 익명의 누군가, 같이 시작한 사람 등 결이 다른 화자.
+//   · 트리거별로 어울리는 풀을 정의하고 (트리거 + 일차)로 deterministic 선택.
+//   · 이름이 구체적인 경우와 익명("누군가", "어떤 분")이 섞이도록 의도.
+type SenderPersona = { name: string; role: string; emoji: string };
+
+const SENDERS: Record<string, SenderPersona> = {
+  fellow_traveler: { name: "어느 길동무", role: "같이 시작한 사람", emoji: "🧳" },
+  early_settler:   { name: "먼저 온 사람", role: "1년 차 이주민",   emoji: "🌱" },
+  village_elder:   { name: "옆집 어르신",  role: "이 동네 분",       emoji: "👵" },
+  market_lady:     { name: "시장에서 만난 분", role: "단골 가게",    emoji: "🥬" },
+  pub_host:        { name: "사랑방 호스트", role: "밤마다 만나는 사람", emoji: "🍻" },
+  bookstore_owner: { name: "동네 책방 주인", role: "책 한 권 두고 간 사람", emoji: "📚" },
+  anonymous:       { name: "누군가",       role: "이 동네 어딘가",   emoji: "✉" },
+  neighbor:        { name: "옆자리 손님",  role: "스쳐 지나간 사람", emoji: "🍵" },
 };
 
-function repOf(residence: Residence) {
-  return (
-    RESIDENCE_REP[residence.id] ?? {
-      name: `${residence.region} 운영자`,
-      role: `${residence.region} 청년마을`,
-      emoji: residence.themeEmoji,
-    }
-  );
+// 트리거별 풀 — 인덱스로 deterministic rotation.
+const ARRIVAL_POOL = ["fellow_traveler", "village_elder", "anonymous"] as const;
+const DAY_COMPLETE_POOL = [
+  "village_elder",
+  "market_lady",
+  "pub_host",
+  "early_settler",
+] as const;
+const NEXT_DAY_POOL = [
+  "fellow_traveler",
+  "anonymous",
+  "neighbor",
+  "bookstore_owner",
+] as const;
+
+function pickSender(
+  pool: readonly (keyof typeof SENDERS)[],
+  seed: number
+): SenderPersona {
+  const idx = ((seed % pool.length) + pool.length) % pool.length;
+  return SENDERS[pool[idx]];
 }
 
 const SYSTEM_SENDER = {
@@ -132,19 +146,20 @@ export function makeWelcomeLetter(): Letter {
 }
 
 export function makeArrivalLetter(residence: Residence): Letter {
-  const rep = repOf(residence);
+  // arrival = 첫날. 같이 시작한 길동무 톤이 가장 자연스러움.
+  const sender = pickSender(ARRIVAL_POOL, 0);
   return {
     id: uid(),
     category: "npc",
     trigger: "arrival",
-    sender: { name: rep.name, role: rep.role, emoji: rep.emoji },
-    title: `${residence.region}에 오신 걸 환영해요`,
-    preview: `반가워요. 오늘부터 며칠 동안 이곳의 바람을 함께 마셔봐요.`,
-    body: `안녕하세요, ${residence.region}의 ${rep.name}이에요.
+    sender,
+    title: `${residence.region}에 잘 오셨어요`,
+    preview: `반가워요. 며칠 동안 이곳의 바람을 같이 마셔요.`,
+    body: `${residence.region}에 잘 오셨어요.
 
-오늘부터 며칠 동안 이곳의 바람을 함께 마시게 됐네요. 처음엔 모든 게 낯설겠지만, 너무 빠르지 않게 하나씩 만나가요.
+저는 ${sender.role}이에요. 며칠 동안 이곳의 바람을 함께 마시게 됐네요. 처음엔 다 낯설겠지만, 너무 빠르지 않게 하나씩 만나가요.
 
-먼저 가까운 정류장과 시장 위치부터 손에 익히면 마음이 한결 편해져요. 마을 사람들이 종종 말 걸어올 거예요. 부담 갖지 말고 인사만 해도 충분해요.
+먼저 가까운 정류장과 시장 위치부터 손에 익히면 마음이 한결 편해져요. 동네 사람들이 종종 말 걸어올 거예요. 부담 갖지 말고 인사만 해도 충분해요.
 
 자리잡는 데 시간이 걸려도 괜찮아요. 천천히 머물러요.`,
     createdAt: new Date().toISOString(),
@@ -158,17 +173,18 @@ export function makeDayCompleteLetter(
   day: number,
   doneCount: number
 ): Letter {
-  const rep = repOf(residence);
+  // 일차별로 다른 인물이 말 걸어옴 — Day 1: 어르신, Day 2: 시장, Day 3: 펍, Day 4: 먼저 온 사람
+  const sender = pickSender(DAY_COMPLETE_POOL, day - 1);
   return {
     id: uid(),
     category: "npc",
     trigger: "day_complete",
-    sender: { name: rep.name, role: rep.role, emoji: rep.emoji },
+    sender,
     title: `오늘 하루, 잘 보내셨어요`,
-    preview: `${day}일차에 ${doneCount}개의 미션을 마치셨네요. 하루씩 자리잡는 거예요.`,
+    preview: `${day}일차에 ${doneCount}개를 마치셨네요. 하루씩 자리잡는 거예요.`,
     body: `오늘 동네를 도시는 걸 봤어요. ${residence.region}의 ${day}일차였죠.
 
-${doneCount}개의 미션을 차곡차곡 채우신 게 마음에 남아요. 이렇게 하루씩 결이 쌓이는 거예요.
+${doneCount}개를 차곡차곡 채우신 게 마음에 남아요. 이렇게 하루씩 결이 쌓이는 거예요.
 
 푹 쉬세요. 내일은 또 다른 결의 시간이 기다리고 있어요.`,
     createdAt: new Date().toISOString(),
@@ -181,12 +197,13 @@ export function makeNextDayLetter(
   residence: Residence,
   nextDay: number
 ): Letter {
-  const rep = repOf(residence);
+  // 다음 일차의 아침 — 길동무 → 익명 → 옆자리 손님 → 책방 주인 순으로 다양화
+  const sender = pickSender(NEXT_DAY_POOL, nextDay - 1);
   return {
     id: uid(),
     category: "npc",
     trigger: "next_day",
-    sender: { name: rep.name, role: rep.role, emoji: rep.emoji },
+    sender,
     title: `${residence.region}의 아침이에요`,
     preview: `${nextDay}일차 아침. 창문을 한 번 열어보세요.`,
     body: `어제 푹 주무셨나요?
@@ -232,7 +249,6 @@ export function makeBookingConfirmedLetter(
   startDate: string,
   durationMonths: number
 ): Letter {
-  const rep = repOf(residence);
   return {
     id: uid(),
     category: "system",
@@ -244,7 +260,6 @@ export function makeBookingConfirmedLetter(
 
 · 시작: ${startDate}
 · 기간: ${durationMonths}개월
-· 운영자: ${rep.name}
 
 자세한 도착 안내는 시작 1주일 전 별도 메일로 전달드릴게요. 짐 가볍게 챙기시고, 마음만 든든히 가져오세요.
 
@@ -256,21 +271,29 @@ export function makeBookingConfirmedLetter(
 }
 
 // 커뮤니티 mock — 데모용 가짜 알림. 실제 백엔드 연동 시 교체.
+//   발신자도 다양한 톤 — 이주 1년 차, 잠시 살아본 사람, 익명 등.
 export function makeCommunityMockLetter(): Letter {
   const messages = [
     {
-      sender: { name: "지호", role: "광양 1년 차", emoji: "🌸" },
+      sender: { name: "광양 1년 차 누군가", role: "이주 1년", emoji: "🌸" },
       title: "당신의 강화도 미션을 보고",
       preview: "비슷한 경험이 있어서 댓글 남겨봐요.",
       body:
-        "안녕하세요. 저는 광양에서 1년째 살고 있어요.\n\n당신이 답한 \"걸어가볼게요\" 같은 답을 보고, 저도 처음에 비슷했던 게 떠올랐어요. 도시 습관이 천천히 풀려가는 그 시간이 사실 가장 좋은 시간이에요.\n\n응원해요.",
+        "광양에서 1년째 살고 있어요.\n\n당신이 답한 \"걸어가볼게요\" 같은 답을 보고, 저도 처음에 비슷했던 게 떠올랐어요. 도시 습관이 천천히 풀려가는 그 시간이 사실 가장 좋은 시간이에요.\n\n응원해요.",
     },
     {
-      sender: { name: "민지", role: "강화도 거주", emoji: "🌿" },
+      sender: { name: "강화도 어딘가의 누군가", role: "동네 사람", emoji: "🌿" },
       title: "당신의 미션 후기에 좋아요를 눌렀어요",
       preview: "강화 사람으로서 반가운 글이었어요.",
       body:
-        "당신의 강화도 미션 후기를 잘 봤어요. \n\n실제로 강화도 살면서 비슷한 풍경을 자주 봐요. 글로 옮기기 어려운 그 결을 잘 잡으신 것 같아요. 또 들러주세요.",
+        "당신의 강화도 미션 후기를 잘 봤어요.\n\n실제로 강화에 살면서 비슷한 풍경을 자주 봐요. 글로 옮기기 어려운 그 결을 잘 잡으신 것 같아요. 또 들러주세요.",
+    },
+    {
+      sender: { name: "어느 길동무", role: "같이 시작한 사람", emoji: "🧳" },
+      title: "이번 주에 같이 떠난 사람이에요",
+      preview: "당신 글 보고 저도 다시 마음먹었어요.",
+      body:
+        "이번 주에 강화도 시뮬레이션 같이 시작했어요.\n\n당신 미션 후기를 보면서 저도 다시 한 번 마음먹었어요. 미루기만 하던 동네 산책을 오늘은 진짜 해봐야겠어요.\n\n같이 가보죠.",
     },
   ];
   const pick = messages[Math.floor(Math.random() * messages.length)];

@@ -116,15 +116,15 @@ const ganghwaMissions: Mission[] = [
 
   {
     id: "ganghwa-farm",
-    title: "농사 체험",
+    title: "텃밭 클럽 — 한 평 시작",
     icon: "🌾",
     category: "관계형성형",
     mode: "dialogue",
     reward: 15,
     background: "neighbor",
-    npc: { name: "농사 선배", emoji: "🧑‍🌾" },
+    npc: { name: "텃밭 클럽 호스트", emoji: "🧑‍🌾" },
     npcScene: { src: "/mission/youngfarmer.webp" },
-    description: "텃밭 한 평 빌려보기 — 동네 사람들과 함께",
+    description: "잠시섬 텃밭 클럽 한 평 — 강화 텃밭 호스트와 함께",
     dialogues: [
       {
         npc:
@@ -194,9 +194,11 @@ const ganghwaMissions: Mission[] = [
       },
       {
         npc:
-          "천천히 보세요. 인삼·새우젓·강화도 약쑥… 다 강화 특산물이에요. 안 사도 괜찮으니까 인사만 해도 동네 사람 돼요.",
+          "1층 가면 순무김치 직접 버무리는 거 시식해볼 수 있어요. 잠시섬 다녀간 분이 '쿰쿰한 순무김치에 반했다'고 글 남겼던 거예요. 밴댕이·약쑥떡도 빠뜨리지 말고요.",
         options: [
-          { label: "그런 분위기가 좋아요", next: 3, traits: ["자연탐험형", "집돌이형"] },
+          { label: "순무김치 한 입 해볼게요", next: 3, traits: ["자연탐험형", "집돌이형"] },
+          { label: "약쑥떡 한 봉지 사고 싶어요", next: 3, traits: ["자연탐험형"] },
+          { label: "그냥 구경만 할래요", next: 3, traits: ["집돌이형"] },
         ],
       },
       {
@@ -243,6 +245,381 @@ const ganghwaMissions: Mission[] = [
           "일몰 보고 동막 카페에서 따뜻한 차 한 잔. 그게 강화의 저녁이에요.",
         options: [
           { label: "그런 저녁이 매일이라니...", traits: ["자연탐험형", "집돌이형"] },
+        ],
+      },
+    ],
+  },
+
+  // ─── Day 3 (생업·손으로 만들기) + Day 4 (인프라·정착 상상) ────────────
+  // 신규 미션 (잠시섬 실제 활동 모티프) — 2026-06-13
+
+  {
+    id: "cheongpung-socheang",
+    title: "소창 한 장, 직접 짜보기",
+    icon: "🧵",
+    category: "관계형성형",
+    mode: "dialogue",
+    reward: 15,
+    background: "neighbor",
+    npc: { name: "소창 장인", emoji: "🪡" },
+    npcScene: { src: "/mission/restaurantgrandma.webp" },
+    description: "강화 소창 — 손으로 짜는 면직물 한 장",
+    dialogues: [
+      {
+        npc:
+          "어서 와요. 여기 있는 게 소창이에요. 강화 100년 면직물. 직접 한 번 짜볼래요? 어렵지 않아요.",
+        options: [
+          { label: "처음인데 괜찮을까요?", next: 1, traits: ["집돌이형"], stanceAlign: ["alone_rest"] },
+          { label: "손으로 만드는 거 좋아해요", next: 2, traits: ["디지털노마드형"], stanceAlign: ["alone_make"] },
+          { label: "어떻게 짜는지 보여주세요", next: 1, traits: ["자연탐험형"], stanceAlign: ["alone_rest"] },
+        ],
+      },
+      {
+        npc:
+          "한 줄씩 손으로 넘기는 거예요. 30분이면 손수건 한 장 만들어요. 도시에서 손으로 뭔가 짜본 적 있어요? 그 감각이 손에 남아요.",
+        options: [
+          { label: "오랜만에 손이 바쁘네요", next: 3, traits: ["디지털노마드형"], stanceAlign: ["alone_make"] },
+          { label: "이게 명상이네요", next: 3, traits: ["자연탐험형"], stanceAlign: ["alone_rest"] },
+        ],
+      },
+      {
+        npc:
+          "맞아요, 손으로 짜는 게 머리도 비워줘요. 강화 사람들은 이걸 일상으로 해요. 한 시간 짜면 한 장. 식탁보, 행주, 손수건 다 돼요.",
+        options: [
+          { label: "내가 만든 거 가져갈 수 있어요?", next: 3, traits: ["디지털노마드형"], stanceAlign: ["alone_make"] },
+          { label: "이거 일주일에 한 번씩 와도 좋겠어요", next: 3, traits: ["자연탐험형"] },
+        ],
+      },
+      {
+        npc:
+          "다 만들었네요. 본인이 짠 거니까 가져가요. 다음에 또 와요. 친구도 데려와요. 같이 짜면 더 재밌어요.",
+        options: [
+          { label: "꼭 다시 올게요", traits: ["자연탐험형", "집돌이형"] },
+        ],
+      },
+    ],
+  },
+
+  {
+    id: "cheongpung-yoga",
+    title: "마당뷰에서 섬요가",
+    icon: "🧘",
+    category: "감정/분위기형",
+    mode: "dialogue",
+    reward: 12,
+    background: "home",
+    npc: { name: "섬요가 강사", emoji: "🧘‍♀️" },
+    npcScene: { src: "/mission/yoga.webp" },
+    description: "잠시섬 빌리지 마당에서 하타요가 한 시간",
+    dialogues: [
+      {
+        npc:
+          "안녕하세요. 오늘은 마당뷰에서 진행해요. 강화도에서 하타요가를 한다는 게, 도시 요가랑은 또 달라요. 자세 잡기 전에 한 번 둘러봐요.",
+        options: [
+          { label: "마당이 정말 넓네요", next: 1, traits: ["자연탐험형"], stanceAlign: ["alone_rest"] },
+          { label: "혼자 와도 어색하지 않을까요?", next: 1, traits: ["집돌이형"], stanceAlign: ["alone_rest"] },
+          { label: "처음이라 따라갈 수 있을지...", next: 2, traits: ["디지털노마드형"], stanceAlign: ["alone_make"] },
+        ],
+      },
+      {
+        npc:
+          "다들 처음엔 그래요. 우리 클래스는 5명 안쪽이라 혼자여도 편해요. 일단 매트 위에 누워요. 천천히 호흡부터.",
+        options: [
+          { label: "호흡만으로도 다른데요?", next: 2, traits: ["자연탐험형"], stanceAlign: ["alone_rest"] },
+          { label: "이 공기 좋네요", next: 2, traits: ["집돌이형"], stanceAlign: ["alone_rest"] },
+        ],
+      },
+      {
+        npc:
+          "강화 공기에 바람 소리가 섞여서 자연이 같이 호흡해요. 한 시간 끝나면 몸이 가벼워져 있을 거예요. 매주 화·목 오후예요. 또 와요.",
+        options: [
+          { label: "여기 살면 이게 일상이 되겠네요", traits: ["자연탐험형"], stanceAlign: ["alone_rest"] },
+          { label: "매주 오고 싶을 만큼 좋네요", traits: ["집돌이형"], stanceAlign: ["alone_rest"] },
+        ],
+      },
+    ],
+  },
+
+  {
+    id: "cheongpung-record",
+    title: "오늘 하루, 방명록에 한 줄",
+    icon: "📓",
+    category: "감정/분위기형",
+    mode: "dialogue",
+    reward: 10,
+    background: "home",
+    npc: { name: "레지던스 호스트", emoji: "🧑" },
+    npcScene: { src: "/mission/residentowner.webp" },
+    description: "오늘 본 풍경·만난 사람을 짧게 기록 — 잠시섬 인증 모티프",
+    dialogues: [
+      {
+        npc:
+          "오늘 하루 어땠어요? 잠시섬엔 방명록 노트가 있어요. 다녀간 사람마다 한 줄씩 남겨요. 오늘 가장 기억에 남은 거 뭐예요?",
+        options: [
+          { label: "갯벌에 발 빠진 거", next: 1, traits: ["자연탐험형"], stanceAlign: ["alone_rest"] },
+          { label: "사람들이랑 어울린 시간", next: 1, traits: ["레저형"], stanceAlign: ["together_rest", "together_make"] },
+          { label: "마당뷰에서 멍 때린 거", next: 1, traits: ["집돌이형"], stanceAlign: ["alone_rest"] },
+          { label: "손으로 뭔가 만든 거", next: 1, traits: ["디지털노마드형"], stanceAlign: ["alone_make"] },
+        ],
+      },
+      {
+        npc:
+          "좋네요. 그 한 줄 적으면, 다음에 누가 와서 읽어요. 여기 책장 봐요. 18기 이주자가 남긴 거예요: '이 동네는 사람이 사람한테 기대도 되는 곳' 이라고 적었어요.",
+        options: [
+          { label: "그 말이 마음에 들어요", next: 2, traits: ["자연탐험형", "집돌이형"], stanceAlign: ["alone_rest", "together_rest"] },
+          { label: "다른 사람 글도 읽어보고 싶어요", next: 2, traits: ["레저형"], stanceAlign: ["together_rest"] },
+        ],
+      },
+      {
+        npc:
+          "방명록은 강화도가 보내는 답장 같은 거예요. 한 줄 쓰면 진짜로 인증돼요. 잠시 보낸 시간이 어딘가에 남는다는 거. 그게 우리가 환대받는 방식이에요.",
+        options: [
+          { label: "한 줄 쓰고 갈게요", traits: ["자연탐험형", "집돌이형", "디지털노마드형", "레저형"] },
+        ],
+      },
+    ],
+  },
+
+  {
+    id: "cheongpung-onsen",
+    title: "미네랄 온천 한 시간",
+    icon: "♨️",
+    category: "감정/분위기형",
+    mode: "dialogue",
+    reward: 10,
+    background: "home",
+    npc: { name: "온천 사장님", emoji: "♨️" },
+    npcScene: { src: "/mission/villagemanager.webp" },
+    description: "마지막 날 — 몸을 천천히 데우며 사흘을 정리",
+    dialogues: [
+      {
+        npc:
+          "어서 와요. 강화 미네랄 온천이에요. 지하 천 미터에서 끌어 올린 물. 몸이 노곤한 분들 많이 와요. 사흘 어땠어요?",
+        options: [
+          { label: "많이 걸어서 다리가 무거워요", next: 1, traits: ["자연탐험형", "레저형"], stanceAlign: ["alone_rest"] },
+          { label: "마음이 좀 차분해졌어요", next: 1, traits: ["집돌이형"], stanceAlign: ["alone_rest"] },
+          { label: "어색하다가 점점 익숙해졌어요", next: 1, traits: ["디지털노마드형"], stanceAlign: ["alone_make"] },
+        ],
+      },
+      {
+        npc:
+          "그게 강화예요. 도시랑 시간이 다르게 가요. 여기 물 좀 따뜻해요. 30분쯤 천천히 담그면 사흘이 풀려요. 강화 분들도 일주일에 한 번씩 와요.",
+        options: [
+          { label: "이게 일상이라니 부럽네요", next: 2, traits: ["자연탐험형", "집돌이형"], stanceAlign: ["alone_rest"] },
+          { label: "여기 가까이 살면 좋겠어요", next: 2, traits: ["디지털노마드형"], stanceAlign: ["alone_make"] },
+        ],
+      },
+      {
+        npc:
+          "오늘 저녁 일몰 보러 가신댔죠? 몸 덥혀서 가요. 노을 보면서 사흘 정리하면 진짜 가져갈 게 손에 잡혀요.",
+        options: [
+          { label: "일몰까지 안 미루고 가볼게요", traits: ["자연탐험형", "집돌이형"], stanceAlign: ["alone_rest"] },
+        ],
+      },
+    ],
+  },
+
+  {
+    id: "cheongpung-fortress",
+    title: "읍내 성곽 야경 한 바퀴",
+    icon: "🏯",
+    category: "감정/분위기형",
+    mode: "dialogue",
+    reward: 8,
+    background: "neighbor",
+    npc: { name: "읍내 산책꾼", emoji: "🚶" },
+    description: "강화읍 성곽 — 사람 적은 밤의 길",
+    dialogues: [
+      {
+        npc:
+          "읍내 성곽 한 바퀴, 30분이면 돌아요. 사람 거의 없어요. 밤엔 등이 켜져서 길이 보이고요. 같이 걸을래요?",
+        options: [
+          { label: "혼자 조용히 걷고 싶어요", next: 1, traits: ["집돌이형", "자연탐험형"], stanceAlign: ["alone_rest"] },
+          { label: "같이 걸으면 좋겠어요", next: 1, traits: ["레저형"], stanceAlign: ["together_rest"] },
+        ],
+      },
+      {
+        npc:
+          "성곽에서 읍내 내려다보면, 이 동네가 얼마나 작은지 보여요. 작은 게 답답한 분도 있고, 작아서 좋다는 분도 있고요.",
+        options: [
+          { label: "작아서 손에 잡히는 게 좋아요", traits: ["집돌이형"], stanceAlign: ["alone_rest"] },
+          { label: "이 정도면 살 만하겠다 싶어요", traits: ["자연탐험형"], stanceAlign: ["alone_rest"] },
+        ],
+      },
+    ],
+  },
+
+  {
+    id: "cheongpung-bookstore",
+    title: "강화 이야기 한 권",
+    icon: "📚",
+    category: "감정/분위기형",
+    mode: "dialogue",
+    reward: 12,
+    background: "cafe",
+    npc: { name: "책방지기", emoji: "📖" },
+    description: "동네 책방 들러 강화를 담은 책 한 권 만나기 — 첫날 아침의 조용한 톤",
+    dialogues: [
+      {
+        npc:
+          "어서 와요~ 첫날이세요? 우리 책방은 강화에서 사는 작가들 책이 절반이에요. 함민복 시인이 여기 갯벌을 시로 썼는데, 그 책도 있고요. 어떤 톤이 좋으세요?",
+        options: [
+          { label: "갯벌 시 한번 들어보고 싶어요", next: 1, traits: ["자연탐험형"], stanceAlign: ["alone_rest"] },
+          { label: "조용한 자연 에세이", next: 2, traits: ["집돌이형"], stanceAlign: ["alone_rest"] },
+          { label: "강화 이주민이 쓴 글", next: 2, traits: ["디지털노마드형"], stanceAlign: ["alone_make"] },
+        ],
+      },
+      {
+        npc:
+          "함민복 시인 같은 강화 작가들이, 사실 도시에선 잘 안 알려진 결을 써요. 갯벌이 어떻게 호흡하는지 한 줄로 잡는 사람들이거든요. 오늘 낮에 갯벌 가시면, 시 한 편 머릿속에 두고 가보세요. 풍경이 달라져요.",
+        options: [
+          { label: "갯벌 가기 전에 한 편 챙길게요", next: 3, traits: ["자연탐험형"], stanceAlign: ["alone_rest"] },
+          { label: "한 권 사서 마당에서 읽고 싶어요", next: 3, traits: ["집돌이형"], stanceAlign: ["alone_rest"] },
+        ],
+      },
+      {
+        npc:
+          "그쪽 책장 보세요. 강화에서 십 년 산 분이 쓴 책, 떠나는 사람이 두고 간 책, 메모 적힌 책도 있어요. 사람의 흔적이 남은 책이죠. 잠시 머무신다면, 손 가는 한 권 고르고 오늘 만난 한 문장 적어 두세요.",
+        options: [
+          { label: "한 문장 기록하고 갈게요", next: 3, traits: ["디지털노마드형", "자연탐험형"], stanceAlign: ["alone_make"] },
+          { label: "조용히 한 권 골라볼게요", next: 3, traits: ["집돌이형"], stanceAlign: ["alone_rest"] },
+        ],
+      },
+      {
+        npc:
+          "또 와요. 책방 페스티벌도 가끔 해요. 강화 책방들끼리 같이 여는데, 그땐 더 풍성해요. 첫날부터 책방 들른 분, 사흘 동안 한 번 더 와요. 보통 그러시거든요.",
+        options: [
+          { label: "다음에 다시 들를게요", traits: ["자연탐험형", "집돌이형", "디지털노마드형", "레저형"] },
+        ],
+      },
+    ],
+  },
+
+  // ─── 강화 향토음식 (Day 1 저녁 메인 + 보너스 2) ──────────────
+  // 잠시섬 발표용 reality anchor — 고려 천도(1232)·갯벌장어·시장 간식.
+  // 출처: TravieIncheon (젓국갈비), Outdoornews (갯벌장어), Brunch (잠시섬 후기 시장 미션).
+  {
+    id: "cheongpung-jeotguk",
+    title: "젓국갈비 한 그릇",
+    icon: "🍲",
+    category: "감정/분위기형",
+    mode: "dialogue",
+    reward: 13,
+    background: "cafe",
+    npc: { name: "동네 식당 사장님", emoji: "👩‍🍳" },
+    npcScene: { src: "/mission/restaurantgrandma.webp" },
+    description: "강화 향토음식 — 고려 임금에게 올렸던 맑은 갈비탕",
+    dialogues: [
+      {
+        npc:
+          "어서 와요. 첫 끼는 젓국갈비 어때요? 강화 와서 이거 안 먹고 가면 섭섭해요. 다른 데선 못 먹어요.",
+        options: [
+          { label: "처음 들어봐요. 어떤 음식이에요?", next: 1, traits: ["자연탐험형", "집돌이형"] },
+          { label: "좋아요, 한 그릇 주세요", next: 2, traits: ["레저형", "디지털노마드형"] },
+        ],
+      },
+      {
+        npc:
+          "고려 임금이 강화 천도(1232년) 했을 때 진상으로 올렸던 음식이에요. 돼지갈비 탕에 강화 새우젓으로 간 맞춰서, 소금 안 써도 시원해요. 시래기·배추·호박 다 들어가요.",
+        options: [
+          { label: "역사 이야기까지 있네요", next: 2, traits: ["자연탐험형"], stanceAlign: ["alone_rest"] },
+          { label: "맑은 국물 좋아해요", next: 2, traits: ["집돌이형"], stanceAlign: ["alone_rest"] },
+        ],
+      },
+      {
+        npc:
+          "강화 앞바다가 전국 젓새우 70% 잡히는 데예요. 그러니까 새우젓이 워낙 좋아서, 이 한 그릇이 곧 강화 한 동네예요. 천천히 드세요.",
+        options: [
+          { label: "이 한 그릇에 강화가 다 들었네요", next: 3, traits: ["자연탐험형"], stanceAlign: ["alone_rest"] },
+          { label: "또 와서 먹고 싶어요", next: 3, traits: ["집돌이형", "디지털노마드형"] },
+        ],
+      },
+      {
+        npc:
+          "또 와요. 우리집은 점심·저녁 다 해요. 다음엔 친구도 데려와요. 같이 먹으면 더 맛있어요.",
+        options: [
+          { label: "꼭 다시 올게요", traits: ["자연탐험형", "집돌이형", "디지털노마드형", "레저형"] },
+        ],
+      },
+    ],
+  },
+
+  {
+    id: "cheongpung-eel",
+    title: "갯벌장어 한 끼",
+    icon: "🦪",
+    category: "감정/분위기형",
+    mode: "dialogue",
+    reward: 10,
+    background: "neighbor",
+    npc: { name: "장어집 사장님", emoji: "🍢" },
+    npcScene: { src: "/mission/villagemanager.webp" },
+    description: "강화 갯벌에서 자란 장어 — 갯벌 미션의 연장선",
+    dialogues: [
+      {
+        npc:
+          "갯벌 한 바퀴 도셨다구요? 그럼 보양은 갯벌장어로 해야지. 강화 갯벌이 세계 3대 갯벌인 거 아세요? 거기서 자란 장어라 살이 통통하고 비린내가 없어요.",
+        options: [
+          { label: "민물장어랑 뭐가 달라요?", next: 1, traits: ["자연탐험형"], stanceAlign: ["alone_rest"] },
+          { label: "보양 좀 해야겠어요", next: 2, traits: ["집돌이형", "디지털노마드형"], stanceAlign: ["alone_rest"] },
+        ],
+      },
+      {
+        npc:
+          "민물장어는 부드러운데 좀 물려요. 갯벌장어는 갯벌 미네랄 머금어서 쫄깃해요. 처음은 소금구이로, 마무리는 양념구이로. 그게 정석이에요.",
+        options: [
+          { label: "소금구이부터 시작할게요", next: 2, traits: ["자연탐험형", "집돌이형"], stanceAlign: ["alone_rest"] },
+        ],
+      },
+      {
+        npc:
+          "강화 분들도 일주일에 한 번씩 와요. 사흘 다니면 몸이 좀 무거워질 때, 이거 한 끼 하면 다시 가벼워져요. 천천히 드세요.",
+        options: [
+          { label: "여기 살면 일상이 보양이네요", traits: ["자연탐험형", "집돌이형"], stanceAlign: ["alone_rest"] },
+        ],
+      },
+    ],
+  },
+
+  {
+    id: "cheongpung-snack",
+    title: "시장 간식 한 봉지",
+    icon: "🍠",
+    category: "감정/분위기형",
+    mode: "dialogue",
+    reward: 7,
+    background: "market",
+    npc: { name: "시장 노점 할머니", emoji: "🍡" },
+    description: "강화 속노란 고구마말랭이·국화빵·약쑥떡 — 들고 다니며 한 입",
+    dialogues: [
+      {
+        npc:
+          "시장 한 바퀴 도시다 출출하지? 우리 군고구마말랭이 한 봉지 사 갈래요? 강화 속노란 고구마라 단맛이 진해요.",
+        options: [
+          { label: "한 봉지 주세요", next: 1, traits: ["자연탐험형", "집돌이형"] },
+          { label: "국화빵도 있나요?", next: 2, traits: ["디지털노마드형", "레저형"] },
+        ],
+      },
+      {
+        npc:
+          "잘 골랐어. 이거 들고 갯벌 가서 노을 보면서 먹으면 진짜 좋아요. 강화 분들도 그렇게 해요. 가방에 한 봉지 항상 들어 있어요.",
+        options: [
+          { label: "갯벌 가는 길에 들고 갈게요", next: 3, traits: ["자연탐험형"], stanceAlign: ["alone_rest"] },
+        ],
+      },
+      {
+        npc:
+          "국화빵도 좋고, 약쑥떡도 좋고. 다 가져갈래요? 잠시 머무는 분들이 우리집 거 사서 게스트하우스 친구들이랑 나눠 먹어요. 그러면서 친해져요.",
+        options: [
+          { label: "두 봉지로 할게요. 나눠 먹으려고요", next: 3, traits: ["레저형"], stanceAlign: ["together_rest"] },
+          { label: "한 봉지면 충분해요", next: 3, traits: ["집돌이형"], stanceAlign: ["alone_rest"] },
+        ],
+      },
+      {
+        npc:
+          "또 와요. 우리는 풍물장 (2일·7일)에 더 다양하게 펴요. 그날 오면 더 재밌어요.",
+        options: [
+          { label: "장날 맞춰 다시 올게요", traits: ["자연탐험형", "레저형"] },
         ],
       },
     ],
@@ -2395,39 +2772,60 @@ import { commonMissions } from "./missions";
 import type { TimeOfDay, MissionTier } from "./missions";
 
 // ────────────────────────────────────────────────────────────
-// Phase A — 강화도 미션 plan
-// 9 main (3일 × 3시간대) + 5 bonus.
+// Phase A — 강화도 미션 plan (3박 4일)
+// 12 main (4일 × 3시간대) + 6 bonus.
 // 미션 id 를 key 로 timeOfDay/tier/day 만 정의.
 // missionsForResidence("ganghwa") 가 이걸로 미션 메타를 enrichment.
+//
+// 서사 아크 (잠시섬 모티프):
+//   Day 1 — 첫인상 (도착·바다)
+//   Day 2 — 관계 (사람 만나기)
+//   Day 3 — 생업 (손으로 만들기)
+//   Day 4 — 인프라·정착 상상·작별
+//
+// mailbox 미션은 제거 — 시뮬레이션 우체통은 LetterScreen 진입점으로 살아있음.
 // ────────────────────────────────────────────────────────────
 type MissionPlanEntry = {
   timeOfDay?: TimeOfDay;
   tier: MissionTier;
-  day?: number; // 1~3 (main 만)
+  day?: number; // 1~4 (main 만)
 };
 
 const GANGHWA_PLAN: Record<string, MissionPlanEntry> = {
-  // ─── Day 1 — 동네 첫인상 ─────────────────
-  shop:              { timeOfDay: "아침", tier: "main", day: 1 },
-  "ganghwa-mudflat": { timeOfDay: "낮",   tier: "main", day: 1 },
-  market:            { timeOfDay: "저녁", tier: "main", day: 1 },
+  // ─── Day 1 — 첫인상 (도착·바다) ─────────
+  //   아침 = 동네 책방 (강화 로컬 작가 큐레이션 — 함민복 시인 갯벌 시로 낮 갯벌 미션과 정서 연결).
+  //   저녁 = food (하루 식비) — 기존 흐름.
+  //   shop(공통 동네 가게) + cheongpung-jeotguk(향토음식)은 보너스로.
+  "cheongpung-bookstore":{ timeOfDay: "아침", tier: "main", day: 1 },
+  "ganghwa-mudflat":     { timeOfDay: "낮",   tier: "main", day: 1 },
+  food:                  { timeOfDay: "저녁", tier: "main", day: 1 },
 
-  // ─── Day 2 — 이웃과 연결 ─────────────────
-  "ganghwa-market":  { timeOfDay: "아침", tier: "main", day: 2 },
-  "ganghwa-farm":    { timeOfDay: "낮",   tier: "main", day: 2 },
-  neighbor:          { timeOfDay: "저녁", tier: "main", day: 2 },
+  // ─── Day 2 — 관계 (사람 만나기) ─────────
+  "ganghwa-market":      { timeOfDay: "아침", tier: "main", day: 2 }, // 순무김치 시식 + 밴댕이·약쑥떡
+  "ganghwa-farm":        { timeOfDay: "낮",   tier: "main", day: 2 }, // 텃밭 클럽 톤
+  neighbor:              { timeOfDay: "저녁", tier: "main", day: 2 }, // 사랑방 펍 톤
 
-  // ─── Day 3 — 인프라 + 마무리 ────────────
-  hospital:          { timeOfDay: "아침", tier: "main", day: 3 },
-  transit:           { timeOfDay: "낮",   tier: "main", day: 3 },
-  "ganghwa-sunset":  { timeOfDay: "저녁", tier: "main", day: 3 },
+  // ─── Day 3 — 생업 (손으로 만들기) ───────
+  "cheongpung-socheang": { timeOfDay: "아침", tier: "main", day: 3 },
+  "cheongpung-yoga":     { timeOfDay: "낮",   tier: "main", day: 3 },
+  "cheongpung-record":   { timeOfDay: "저녁", tier: "main", day: 3 },
 
-  // ─── 보너스 — 추가 미션 (시간대 X, 일차 X) ───
-  "ganghwa-dolmen":  { tier: "bonus" },
-  food:              { tier: "bonus" },
-  cost:              { tier: "bonus" },
-  routine:           { tier: "bonus" },
-  mailbox:           { tier: "bonus" },
+  // ─── Day 4 — 인프라·정착 상상·작별 ──────
+  hospital:              { timeOfDay: "아침", tier: "main", day: 4 }, // 이주 현실 톤
+  "cheongpung-onsen":    { timeOfDay: "낮",   tier: "main", day: 4 },
+  "ganghwa-sunset":      { timeOfDay: "저녁", tier: "main", day: 4 },
+
+  // ─── 보너스 ─────────────────────────────
+  //   기존 6개 + 향토음식 후속 2개 + food (격하). 총 9개.
+  "ganghwa-dolmen":      { tier: "bonus" },
+  cost:                  { tier: "bonus" },
+  market:                { tier: "bonus" },
+  transit:               { tier: "bonus" },
+  "cheongpung-fortress": { tier: "bonus" },
+  shop:                  { tier: "bonus" }, // 동네 가게 — 아침 메인이 책방으로 바뀌면서 격하
+  "cheongpung-jeotguk":  { tier: "bonus" }, // 강화 향토음식 (젓국갈비) — 향토 reality anchor 보너스
+  "cheongpung-eel":      { tier: "bonus" }, // 갯벌장어 — 갯벌 미션과 연결
+  "cheongpung-snack":    { tier: "bonus" }, // 시장 군고구마말랭이·국화빵
 };
 
 // plan 적용 헬퍼 — 미션 객체에 timeOfDay/tier/day 메타 enrichment

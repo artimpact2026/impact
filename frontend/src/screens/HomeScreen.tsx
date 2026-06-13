@@ -41,7 +41,7 @@ export default function HomeScreen({ homeRegion, onDepart }: Props) {
           animate={{ y: [-2, 2, -2] }}
           transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
         >
-          <SpeechBubble>오늘도 어디론가 떠나볼까?</SpeechBubble>
+          <SpeechBubble>어느 동네에서 지내볼까?</SpeechBubble>
         </motion.div>
       </section>
 

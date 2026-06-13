@@ -23,12 +23,12 @@ import SettingsScreen from "./screens/SettingsScreen";
 import CommunityScreen from "./screens/CommunityScreen";
 import ProfileScreen from "./screens/ProfileScreen";
 import LetterScreen from "./screens/LetterScreen";
+import PuzzleScreen from "./screens/PuzzleScreen";
 import {
   getInitialLetters,
   loadLetters,
   makeArrivalLetter,
   makeBookingConfirmedLetter,
-  makeDayCompleteLetter,
   makeNextDayLetter,
   makeReportLetter,
   saveLetters,
@@ -47,6 +47,7 @@ import {
   HANSEOL_EVENING_HINT,
   GANGHWA_ID,
 } from "./data/ganghwaStory";
+import { useDayComplete } from "./hooks/useDayComplete";
 import {
   getDecorDropFor,
   loadAcquiredDecor,
@@ -101,7 +102,6 @@ import {
 import { missionsForResidence } from "./data/regionMissions";
 import {
   buildDayPlan,
-  houseStageFromProgress,
   isDayComplete,
 } from "./data/dayPlan";
 
@@ -132,7 +132,8 @@ type Tab1Route =
   | "mission-complete"
   | "traveling-back"
   | "day-end-ceremony"
-  | "letter";
+  | "letter"
+  | "puzzle";
 
 // 탭2 화면 흐름 (여정)
 type Tab2Route =
@@ -151,6 +152,7 @@ const PROFILE_KEY = "cheongpung.onboarding.v1";
 const PROGRESS_KEY = "cheongpung.progress.v1";
 const LIKED_KEY = "cheongpung.bookingLiked.v1";
 const LETTERS_KEY = "cheongpung.letters.v1"; // letters.ts와 동일 키 — reset에서 함께 제거
+const PUZZLE_KEY = "cheongpung.puzzleFilled.v1"; // 주간 퍼즐 — 지역별 채운 조각 수
 
 type SavedProfile = {
   homeRegionName: string;
@@ -279,6 +281,82 @@ export default function App() {
   const [cinematicResidenceId, setCinematicResidenceId] = useState<string | null>(null);
   const [cinematicLoading, setCinematicLoading] = useState(false);
 
+  // === 현재 지역 진행 derivation (훅 입력) ===
+  // 조기 반환(`if (!profile)`) 전에 useDayComplete 가 호출돼야 React 훅 순서 보존.
+  const currentRecord = selected ? regionProgress[selected.id] : undefined;
+  const currentCompletedIds = new Set(currentRecord?.completedMissionIds ?? []);
+  const currentScore = currentRecord?.score ?? 0;
+  const currentDayPlan = selected
+    ? buildDayPlan(selected, missionsForResidence(selected.id))
+    : null;
+  const currentDay = currentRecord?.currentDay ?? 1;
+  const dayState = useDayComplete({
+    missionsByDay: currentDayPlan?.missionsByDay ?? [],
+    bonusMissionIds: currentDayPlan?.bonusMissionIds ?? [],
+    currentDay,
+    completedIds: currentCompletedIds,
+  });
+  const hasBonusFlow = (currentDayPlan?.bonusMissionIds.length ?? 0) > 0;
+
+  // === 바람이지음 마스코트 게이팅 — 변형 × 일차 × 지역 단위 하루 1회 (in-memory) ===
+  const [mascotShown, setMascotShown] = useState<Record<string, boolean>>({});
+
+  // === 주간 퍼즐 진행 — 지역별 채워진 조각 수 (localStorage 영속) ===
+  //   채워진 조각 수 = 그 지역에서 종료 충족된 일차 수.
+  //   PuzzleScreen 의 prev → new 전환 애니메이션은 별도 transition state.
+  const [puzzleFilled, setPuzzleFilled] = useState<Record<string, number>>(
+    () => {
+      try {
+        const raw = localStorage.getItem(PUZZLE_KEY);
+        return raw ? (JSON.parse(raw) as Record<string, number>) : {};
+      } catch {
+        return {};
+      }
+    }
+  );
+  const [puzzleTransition, setPuzzleTransition] = useState<{
+    residenceId: string;
+    prev: number;
+    next: number;
+  } | null>(null);
+  useEffect(() => {
+    try {
+      localStorage.setItem(PUZZLE_KEY, JSON.stringify(puzzleFilled));
+    } catch {
+      /* ignore */
+    }
+  }, [puzzleFilled]);
+
+  // === 이주 리포트 자동 생성 백필 ===
+  //   이미 미션을 다 끝낸 지역이 있는데 리포트가 안 생긴 경우 — 백그라운드 자동 생성.
+  //   (옛 데이터에 적용, 또는 미션 완료 시 자동 트리거가 어떤 이유로 실패한 경우 보완.)
+  //   useEffect 의 콜백이 ensureReportGenerated 를 참조하지만, 콜백은 렌더 이후에 실행되므로
+  //   클로저는 (그때) 정의된 ensureReportGenerated 를 찾을 수 있음 — 선언 순서 안전.
+  const reportGeneratingRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!profile) return; // 온보딩 전엔 진행 데이터 자체가 없으니 skip
+    for (const r of residences) {
+      if (reportGeneratingRef.current.has(r.id)) continue;
+      const rec = regionProgress[r.id];
+      if (!rec || rec.migrationReport) continue;
+      if ((rec.visitCount ?? 0) === 0) continue;
+      const { missionsByDay, dayCount } = buildDayPlan(
+        r,
+        missionsForResidence(r.id)
+      );
+      if ((rec.currentDay ?? 1) < dayCount) continue;
+      const completedSet = new Set(rec.completedMissionIds);
+      const allDaysDone = missionsByDay
+        .slice(0, dayCount)
+        .every((ids) => ids.every((id) => completedSet.has(id)));
+      if (!allDaysDone) continue;
+      reportGeneratingRef.current.add(r.id);
+      void ensureReportGenerated(r, rec).finally(() => {
+        reportGeneratingRef.current.delete(r.id);
+      });
+    }
+  }, [regionProgress, profile]);
+
   // 좋아요한 청년마을 localStorage 영속
   useEffect(() => {
     saveLiked(bookingLiked);
@@ -332,11 +410,15 @@ export default function App() {
         localStorage.removeItem(DECOR_STORAGE_KEY);
         localStorage.removeItem(PLACED_STORAGE_KEY);
         localStorage.removeItem(QUOTES_STORAGE_KEY);
+        localStorage.removeItem(PUZZLE_KEY);
         setLetters(getInitialLetters());
         setAcquiredItems([]);
         setAcquiredDecorItems([]);
         setPlacedDecor({});
         setSavedQuotes([]);
+        setPuzzleFilled({});
+        setPuzzleTransition(null);
+        setMascotShown({});
         setProfile(null);
         setSelected(null);
         setTab1Route("home");
@@ -411,12 +493,31 @@ export default function App() {
           currentDay: dayCount,
         };
         setRegionProgress((p) => ({ ...p, [target.id]: filled }));
+        // === skipTo 데모 보강 — 자재·기념품도 함께 채워서 마지막 날 의식이 풍성하게 ===
+        // 미션 완료 부수효과(드롭)는 handleMissionComplete 에서만 도는데,
+        // skipTo 는 우회 점프라 부수효과가 비어 있음. 상태 A 갤러리·뱃지가 의미를 갖도록 동시 적용.
+        const decorDrops: DecorItem[] = missions.map((m) =>
+          getDecorDropFor(m.id, target.id, target.region, m.title)
+        );
+        const itemDrops: Item[] = missions
+          .map((m) => getItemDropFor(m.id, target.id))
+          .filter((it): it is Item => it !== null);
+        setAcquiredDecorItems((prev) => {
+          const existingIds = new Set(prev.map((d) => d.id));
+          return [...prev, ...decorDrops.filter((d) => !existingIds.has(d.id))];
+        });
+        setAcquiredItems((prev) => {
+          const existingIds = new Set(prev.map((i) => i.id));
+          return [...prev, ...itemDrops.filter((i) => !existingIds.has(i.id))];
+        });
+        // 마지막 날 상태 A 가 깨끗하게 보이도록 해당 레지던스 placed 배치는 비움
+        setPlacedDecor((prev) => ({ ...prev, [target.id]: {} }));
         setSelected(target);
         setActiveMission(null);
         setTab("simulation");
         setTab1Route("day-end-ceremony");
         console.log(
-          `[cheongpung] ${target.region} 8/8 미션 완료 mock 적용 → 하루 끝 의식`
+          `[cheongpung] ${target.region} ${missions.length}개 미션 완료 mock + 자재 ${decorDrops.length}/기념품 ${itemDrops.length} 채움 → 하루 끝 의식`
         );
       },
       // 하루만 +1 (미션 진행 없이 일차만 올림) — 나의 공간 단계 전환 확인용
@@ -605,16 +706,24 @@ export default function App() {
       ? { xPct: matchedResidence.xPct, yPct: matchedResidence.yPct }
       : HOME_POSITIONS["서울"]);
 
-  // 현재 지역 진행 데이터
-  const currentRecord = selected ? regionProgress[selected.id] : undefined;
-  const currentCompletedIds = new Set(currentRecord?.completedMissionIds ?? []);
-  const currentScore = currentRecord?.score ?? 0;
-
-  // 현재 지역의 일차 계획
-  const currentDayPlan = selected
-    ? buildDayPlan(selected, missionsForResidence(selected.id))
+  // 마스코트/퍼즐 state + useDayComplete 훅은 조기 반환 전(파일 상단)에서 호출됨.
+  // 여기서는 그 결과를 받아 derivation 만 계산.
+  // 여기서는 그 state 들을 기반으로 한 derivation 만 계산.
+  const mascotKey = selected
+    ? `${selected.id}::day${currentDay}`
     : null;
-  const currentDay = currentRecord?.currentDay ?? 1;
+  const mascotVariant: "urgent" | "complete" | null = (() => {
+    if (!hasBonusFlow || !mascotKey) return null;
+    if (dayState.isDayComplete && !mascotShown[`${mascotKey}::complete`])
+      return "complete";
+    if (dayState.isUrgent && !mascotShown[`${mascotKey}::urgent`])
+      return "urgent";
+    return null;
+  })();
+  const dismissMascot = (variant: "urgent" | "complete") => {
+    if (!mascotKey) return;
+    setMascotShown((prev) => ({ ...prev, [`${mascotKey}::${variant}`]: true }));
+  };
 
   // 시뮬레이션 탭 안에서 "레지던스 진입 후 흐름"으로 인정할 화면들.
   // 다른 탭에 다녀와도 이 화면 중 하나에 있었다면 그대로 보존 (사용자 멘탈 모델:
@@ -627,6 +736,7 @@ export default function App() {
     "mission-execute",
     "mission-complete",
     "day-end-ceremony",
+    "puzzle",
   ];
 
   const handleTabChange = (next: TabKey) => {
@@ -760,10 +870,7 @@ export default function App() {
     );
     const cur = currentRecord?.currentDay ?? 1;
     if (cur < dayCount) {
-      // 일차 완료 편지 (방금 마친 cur일) + 다음 일차 안부 편지 (cur+1) 두 통.
-      const doneCount =
-        (currentRecord?.completedMissionIds.length ?? 0);
-      addLetter(makeDayCompleteLetter(selected, cur, doneCount));
+      // 다음 일차 아침 안부 편지 한 통만. (저녁 회고 편지는 "오늘 끝" 의식 화면이 대신함)
       addLetter(makeNextDayLetter(selected, cur + 1));
       setRegionProgress((p) => advanceDay(p, selected.id, dayCount));
     }
@@ -796,32 +903,7 @@ export default function App() {
       setTab("community");
     });
 
-  // 이미 미션을 다 끝낸 지역이 있는데 리포트가 안 생긴 경우 — 백그라운드 자동 생성.
-  // (옛 데이터에 적용, 또는 미션 완료 시 자동 트리거가 어떤 이유로 실패한 경우 보완.)
-  const reportGeneratingRef = useRef<Set<string>>(new Set());
-  useEffect(() => {
-    for (const r of residences) {
-      if (reportGeneratingRef.current.has(r.id)) continue;
-      const rec = regionProgress[r.id];
-      if (!rec || rec.migrationReport) continue;
-      if ((rec.visitCount ?? 0) === 0) continue;
-      const { missionsByDay, dayCount } = buildDayPlan(
-        r,
-        missionsForResidence(r.id)
-      );
-      if ((rec.currentDay ?? 1) < dayCount) continue;
-      const completedSet = new Set(rec.completedMissionIds);
-      const allDaysDone = missionsByDay
-        .slice(0, dayCount)
-        .every((ids) => ids.every((id) => completedSet.has(id)));
-      if (!allDaysDone) continue;
-      reportGeneratingRef.current.add(r.id);
-      void ensureReportGenerated(r, rec).finally(() => {
-        reportGeneratingRef.current.delete(r.id);
-      });
-    }
-  }, [regionProgress]);
-
+  // 리포트 자동 생성 훅은 조기 반환 전으로 이동됨 — 본체 derivation 만 여기에.
   // 이주 리포트 생성만 — 캐시 있으면 no-op. UI 안 띄움. 백그라운드에서도 호출 가능.
   // rec 을 직접 받아 호출 시점의 최신 progress 를 보장 (state 업데이트 race 회피).
   const ensureReportGenerated = async (
@@ -1054,6 +1136,38 @@ export default function App() {
                     [selected.id]: next,
                   }))
                 }
+                mascot={
+                  mascotVariant === "complete"
+                    ? {
+                        variant: "complete",
+                        onDismiss: () => {
+                          dismissMascot("complete");
+                          // Phase 4 — 바람이지음 마무리 → 퍼즐 조각 채우기 → 의식.
+                          // prev/next 를 transition state 에 박아두면 PuzzleScreen 이
+                          // 새 조각이 들어오는 애니메이션을 보여줄 수 있음.
+                          const prev = puzzleFilled[selected.id] ?? 0;
+                          if (currentDay > prev) {
+                            setPuzzleTransition({
+                              residenceId: selected.id,
+                              prev,
+                              next: currentDay,
+                            });
+                            setPuzzleFilled((prevAll) => ({
+                              ...prevAll,
+                              [selected.id]: currentDay,
+                            }));
+                          }
+                          setTab1Route("puzzle");
+                        },
+                      }
+                    : mascotVariant === "urgent"
+                    ? {
+                        variant: "urgent",
+                        remaining: dayState.remainingToComplete,
+                        onDismiss: () => dismissMascot("urgent"),
+                      }
+                    : undefined
+                }
                 showHanseolIntro={
                   selected.id === "ganghwa" &&
                   currentDay === 1 &&
@@ -1199,14 +1313,6 @@ export default function App() {
             residenceId={selected.id}
             finishedDay={currentDay}
             totalDays={currentDayPlan.dayCount}
-            prevStage={houseStageFromProgress(
-              currentDay - 1,
-              currentDayPlan.dayCount
-            )}
-            newStage={houseStageFromProgress(
-              currentDay,
-              currentDayPlan.dayCount
-            )}
             onClose={handleDayCeremonyClose}
             suggestions={
               currentDay >= currentDayPlan.dayCount
@@ -1228,19 +1334,29 @@ export default function App() {
                   ]
                 : [
                     {
-                      icon: "🗺️",
-                      title: "나의 여정에서 진행 보기",
-                      subtitle: "오늘까지 쌓인 흔적과 자라는 집",
-                      onClick: handleCeremonyGoJourney,
+                      icon: "🌿",
+                      title: "내 자리 가서 마당 꾸미기",
+                      subtitle: "오늘 받은 자재로 마당 한 곳에",
+                      onClick: () => {
+                        // 비-마지막일: 다음 일차로 진행(finishDayAnd) 후 residence-home 으로.
+                        // finishDayAnd 가 일차 +1 + 안부 편지 처리.
+                        finishDayAnd(() => setTab1Route("residence-home"));
+                      },
                     },
                     {
-                      icon: "💬",
-                      title: "커뮤니티 가보기",
-                      subtitle: "다른 사람들의 잠시섬 이야기",
-                      onClick: handleCeremonyGoCommunity,
+                      icon: "🗺️",
+                      title: "나의 여정에서 진행 보기",
+                      subtitle: "오늘까지 쌓인 흔적",
+                      onClick: handleCeremonyGoJourney,
                     },
                   ]
             }
+            // === 마지막 날 분기 (상태 A) 용 데이터 ===
+            acquiredDecorItems={acquiredDecorItems}
+            acquiredItems={acquiredItems}
+            placedDecor={placedDecor[selected.id] ?? {}}
+            onGoYard={() => setTab1Route("residence-home")}
+            onOpenCinematic={handleCeremonyOpenCinematic}
           />
         )}
 
@@ -1312,7 +1428,17 @@ export default function App() {
               onNext={() => {
                 const dayDone = completionData.isLastMissionToday;
                 setCompletionData(null);
-                setTab1Route(dayDone ? "day-end-ceremony" : "mission-list");
+                // 강화 (보너스 흐름 있음):
+                //   · 종료 충족(mains + bonus 2+) → ResidenceHome 으로 (마스코트 complete → 퍼즐 → 의식)
+                //   · 아직 종료 X → 바로 mission-list 로 (점심/저녁 안내 자연스럽게)
+                // 다른 지역: mains 끝났으면 의식, 아니면 mission-list (기존).
+                if (hasBonusFlow) {
+                  setTab1Route(
+                    dayState.isDayComplete ? "residence-home" : "mission-list"
+                  );
+                } else {
+                  setTab1Route(dayDone ? "day-end-ceremony" : "mission-list");
+                }
               }}
             />
           )}
@@ -1419,6 +1545,31 @@ export default function App() {
             }
             onBack={() => setTab1Route("residence-home")}
             nickname={nickname}
+          />
+        )}
+
+        {/* ===== 주간 퍼즐 — 바람이지음 마무리 → 조각 채우기 → 의식 ===== */}
+        {tab === "simulation" && tab1Route === "puzzle" && selected && currentDayPlan && (
+          <PuzzleScreen
+            region={selected.region}
+            totalPieces={currentDayPlan.dayCount}
+            prev={
+              puzzleTransition?.residenceId === selected.id
+                ? puzzleTransition.prev
+                : puzzleFilled[selected.id] ?? 0
+            }
+            next={
+              puzzleTransition?.residenceId === selected.id
+                ? puzzleTransition.next
+                : puzzleFilled[selected.id] ?? 0
+            }
+            imageSrc="/puzzle/puzzle2.png"
+            onContinue={() => {
+              // 조각 다 채우면 마지막 — TODO(final-day): 이주 리포트/마당 진입점 분기.
+              // 지금은 모든 일차에서 일관되게 day-end-ceremony 로.
+              setPuzzleTransition(null);
+              setTab1Route("day-end-ceremony");
+            }}
           />
         )}
 
